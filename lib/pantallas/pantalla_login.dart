@@ -79,6 +79,10 @@ class PantallaLogin extends StatelessWidget {
                 const SizedBox(height: 25),
                 GestureDetector(
                   onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PantallaRegistro()),
+                    );
                   },
                   child: RichText(
                     text: const TextSpan(
