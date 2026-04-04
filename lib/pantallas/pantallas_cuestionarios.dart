@@ -1,8 +1,234 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-class PantallaCuestionarioEnfermero extends StatelessWidget {
+class PantallaCuestionarioEnfermero extends StatefulWidget {
   const PantallaCuestionarioEnfermero({super.key});
-  @override Widget build(BuildContext context) { return Scaffold(appBar: AppBar(title: const Text('Cuestionario Enfermero')), body: const Center(child: Text('Preguntas para Enfermeros'))); }
+
+  @override
+  State<PantallaCuestionarioEnfermero> createState() => _PantallaCuestionarioEnfermeroState();
+}
+
+class _PantallaCuestionarioEnfermeroState extends State<PantallaCuestionarioEnfermero> with SingleTickerProviderStateMixin {
+  String? areaSeleccionada;
+  late AnimationController _controladorPrincipal;
+
+  late Animation<double> _animacionOpacidadHeader;
+  late Animation<Offset> _animacionSlidePaso1;
+  late Animation<Offset> _animacionSlidePaso2;
+  late Animation<Offset> _animacionSlidePaso3;
+  late Animation<Offset> _animacionSlideBoton;
+
+  final List<String> areas = [
+    'Medicina Interna',
+    'Endocrinología',
+    'Urgencias',
+    'Pediatría',
+    'Otra'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _controladorPrincipal = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+
+    _animacionOpacidadHeader = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controladorPrincipal, curve: const Interval(0.0, 0.2, curve: Curves.easeIn)),
+    );
+
+    _animacionSlidePaso1 = Tween<Offset>(begin: const Offset(0.5, 0.0), end: Offset.zero).animate(
+      CurvedAnimation(parent: _controladorPrincipal, curve: const Interval(0.1, 0.4, curve: Curves.easeOutCubic)),
+    );
+
+    _animacionSlidePaso2 = Tween<Offset>(begin: const Offset(0.5, 0.0), end: Offset.zero).animate(
+      CurvedAnimation(parent: _controladorPrincipal, curve: const Interval(0.3, 0.6, curve: Curves.easeOutCubic)),
+    );
+
+    _animacionSlidePaso3 = Tween<Offset>(begin: const Offset(0.5, 0.0), end: Offset.zero).animate(
+      CurvedAnimation(parent: _controladorPrincipal, curve: const Interval(0.5, 0.8, curve: Curves.easeOutCubic)),
+    );
+
+    _animacionSlideBoton = Tween<Offset>(begin: const Offset(0.0, 0.5), end: Offset.zero).animate(
+      CurvedAnimation(parent: _controladorPrincipal, curve: const Interval(0.7, 1.0, curve: Curves.easeOutCubic)),
+    );
+
+    _controladorPrincipal.forward();
+  }
+
+  @override
+  void dispose() {
+    _controladorPrincipal.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF1C63BB),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 35.0, vertical: 10.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FadeTransition(
+                opacity: _animacionOpacidadHeader,
+                child: Center(
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.medical_information, size: 60, color: Colors.white),
+                      ),
+                      const SizedBox(height: 25),
+                      const Text(
+                        'Perfil Médico',
+                        style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Hagamos tu perfil oficial.'+'\nPara garantizar la seguridad de los pacientes, necesitamos agregar información sobre tí.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16, color: Color(0xFFE8E8E8)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 35),
+
+              SlideTransition(
+                position: _animacionSlidePaso1,
+                child: _crearCampoTexto(titulo: 'Cédula Profesional', hint: 'Ej. 12345678', esNumero: true, icono: Icons.badge_outlined),
+              ),
+              const SizedBox(height: 20),
+
+              SlideTransition(
+                position: _animacionSlidePaso2,
+                child: _crearCampoTexto(titulo: 'Institución Médica', hint: 'Hospital o Clínica donde laboras', icono: Icons.local_hospital_outlined),
+              ),
+              const SizedBox(height: 20),
+
+              SlideTransition(
+                position: _animacionSlidePaso3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Área a la que pertenece',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 10.0,
+                      runSpacing: 10.0,
+                      children: areas.map((area) => ChoiceChip(
+                        label: Text(area),
+                        selected: areaSeleccionada == area,
+                        selectedColor: const Color(0xFF00D1FF).withOpacity(0.3),
+                        backgroundColor: Colors.white,
+                        labelStyle: TextStyle(
+                          color: areaSeleccionada == area ? Colors.white : Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        side: BorderSide(
+                          color: areaSeleccionada == area ? const Color(0xFF00D1FF) : const Color(0xFFD2D2D2),
+                          width: 1.5,
+                        ),
+                        onSelected: (selected) {
+                          setState(() { areaSeleccionada = selected ? area : null; });
+                        },
+                      )).toList(),
+                    ),
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      child: areaSeleccionada == 'Otra'
+                          ? Padding(
+                        padding: const EdgeInsets.only(top: 15.0),
+                        child: _crearCampoTexto(titulo: 'Especifica el área', hint: 'Escribe tu área médica', icono: Icons.edit_outlined),
+                      )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 45),
+
+              SlideTransition(
+                position: _animacionSlideBoton,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF008CCF),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                          side: const BorderSide(color: Color(0xFFD2D2D2), width: 1.5)
+                      ),
+                    ),
+                    child: const Text('Finalizar Registro', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _crearCampoTexto({required String titulo, required String hint, bool esNumero = false, required IconData icono}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          titulo,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
+        ),
+        const SizedBox(height: 5),
+        TextField(
+          keyboardType: esNumero ? TextInputType.number : TextInputType.text,
+          inputFormatters: esNumero ? [FilteringTextInputFormatter.digitsOnly] : [],
+          decoration: InputDecoration(
+            prefixIcon: Icon(icono, color: const Color(0xFF1C63BB)),
+            hintText: hint,
+            hintStyle: const TextStyle(color: Color(0xFF848282)),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: const BorderSide(color: Color(0xFFD2D2D2), width: 2),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: const BorderSide(color: Color(0xFFD2D2D2), width: 2),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: const BorderSide(color: Color(0xFF008CCF), width: 2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class PantallaCuestionarioPaciente extends StatelessWidget {
