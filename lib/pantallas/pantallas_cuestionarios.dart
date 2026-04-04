@@ -254,15 +254,15 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
   final TextEditingController _alturaCtrl = TextEditingController();
   double _imc = 0.0;
 
-  //Parámetros de Control
+  // Variables Fase 2 (Parámetros de Control)
   final TextEditingController _hipoCtrl = TextEditingController(text: '70');
   final TextEditingController _hiperCtrl = TextEditingController(text: '180');
   final TextEditingController _rangoMinCtrl = TextEditingController(text: '80');
   final TextEditingController _rangoMaxCtrl = TextEditingController(text: '130');
 
   // PENDIENTES
-  final TextEditingController _fsiCtrl = TextEditingController(); // Factor de Sensibilidad
-  final TextEditingController _ricCtrl = TextEditingController(); // Relación Insulina/Carbohidratos
+  final TextEditingController _fsiCtrl = TextEditingController();
+  final TextEditingController _ricCtrl = TextEditingController();
 
   final List<String> _opcionesTiempoDx = ['Menos de 1 año', '1 a 5 años', '5 a 10 años', 'Más de 10 años'];
   final List<String> _opcionesTipoDiabetes = ['Tipo 1', 'Tipo 2', 'Gestacional', 'LADA / Otro'];
@@ -281,7 +281,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     _alergiasCtrl.dispose();
     _pesoCtrl.dispose();
     _alturaCtrl.dispose();
-
     _hipoCtrl.dispose();
     _hiperCtrl.dispose();
     _rangoMinCtrl.dispose();
@@ -291,7 +290,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     super.dispose();
   }
 
-  // logica IMC
   void _calcularIMC() {
     if (_pesoCtrl.text.isNotEmpty && _alturaCtrl.text.isNotEmpty) {
       double? peso = double.tryParse(_pesoCtrl.text);
@@ -374,7 +372,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
                 children: [
                   _construirFase0Advertencias(),
                   _construirFase1Perfil(),
-                  _construirFase2Parametros(), // <--- Nueva fase agregada aquí
+                  _construirFase2Parametros(),
                   _construirFasePlaceholder('Fase 3: Medicación'),
                   _construirFasePlaceholder('Fase 4: Estilo de Vida'),
                 ],
@@ -386,6 +384,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     );
   }
 
+  // ==================== FASE 0 ====================
   Widget _construirFase0Advertencias() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(35.0),
@@ -396,7 +395,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
           const SizedBox(height: 20),
           const Text('Antes de comenzar', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 20),
-
           _crearTarjetaGlass(
             hijo: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -411,7 +409,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
             ),
           ),
           const SizedBox(height: 20),
-
           _crearTarjetaGlass(
             hijo: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,8 +554,8 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
               children: [
                 const Icon(Icons.info_outline, color: Color(0xFF00D1FF), size: 30),
                 const SizedBox(width: 15),
-                Expanded(
-                  child: const Text(
+                const Expanded(
+                  child: Text(
                     'Los valores por defecto y acciones correctivas están basados en las Guías Oficiales de la ADA. Puedes modificarlos si tu médico te indicó rangos distintos.',
                     style: TextStyle(fontSize: 14, color: Colors.white),
                   ),
@@ -566,23 +563,24 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
               ],
             ),
           ),
+          const SizedBox(height: 25),
+
+          //grafico
+          _construirGraficoGlucosa(),
           const SizedBox(height: 30),
 
-          // HIPOGLUCEMIA
           _crearCampoTexto(titulo: 'Límite de Hipoglucemia (mg/dL)', hint: 'Ej. 70', controlador: _hipoCtrl, esNumero: true),
           const Padding(
             padding: EdgeInsets.only(top: 8.0, bottom: 20.0),
             child: Text('⚠️ Debajo de este valor, la app disparará el protocolo de acción inmediata.', style: TextStyle(color: Color(0xFFFF6B6B), fontSize: 13)),
           ),
 
-          // HIPERGLUCEMIA
           _crearCampoTexto(titulo: 'Límite de Hiperglucemia (mg/dL)', hint: 'Ej. 180', controlador: _hiperCtrl, esNumero: true),
           const Padding(
             padding: EdgeInsets.only(top: 8.0, bottom: 20.0),
             child: Text('⚠️ Por encima de este valor, se activarán las alertas de control.', style: TextStyle(color: Color(0xFFFFB347), fontSize: 13)),
           ),
 
-          // RANGOS NORMALES
           const Text('Rangos Normales Objetivo (mg/dL)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
           const SizedBox(height: 10),
           Row(
@@ -594,7 +592,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
           ),
           const SizedBox(height: 30),
 
-          // FSI / RIC Pendiente
           Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
@@ -606,9 +603,9 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
               children: [
                 const Text('Configuración Avanzada (Pendiente)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 15),
-                _crearCampoTexto(titulo: 'Factor de Sensibilidad (FSI)', hint: 'Pendiente...', controlador: _fsiCtrl, esNumero: false, activo: false),
+                _crearCampoTexto(titulo: 'Factor de Sensibilidad (FSI)', hint: 'En desarrollo...', controlador: _fsiCtrl, esNumero: false, activo: false),
                 const SizedBox(height: 10),
-                _crearCampoTexto(titulo: 'Relación Insulina/Carbos (RIC)', hint: 'Pendiente...', controlador: _ricCtrl, esNumero: false, activo: false),
+                _crearCampoTexto(titulo: 'Relación Insulina/Carbos (RIC)', hint: 'En desarrollo...', controlador: _ricCtrl, esNumero: false, activo: false),
               ],
             ),
           ),
@@ -628,6 +625,79 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
           ),
         ],
       ),
+    );
+  }
+
+  //grafico
+  Widget _construirGraficoGlucosa() {
+    String hipo = _hipoCtrl.text.isEmpty ? '--' : _hipoCtrl.text;
+    String rMin = _rangoMinCtrl.text.isEmpty ? '--' : _rangoMinCtrl.text;
+    String rMax = _rangoMaxCtrl.text.isEmpty ? '--' : _rangoMaxCtrl.text;
+    String hiper = _hiperCtrl.text.isEmpty ? '--' : _hiperCtrl.text;
+
+    return _crearTarjetaGlass(
+        hijo: Column(
+          children: [
+            const Text('Espectro de Glucosa', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 26)),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    children: [
+                      const Text('Hipo', style: TextStyle(color: Color(
+                          0xFFFF6B6B), fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 12,
+                        decoration: const BoxDecoration(
+                            color: Color(0xFFFF6B6B), //
+                            borderRadius: BorderRadius.only(topLeft: Radius.circular(10), bottomLeft: Radius.circular(10))
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('< $hipo', style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    children: [
+                      const Text('Normal', style: TextStyle(color: Color(0xFF4CAF50), fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 12,
+                        color: const Color(0xFF4CAF50),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('$rMin - $rMax', style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    children: [
+                      const Text('Hiper', style: TextStyle(color: Color(0xFFFFB347), fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 12,
+                        decoration: const BoxDecoration(
+                            color: Color(0xFFFFB347),
+                            borderRadius: BorderRadius.only(topRight: Radius.circular(10), bottomRight: Radius.circular(10))
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('> $hiper', style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          ],
+        )
     );
   }
 
