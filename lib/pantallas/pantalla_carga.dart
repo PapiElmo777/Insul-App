@@ -14,6 +14,10 @@ class _PantallaCargaState extends State<PantallaCarga> {
   void initState() {
     super.initState();
     Future.delayed(const Duration(seconds: 5), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const PantallaLogin()),
+      );
     });
   }
 
