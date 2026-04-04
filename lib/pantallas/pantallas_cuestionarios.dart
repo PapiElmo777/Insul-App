@@ -98,7 +98,7 @@ class _PantallaCuestionarioEnfermeroState extends State<PantallaCuestionarioEnfe
                       ),
                       const SizedBox(height: 10),
                       const Text(
-                        'Hagamos tu perfil oficial.'+'\nPara garantizar la seguridad de los pacientes, necesitamos agregar información sobre tí.',
+                        'Hagamos tu perfil oficial.\nPara garantizar la seguridad de los pacientes, necesitamos agregar información sobre tí.',
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 16, color: Color(0xFFE8E8E8)),
                       ),
@@ -239,12 +239,12 @@ class PantallaCuestionarioPaciente extends StatefulWidget {
 }
 
 class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPaciente> {
-  // controlador para paso a paso
   final PageController _pageController = PageController();
   int _pasoActual = 0;
   final int _totalPasos = 5;
   bool _aceptoTerminos = false;
-//variables perfil clinico
+
+  // Variables Fase 1 (Perfil Clínico)
   String? _sexo;
   final TextEditingController _edadCtrl = TextEditingController();
   String? _tiempoDx;
@@ -253,6 +253,16 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
   final TextEditingController _pesoCtrl = TextEditingController();
   final TextEditingController _alturaCtrl = TextEditingController();
   double _imc = 0.0;
+
+  //Parámetros de Control
+  final TextEditingController _hipoCtrl = TextEditingController(text: '70');
+  final TextEditingController _hiperCtrl = TextEditingController(text: '180');
+  final TextEditingController _rangoMinCtrl = TextEditingController(text: '80');
+  final TextEditingController _rangoMaxCtrl = TextEditingController(text: '130');
+
+  // PENDIENTES
+  final TextEditingController _fsiCtrl = TextEditingController(); // Factor de Sensibilidad
+  final TextEditingController _ricCtrl = TextEditingController(); // Relación Insulina/Carbohidratos
 
   final List<String> _opcionesTiempoDx = ['Menos de 1 año', '1 a 5 años', '5 a 10 años', 'Más de 10 años'];
   final List<String> _opcionesTipoDiabetes = ['Tipo 1', 'Tipo 2', 'Gestacional', 'LADA / Otro'];
@@ -271,6 +281,13 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     _alergiasCtrl.dispose();
     _pesoCtrl.dispose();
     _alturaCtrl.dispose();
+
+    _hipoCtrl.dispose();
+    _hiperCtrl.dispose();
+    _rangoMinCtrl.dispose();
+    _rangoMaxCtrl.dispose();
+    _fsiCtrl.dispose();
+    _ricCtrl.dispose();
     super.dispose();
   }
 
@@ -291,7 +308,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     }
   }
 
-  // metodos navegacion
   void _siguientePaso() {
     if (_pasoActual < _totalPasos - 1) {
       setState(() { _pasoActual++; });
@@ -323,7 +339,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
       body: SafeArea(
         child: Column(
           children: [
-            // barra de progreso
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 10.0),
               child: Row(
@@ -352,8 +367,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
                 ],
               ),
             ),
-
-            // fases
             Expanded(
               child: PageView(
                 controller: _pageController,
@@ -361,7 +374,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
                 children: [
                   _construirFase0Advertencias(),
                   _construirFase1Perfil(),
-                  _construirFasePlaceholder('Fase 2: Parámetros de Control'),
+                  _construirFase2Parametros(), // <--- Nueva fase agregada aquí
                   _construirFasePlaceholder('Fase 3: Medicación'),
                   _construirFasePlaceholder('Fase 4: Estilo de Vida'),
                 ],
@@ -526,7 +539,98 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     );
   }
 
-  // metodos de ayuda
+  Widget _construirFase2Parametros() {
+    bool fase2Completa = _hipoCtrl.text.isNotEmpty && _hiperCtrl.text.isNotEmpty && _rangoMinCtrl.text.isNotEmpty && _rangoMaxCtrl.text.isNotEmpty;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(35.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Parámetros de Control', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 5),
+          const Text('Paso 2 de 4', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const SizedBox(height: 25),
+
+          _crearTarjetaGlass(
+            hijo: Row(
+              children: [
+                const Icon(Icons.info_outline, color: Color(0xFF00D1FF), size: 30),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: const Text(
+                    'Los valores por defecto y acciones correctivas están basados en las Guías Oficiales de la ADA. Puedes modificarlos si tu médico te indicó rangos distintos.',
+                    style: TextStyle(fontSize: 14, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 30),
+
+          // HIPOGLUCEMIA
+          _crearCampoTexto(titulo: 'Límite de Hipoglucemia (mg/dL)', hint: 'Ej. 70', controlador: _hipoCtrl, esNumero: true),
+          const Padding(
+            padding: EdgeInsets.only(top: 8.0, bottom: 20.0),
+            child: Text('⚠️ Debajo de este valor, la app disparará el protocolo de acción inmediata.', style: TextStyle(color: Color(0xFFFF6B6B), fontSize: 13)),
+          ),
+
+          // HIPERGLUCEMIA
+          _crearCampoTexto(titulo: 'Límite de Hiperglucemia (mg/dL)', hint: 'Ej. 180', controlador: _hiperCtrl, esNumero: true),
+          const Padding(
+            padding: EdgeInsets.only(top: 8.0, bottom: 20.0),
+            child: Text('⚠️ Por encima de este valor, se activarán las alertas de control.', style: TextStyle(color: Color(0xFFFFB347), fontSize: 13)),
+          ),
+
+          // RANGOS NORMALES
+          const Text('Rangos Normales Objetivo (mg/dL)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _crearCampoTexto(titulo: 'Mínimo', hint: '80', controlador: _rangoMinCtrl, esNumero: true)),
+              const SizedBox(width: 15),
+              Expanded(child: _crearCampoTexto(titulo: 'Máximo', hint: '130', controlador: _rangoMaxCtrl, esNumero: true)),
+            ],
+          ),
+          const SizedBox(height: 30),
+
+          // FSI / RIC Pendiente
+          Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+                border: Border.all(color: Colors.white.withOpacity(0.5), style: BorderStyle.solid),
+                borderRadius: BorderRadius.circular(15)
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Configuración Avanzada (Pendiente)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 15),
+                _crearCampoTexto(titulo: 'Factor de Sensibilidad (FSI)', hint: 'Pendiente...', controlador: _fsiCtrl, esNumero: false, activo: false),
+                const SizedBox(height: 10),
+                _crearCampoTexto(titulo: 'Relación Insulina/Carbos (RIC)', hint: 'Pendiente...', controlador: _ricCtrl, esNumero: false, activo: false),
+              ],
+            ),
+          ),
+          const SizedBox(height: 40),
+
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: ElevatedButton(
+              onPressed: fase2Completa ? _siguientePaso : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF008CCF),
+                disabledBackgroundColor: Colors.grey.withOpacity(0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+              child: const Text('Siguiente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _construirFasePlaceholder(String texto) {
     return Center(child: Text(texto, style: const TextStyle(color: Colors.white, fontSize: 20), textAlign: TextAlign.center));
   }
@@ -563,18 +667,20 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     );
   }
 
-  Widget _crearCampoTexto({required String titulo, required String hint, required TextEditingController controlador, required bool esNumero}) {
+  Widget _crearCampoTexto({required String titulo, required String hint, required TextEditingController controlador, required bool esNumero, bool activo = true}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
+        Text(titulo, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: activo ? Colors.white : Colors.grey)),
         const SizedBox(height: 5),
         TextField(
           controller: controlador,
+          enabled: activo,
           keyboardType: esNumero ? TextInputType.number : TextInputType.text,
+          onChanged: (value) => setState(() {}),
           decoration: InputDecoration(
             hintText: hint, hintStyle: const TextStyle(color: Color(0xFF848282)),
-            filled: true, fillColor: Colors.white,
+            filled: true, fillColor: activo ? Colors.white : Colors.grey.shade300,
             contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
           ),
