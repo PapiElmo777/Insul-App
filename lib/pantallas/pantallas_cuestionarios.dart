@@ -266,7 +266,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
   // Variables Fase 3 (Medicación Habitual)
   String? _metodoInsulina;
 
-  // --- NUEVAS VARIABLES SEPARADAS PARA INYECCIONES ---
+  // Variables Inyecciones
   final TextEditingController _insulinaBasalMarcaCtrl = TextEditingController();
   final TextEditingController _insulinaBasalDosisCtrl = TextEditingController();
   final TextEditingController _insulinaRapidaMarcaCtrl = TextEditingController();
@@ -289,6 +289,13 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
   int? _indiceEditando;
 
   String? _frecuenciaMonitoreo;
+  final TextEditingController _otroMonitoreoCtrl = TextEditingController();
+// Variables Fase 4 (Estilo de Vida y Seguridad)
+  String? _actividadFisica;
+  final TextEditingController _emergenciaNombreCtrl = TextEditingController();
+  final TextEditingController _emergenciaParentescoCtrl = TextEditingController();
+  final TextEditingController _emergenciaTelefonoCtrl = TextEditingController();
+  final TextEditingController _medicoNombreCtrl = TextEditingController();
 
   final List<String> _opcionesTiempoDx = ['Menos de 1 año', '1 a 5 años', '5 a 10 años', 'Más de 10 años'];
   final List<String> _opcionesTipoDiabetes = ['Tipo 1', 'Tipo 2', 'Gestacional', 'LADA / Otro'];
@@ -299,6 +306,13 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     'Solo si hay síntomas',
     'Monitoreo continuo (Sensor)',
     'Otro protocolo'
+  ];
+  final List<String> _opcionesActividad = [
+    'Sedentario',
+    'Ligero (1-2 días/sem)',
+    'Moderado (3-5 días/sem)',
+    'Intenso (6-7 días/sem)',
+    'Atleta de alto rendimiento'
   ];
 
   @override
@@ -322,7 +336,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     _fsiCtrl.dispose();
     _ricCtrl.dispose();
 
-    // Dispose Fase 3 (Actualizado)
     _insulinaBasalMarcaCtrl.dispose();
     _insulinaBasalDosisCtrl.dispose();
     _insulinaRapidaMarcaCtrl.dispose();
@@ -336,6 +349,11 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     _otroMedGramajeCtrl.dispose();
     _otroMedPropositoCtrl.dispose();
     _otroMedFrecuenciaCtrl.dispose();
+
+    _emergenciaNombreCtrl.dispose();
+    _emergenciaParentescoCtrl.dispose();
+    _emergenciaTelefonoCtrl.dispose();
+    _medicoNombreCtrl.dispose();
     super.dispose();
   }
 
@@ -474,7 +492,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
                   _construirFase1Perfil(),
                   _construirFase2Parametros(),
                   _construirFase3Medicacion(),
-                  _construirFasePlaceholder('Fase 4: Estilo de Vida y Seguridad'),
+                  _construirFase4EstiloVida(),
                 ],
               ),
             ),
@@ -798,9 +816,9 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     );
   }
 
-  // ==================== FASE 3 ====================
   Widget _construirFase3Medicacion() {
-    bool fase3Completa = _frecuenciaMonitoreo != null;
+    bool fase3Completa = _frecuenciaMonitoreo != null &&
+        (_frecuenciaMonitoreo != 'Otro protocolo' || _otroMonitoreoCtrl.text.isNotEmpty);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(35.0),
@@ -825,7 +843,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
             const SizedBox(height: 20),
 
             if (_metodoInsulina == 'Inyecciones') ...[
-              // NUEVA ESTRUCTURA SEPARADA PARA INYECCIONES
               _crearTarjetaGlass(
                 hijo: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -852,7 +869,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
                     const SizedBox(height: 15),
                     _crearCampoTexto(titulo: 'Marca (Ej. Humalog, Novolog)', hint: 'Escribe la marca', controlador: _insulinaRapidaMarcaCtrl, esNumero: false),
                     const SizedBox(height: 15),
-                    _crearCampoTexto(titulo: 'Patrón de uso', hint: 'Ej. 5 U por comida, o por ratio...', controlador: _insulinaRapidaPatronCtrl, esNumero: false),
+                    _crearCampoTexto(titulo: 'Patrón de uso', hint: 'Ej. 5 U por comida...', controlador: _insulinaRapidaPatronCtrl, esNumero: false),
                   ],
                 ),
               ),
@@ -1003,6 +1020,21 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
               hint: 'Selecciona una frecuencia',
               opciones: _opcionesMonitoreo,
               onChange: (val) => setState(() => _frecuenciaMonitoreo = val)
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: _frecuenciaMonitoreo == 'Otro protocolo'
+                ? Padding(
+              padding: const EdgeInsets.only(top: 15.0),
+              child: _crearCampoTexto(
+                  titulo: 'Especifica tu protocolo',
+                  hint: 'Ej. Cada 4 horas / Madrugada',
+                  controlador: _otroMonitoreoCtrl,
+                  esNumero: false
+              ),
+            )
+                : const SizedBox.shrink(),
           ),
           const SizedBox(height: 40),
 
