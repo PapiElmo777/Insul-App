@@ -260,12 +260,46 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
   final TextEditingController _rangoMinCtrl = TextEditingController(text: '80');
   final TextEditingController _rangoMaxCtrl = TextEditingController(text: '130');
 
-  // PENDIENTES
   final TextEditingController _fsiCtrl = TextEditingController();
   final TextEditingController _ricCtrl = TextEditingController();
 
+  // Variables Fase 3 (Medicación Habitual)
+  String? _metodoInsulina;
+
+  // --- NUEVAS VARIABLES SEPARADAS PARA INYECCIONES ---
+  final TextEditingController _insulinaBasalMarcaCtrl = TextEditingController();
+  final TextEditingController _insulinaBasalDosisCtrl = TextEditingController();
+  final TextEditingController _insulinaRapidaMarcaCtrl = TextEditingController();
+  final TextEditingController _insulinaRapidaPatronCtrl = TextEditingController();
+
+  final TextEditingController _bombaUnidadesCtrl = TextEditingController();
+  final TextEditingController _bombaFrecuenciaCtrl = TextEditingController();
+
+  final TextEditingController _medOralNombreCtrl = TextEditingController();
+  final TextEditingController _medOralDosisCtrl = TextEditingController();
+
+  // Variables dinámicas para "Otros Medicamentos"
+  final TextEditingController _otroMedNombreCtrl = TextEditingController();
+  final TextEditingController _otroMedGramajeCtrl = TextEditingController();
+  final TextEditingController _otroMedPropositoCtrl = TextEditingController();
+  final TextEditingController _otroMedFrecuenciaCtrl = TextEditingController();
+
+  List<Map<String, String>> _otrosMedicamentos = [];
+  bool _mostrarFormularioOtroMed = false;
+  int? _indiceEditando;
+
+  String? _frecuenciaMonitoreo;
+
   final List<String> _opcionesTiempoDx = ['Menos de 1 año', '1 a 5 años', '5 a 10 años', 'Más de 10 años'];
   final List<String> _opcionesTipoDiabetes = ['Tipo 1', 'Tipo 2', 'Gestacional', 'LADA / Otro'];
+  final List<String> _opcionesMonitoreo = [
+    'Ayunas y antes de comidas',
+    'Al despertar y antes de dormir',
+    'Antes y después de comer',
+    'Solo si hay síntomas',
+    'Monitoreo continuo (Sensor)',
+    'Otro protocolo'
+  ];
 
   @override
   void initState() {
@@ -287,6 +321,21 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     _rangoMaxCtrl.dispose();
     _fsiCtrl.dispose();
     _ricCtrl.dispose();
+
+    // Dispose Fase 3 (Actualizado)
+    _insulinaBasalMarcaCtrl.dispose();
+    _insulinaBasalDosisCtrl.dispose();
+    _insulinaRapidaMarcaCtrl.dispose();
+    _insulinaRapidaPatronCtrl.dispose();
+    _bombaUnidadesCtrl.dispose();
+    _bombaFrecuenciaCtrl.dispose();
+    _medOralNombreCtrl.dispose();
+    _medOralDosisCtrl.dispose();
+
+    _otroMedNombreCtrl.dispose();
+    _otroMedGramajeCtrl.dispose();
+    _otroMedPropositoCtrl.dispose();
+    _otroMedFrecuenciaCtrl.dispose();
     super.dispose();
   }
 
@@ -304,6 +353,57 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     } else {
       setState(() { _imc = 0.0; });
     }
+  }
+
+  void _guardarMedicamento() {
+    if (_otroMedNombreCtrl.text.isNotEmpty && _otroMedGramajeCtrl.text.isNotEmpty) {
+      setState(() {
+        if (_indiceEditando != null) {
+          _otrosMedicamentos[_indiceEditando!] = {
+            'nombre': _otroMedNombreCtrl.text,
+            'gramaje': _otroMedGramajeCtrl.text,
+            'proposito': _otroMedPropositoCtrl.text,
+            'frecuencia': _otroMedFrecuenciaCtrl.text,
+          };
+        } else {
+          _otrosMedicamentos.add({
+            'nombre': _otroMedNombreCtrl.text,
+            'gramaje': _otroMedGramajeCtrl.text,
+            'proposito': _otroMedPropositoCtrl.text,
+            'frecuencia': _otroMedFrecuenciaCtrl.text,
+          });
+        }
+        _limpiarYOCultarFormulario();
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('El nombre y el gramaje son obligatorios.')),
+      );
+    }
+  }
+
+  void _editarMedicamento(int index) {
+    setState(() {
+      final med = _otrosMedicamentos[index];
+      _otroMedNombreCtrl.text = med['nombre'] ?? '';
+      _otroMedGramajeCtrl.text = med['gramaje'] ?? '';
+      _otroMedPropositoCtrl.text = med['proposito'] ?? '';
+      _otroMedFrecuenciaCtrl.text = med['frecuencia'] ?? '';
+
+      _indiceEditando = index;
+      _mostrarFormularioOtroMed = true;
+    });
+  }
+
+  void _limpiarYOCultarFormulario() {
+    setState(() {
+      _otroMedNombreCtrl.clear();
+      _otroMedGramajeCtrl.clear();
+      _otroMedPropositoCtrl.clear();
+      _otroMedFrecuenciaCtrl.clear();
+      _indiceEditando = null;
+      _mostrarFormularioOtroMed = false;
+    });
   }
 
   void _siguientePaso() {
@@ -373,8 +473,8 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
                   _construirFase0Advertencias(),
                   _construirFase1Perfil(),
                   _construirFase2Parametros(),
-                  _construirFasePlaceholder('Fase 3: Medicación'),
-                  _construirFasePlaceholder('Fase 4: Estilo de Vida'),
+                  _construirFase3Medicacion(),
+                  _construirFasePlaceholder('Fase 4: Estilo de Vida y Seguridad'),
                 ],
               ),
             ),
@@ -384,7 +484,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     );
   }
 
-  // ==================== FASE 0 ====================
   Widget _construirFase0Advertencias() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(35.0),
@@ -456,6 +555,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
       ),
     );
   }
+
   Widget _construirFase1Perfil() {
     bool fase1Completa = _sexo != null && _edadCtrl.text.isNotEmpty && _tiempoDx != null && _tipoDiabetes != null && _pesoCtrl.text.isNotEmpty && _alturaCtrl.text.isNotEmpty;
 
@@ -565,7 +665,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
           ),
           const SizedBox(height: 25),
 
-          //grafico
           _construirGraficoGlucosa(),
           const SizedBox(height: 30),
 
@@ -628,7 +727,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     );
   }
 
-  //grafico
   Widget _construirGraficoGlucosa() {
     String hipo = _hipoCtrl.text.isEmpty ? '--' : _hipoCtrl.text;
     String rMin = _rangoMinCtrl.text.isEmpty ? '--' : _rangoMinCtrl.text;
@@ -646,13 +744,12 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
                   flex: 1,
                   child: Column(
                     children: [
-                      const Text('Hipo', style: TextStyle(color: Color(
-                          0xFFFF6B6B), fontWeight: FontWeight.bold, fontSize: 16)),
+                      const Text('Hipo', style: TextStyle(color: Color(0xFFFF6B6B), fontWeight: FontWeight.bold, fontSize: 16)),
                       const SizedBox(height: 8),
                       Container(
                         height: 12,
                         decoration: const BoxDecoration(
-                            color: Color(0xFFFF6B6B), //
+                            color: Color(0xFFFF6B6B),
                             borderRadius: BorderRadius.only(topLeft: Radius.circular(10), bottomLeft: Radius.circular(10))
                         ),
                       ),
@@ -698,6 +795,231 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
             )
           ],
         )
+    );
+  }
+
+  // ==================== FASE 3 ====================
+  Widget _construirFase3Medicacion() {
+    bool fase3Completa = _frecuenciaMonitoreo != null;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(35.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Medicación Habitual', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 5),
+          const Text('Paso 3 de 4', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const SizedBox(height: 30),
+
+          if (_tipoDiabetes == 'Tipo 1') ...[
+            const Text('Método de aplicación de Insulina', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(child: _crearChipSeleccion('Inyecciones', _metodoInsulina == 'Inyecciones', () => setState(() => _metodoInsulina = 'Inyecciones'))),
+                const SizedBox(width: 15),
+                Expanded(child: _crearChipSeleccion('Bomba', _metodoInsulina == 'Bomba', () => setState(() => _metodoInsulina = 'Bomba'))),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            if (_metodoInsulina == 'Inyecciones') ...[
+              // NUEVA ESTRUCTURA SEPARADA PARA INYECCIONES
+              _crearTarjetaGlass(
+                hijo: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Insulina Basal (Larga duración)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                    const SizedBox(height: 5),
+                    const Text('Mantiene tu glucosa estable en ayunas.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    const SizedBox(height: 15),
+                    _crearCampoTexto(titulo: 'Marca (Ej. Lantus, Tresiba)', hint: 'Escribe la marca', controlador: _insulinaBasalMarcaCtrl, esNumero: false),
+                    const SizedBox(height: 15),
+                    _crearCampoTexto(titulo: 'Dosis Fija Diaria (Unidades)', hint: 'Ej. 20', controlador: _insulinaBasalDosisCtrl, esNumero: true),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              _crearTarjetaGlass(
+                hijo: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Insulina de Bolo (Acción rápida)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                    const SizedBox(height: 5),
+                    const Text('Para cubrir comidas o corregir niveles altos.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    const SizedBox(height: 15),
+                    _crearCampoTexto(titulo: 'Marca (Ej. Humalog, Novolog)', hint: 'Escribe la marca', controlador: _insulinaRapidaMarcaCtrl, esNumero: false),
+                    const SizedBox(height: 15),
+                    _crearCampoTexto(titulo: 'Patrón de uso', hint: 'Ej. 5 U por comida, o por ratio...', controlador: _insulinaRapidaPatronCtrl, esNumero: false),
+                  ],
+                ),
+              ),
+            ] else if (_metodoInsulina == 'Bomba') ...[
+              _crearCampoTexto(titulo: 'Unidades Base', hint: 'Ej. 0.5 U/hr', controlador: _bombaUnidadesCtrl, esNumero: false),
+              const SizedBox(height: 20),
+              _crearCampoTexto(titulo: 'Frecuencia / Configuración', hint: 'Ej. Liberación continua...', controlador: _bombaFrecuenciaCtrl, esNumero: false),
+            ],
+            const SizedBox(height: 30),
+          ] else ...[
+            const Text('Medicamento Principal', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            const SizedBox(height: 15),
+            _crearCampoTexto(titulo: 'Nombre', hint: 'Ej. Metformina', controlador: _medOralNombreCtrl, esNumero: false),
+            const SizedBox(height: 20),
+            _crearCampoTexto(titulo: 'Dosis y Frecuencia', hint: 'Ej. 850mg cada 12 hrs', controlador: _medOralDosisCtrl, esNumero: false),
+            const SizedBox(height: 30),
+          ],
+
+          _crearTarjetaGlass(
+              hijo: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Otros Medicamentos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 5),
+                  const Text('Para presión, colesterol, suplementos, etc.', style: TextStyle(fontSize: 13, color: Color(0xFFE8E8E8))),
+                  const SizedBox(height: 20),
+
+                  if (_otrosMedicamentos.isNotEmpty) ...[
+                    ..._otrosMedicamentos.asMap().entries.map((entry) {
+                      int idx = entry.key;
+                      Map<String, String> med = entry.value;
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(15),
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5)],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(color: Color(0xFFE8F4F8), shape: BoxShape.circle),
+                              child: const Icon(Icons.medication, color: Color(0xFF1C63BB), size: 20),
+                            ),
+                            const SizedBox(width: 15),
+                            Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('${med['nombre']} ${med['gramaje']}mg', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                                    const SizedBox(height: 3),
+                                    Text('${med['proposito']} • ${med['frecuencia']}', style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                                  ],
+                                )
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Color(0xFF008CCF)),
+                              onPressed: () => _editarMedicamento(idx),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                            const SizedBox(width: 10),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Color(0xFFFF6B6B)),
+                              onPressed: () => setState(() => _otrosMedicamentos.removeAt(idx)),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    const SizedBox(height: 10),
+                  ],
+
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: _mostrarFormularioOtroMed
+                        ? Container(
+                      padding: const EdgeInsets.all(15),
+                      margin: const EdgeInsets.only(top: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: const Color(0xFF00D1FF).withOpacity(0.5)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Detalles del Medicamento', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 15),
+                          Row(
+                            children: [
+                              Expanded(flex: 2, child: _crearCampoTexto(titulo: 'Nombre', hint: 'Ej. Losartán', controlador: _otroMedNombreCtrl, esNumero: false)),
+                              const SizedBox(width: 15),
+                              Expanded(flex: 1, child: _crearCampoTexto(titulo: 'Gramaje', hint: 'Ej. 50', controlador: _otroMedGramajeCtrl, esNumero: true)),
+                            ],
+                          ),
+                          const SizedBox(height: 15),
+                          _crearCampoTexto(titulo: '¿Para qué es?', hint: 'Ej. Presión', controlador: _otroMedPropositoCtrl, esNumero: false),
+                          const SizedBox(height: 15),
+                          _crearCampoTexto(titulo: 'Frecuencia', hint: 'Ej. 1 al día', controlador: _otroMedFrecuenciaCtrl, esNumero: false),
+                          const SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                onPressed: _limpiarYOCultarFormulario,
+                                child: const Text('Cancelar', style: TextStyle(color: Colors.white70)),
+                              ),
+                              const SizedBox(width: 10),
+                              ElevatedButton(
+                                onPressed: _guardarMedicamento,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF00D1FF),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                ),
+                                child: Text(_indiceEditando != null ? 'Actualizar' : 'Guardar', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
+                    )
+                        : Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => setState(() { _mostrarFormularioOtroMed = true; _indiceEditando = null; }),
+                        icon: const Icon(Icons.add_circle_outline, color: Color(0xFF00D1FF)),
+                        label: const Text('Añadir medicamento', style: TextStyle(color: Color(0xFF00D1FF), fontWeight: FontWeight.bold, fontSize: 16)),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+          ),
+          const SizedBox(height: 30),
+
+          const Text('Protocolo de Monitoreo de Glucosa', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 10),
+          const Text('¿Cada cuánto te indicó el médico medir tu azúcar?', style: TextStyle(fontSize: 14, color: Colors.white70)),
+          const SizedBox(height: 10),
+          _crearDropdown(
+              valorActual: _frecuenciaMonitoreo,
+              hint: 'Selecciona una frecuencia',
+              opciones: _opcionesMonitoreo,
+              onChange: (val) => setState(() => _frecuenciaMonitoreo = val)
+          ),
+          const SizedBox(height: 40),
+
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: ElevatedButton(
+              onPressed: fase3Completa ? _siguientePaso : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF008CCF),
+                disabledBackgroundColor: Colors.grey.withOpacity(0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+              child: const Text('Siguiente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -747,6 +1069,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
           controller: controlador,
           enabled: activo,
           keyboardType: esNumero ? TextInputType.number : TextInputType.text,
+          inputFormatters: esNumero ? [FilteringTextInputFormatter.digitsOnly] : [],
           onChanged: (value) => setState(() {}),
           decoration: InputDecoration(
             hintText: hint, hintStyle: const TextStyle(color: Color(0xFF848282)),
@@ -761,13 +1084,22 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
 
   Widget _crearDropdown({required String? valorActual, required String hint, required List<String> opciones, required Function(String?) onChange}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          isExpanded: true, value: valorActual, hint: Text(hint, style: const TextStyle(color: Colors.grey)),
+          isExpanded: true,
+          itemHeight: null,
+          value: valorActual,
+          hint: Text(hint, style: const TextStyle(color: Colors.grey)),
           onChanged: onChange,
-          items: opciones.map((String valor) => DropdownMenuItem<String>(value: valor, child: Text(valor))).toList(),
+          items: opciones.map((String valor) => DropdownMenuItem<String>(
+              value: valor,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10.0),
+                child: Text(valor, style: const TextStyle(color: Colors.black)),
+              )
+          )).toList(),
         ),
       ),
     );
