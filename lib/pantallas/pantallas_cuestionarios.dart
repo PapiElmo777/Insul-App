@@ -1237,7 +1237,310 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
   }
 }
 //------------------------------------------------------------------------------------------------
-class PantallaCuestionarioCuidador extends StatelessWidget {
+class PantallaCuestionarioCuidador extends StatefulWidget {
   const PantallaCuestionarioCuidador({super.key});
-  @override Widget build(BuildContext context) { return Scaffold(appBar: AppBar(title: const Text('Cuestionario Cuidador')), body: const Center(child: Text('Preguntas para Cuidadores'))); }
+
+  @override
+  State<PantallaCuestionarioCuidador> createState() => _PantallaCuestionarioCuidadorState();
+}
+
+class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuidador> {
+  final PageController _pageController = PageController();
+  int _pasoActual = 0;
+  final int _totalPasos = 6;
+  bool _aceptoTerminos = false;
+
+  // Variables datos del Paciente a cuidar
+  String? _tipoPaciente;
+  final TextEditingController _parentescoCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _parentescoCtrl.dispose();
+    super.dispose();
+  }
+
+  void _siguientePaso() {
+    if (_pasoActual < _totalPasos - 1) {
+      setState(() { _pasoActual++; });
+      _pageController.animateToPage(
+        _pasoActual,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _pasoAnterior() {
+    if (_pasoActual > 0) {
+      setState(() { _pasoActual--; });
+      _pageController.animateToPage(
+        _pasoActual,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF1C63BB),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 10.0),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: _pasoAnterior,
+                    child: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 24),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Row(
+                      children: List.generate(_totalPasos, (index) {
+                        return Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 2.0),
+                            height: 4.0,
+                            decoration: BoxDecoration(
+                              color: index <= _pasoActual ? const Color(0xFF00D1FF) : Colors.white.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  _construirFase0Advertencias(),
+                  _construirFase1TipoPaciente(),
+                  _construirFasePlaceholder('Fase 2: Perfil Clínico del Paciente'),
+                  _construirFasePlaceholder('Fase 3: Parámetros de Control'),
+                  _construirFasePlaceholder('Fase 4: Medicación Habitual'),
+                  _construirFasePlaceholder('Fase 5: Estilo de Vida y Seguridad'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _construirFase0Advertencias() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(35.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.health_and_safety, size: 60, color: Colors.white),
+          const SizedBox(height: 20),
+          const Text('Bienvenido Cuidador', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 20),
+          _crearTarjetaGlass(
+            hijo: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('¿Por qué pedimos estos datos?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                SizedBox(height: 10),
+                Text(
+                  'Para ayudarte a brindar el mejor cuidado, Insul App necesita conocer el perfil clínico de la persona a tu cargo. Esto nos permitirá ajustar las alertas, recordatorios y protocolos de acción.',
+                  style: TextStyle(fontSize: 15, color: Color(0xFFE8E8E8)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          _crearTarjetaGlass(
+            hijo: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('Aviso Médico Importante', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                SizedBox(height: 10),
+                Text(
+                  'Esta aplicación es una herramienta de apoyo para tu labor diaria. NO sustituye la consulta médica ni emite diagnósticos. Todas las decisiones críticas deben basarse en las indicaciones del médico tratante.',
+                  style: TextStyle(fontSize: 15, color: Color(0xFFE8E8E8)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 30),
+          Row(
+            children: [
+              Checkbox(
+                value: _aceptoTerminos,
+                activeColor: const Color(0xFF00D1FF),
+                checkColor: const Color(0xFF1C63BB),
+                side: const BorderSide(color: Colors.white, width: 2),
+                onChanged: (val) {
+                  setState(() { _aceptoTerminos = val ?? false; });
+                },
+              ),
+              const Expanded(
+                child: Text('He leído y comprendo mi responsabilidad al usar la app.', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 40),
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: ElevatedButton(
+              onPressed: _aceptoTerminos ? _siguientePaso : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF008CCF),
+                disabledBackgroundColor: Colors.grey.withOpacity(0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+              child: const Text('Siguiente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _construirFase1TipoPaciente() {
+    bool fase1Completa = _tipoPaciente != null && _parentescoCtrl.text.isNotEmpty;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(35.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Datos Generales del Paciente', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 5),
+          const Text('Paso 1 de 5', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const SizedBox(height: 30),
+
+          const Text('¿A quién estás cuidando?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 15),
+
+          _crearOpcionPaciente(
+            titulo: 'Adulto Mayor',
+            icono: Icons.elderly,
+            seleccionado: _tipoPaciente == 'Adulto Mayor',
+            onTap: () => setState(() => _tipoPaciente = 'Adulto Mayor'),
+          ),
+          const SizedBox(height: 10),
+          _crearOpcionPaciente(
+            titulo: 'Menor de Edad / Niño',
+            icono: Icons.child_care,
+            seleccionado: _tipoPaciente == 'Menor de Edad',
+            onTap: () => setState(() => _tipoPaciente = 'Menor de Edad'),
+          ),
+          const SizedBox(height: 10),
+          _crearOpcionPaciente(
+            titulo: 'Persona con Discapacidad',
+            icono: Icons.accessible,
+            seleccionado: _tipoPaciente == 'Discapacidad',
+            onTap: () => setState(() => _tipoPaciente = 'Discapacidad'),
+          ),
+          const SizedBox(height: 30),
+
+          _crearCampoTexto(
+              titulo: 'Tu parentesco o relación con el paciente',
+              hint: 'Ej. Hijo, Madre, Enfermero particular...',
+              controlador: _parentescoCtrl,
+              esNumero: false
+          ),
+          const SizedBox(height: 40),
+
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: ElevatedButton(
+              onPressed: fase1Completa ? _siguientePaso : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF008CCF),
+                disabledBackgroundColor: Colors.grey.withOpacity(0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+              child: const Text('Siguiente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _construirFasePlaceholder(String texto) {
+    return Center(child: Text(texto, style: const TextStyle(color: Colors.white, fontSize: 20), textAlign: TextAlign.center));
+  }
+
+  Widget _crearTarjetaGlass({required Widget hijo}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+      ),
+      child: hijo,
+    );
+  }
+
+  Widget _crearOpcionPaciente({required String titulo, required IconData icono, required bool seleccionado, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: seleccionado ? const Color(0xFF00D1FF).withOpacity(0.3) : Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: seleccionado ? const Color(0xFF00D1FF) : Colors.transparent, width: 2),
+        ),
+        child: Row(
+          children: [
+            Icon(icono, color: seleccionado ? Colors.white : const Color(0xFF1C63BB), size: 28),
+            const SizedBox(width: 15),
+            Text(
+                titulo,
+                style: TextStyle(
+                    color: seleccionado ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16
+                )
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _crearCampoTexto({required String titulo, required String hint, required TextEditingController controlador, required bool esNumero, bool activo = true}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(titulo, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: activo ? Colors.white : Colors.grey)),
+        const SizedBox(height: 5),
+        TextField(
+          controller: controlador,
+          enabled: activo,
+          keyboardType: esNumero ? TextInputType.number : TextInputType.text,
+          onChanged: (value) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: hint, hintStyle: const TextStyle(color: Color(0xFF848282)),
+            filled: true, fillColor: activo ? Colors.white : Colors.grey.shade300,
+            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+          ),
+        ),
+      ],
+    );
+  }
 }
