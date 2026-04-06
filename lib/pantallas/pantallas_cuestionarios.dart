@@ -1054,7 +1054,106 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
       ),
     );
   }
+  Widget _construirFase4EstiloVida() {
+    bool fase4Completa = _actividadFisica != null &&
+        _emergenciaNombreCtrl.text.isNotEmpty &&
+        _emergenciaParentescoCtrl.text.isNotEmpty &&
+        _emergenciaTelefonoCtrl.text.isNotEmpty &&
+        _medicoNombreCtrl.text.isNotEmpty;
 
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(35.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Estilo de Vida y Seguridad', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 5),
+          const Text('Paso 4 de 4', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const SizedBox(height: 30),
+
+          _crearTarjetaGlass(
+              hijo: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Nivel de Actividad Física', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 5),
+                  const Text('El ejercicio aumenta la sensibilidad a la insulina, usaremos esto para ajustar sugerencias.', style: TextStyle(fontSize: 13, color: Color(0xFFE8E8E8))),
+                  const SizedBox(height: 15),
+                  _crearDropdown(
+                      valorActual: _actividadFisica,
+                      hint: 'Selecciona tu nivel',
+                      opciones: _opcionesActividad,
+                      onChange: (val) => setState(() => _actividadFisica = val)
+                  ),
+                ],
+              )
+          ),
+          const SizedBox(height: 20),
+
+          _crearTarjetaGlass(
+              hijo: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.emergency, color: Color(0xFFFF6B6B)),
+                      SizedBox(width: 10),
+                      Text('Contacto de Emergencia', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _crearCampoTexto(titulo: 'Nombre del contacto', hint: 'Ej. María Pérez', controlador: _emergenciaNombreCtrl, esNumero: false),
+                  const SizedBox(height: 15),
+                  Row(
+                    children: [
+                      Expanded(flex: 1, child: _crearCampoTexto(titulo: 'Parentesco', hint: 'Ej. Madre', controlador: _emergenciaParentescoCtrl, esNumero: false)),
+                      const SizedBox(width: 15),
+                      Expanded(flex: 2, child: _crearCampoTexto(titulo: 'Teléfono', hint: '10 dígitos', controlador: _emergenciaTelefonoCtrl, esNumero: true)),
+                    ],
+                  ),
+                ],
+              )
+          ),
+          const SizedBox(height: 20),
+
+          _crearTarjetaGlass(
+              hijo: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.medical_information, color: Color(0xFF00D1FF)),
+                      SizedBox(width: 10),
+                      Text('Médico Tratante', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Text('¿A quién irán dirigidos tus reportes clínicos?', style: TextStyle(fontSize: 13, color: Color(0xFFE8E8E8))),
+                  const SizedBox(height: 20),
+                  _crearCampoTexto(titulo: 'Nombre completo del Médico', hint: 'Ej. Dr. Roberto Gómez', controlador: _medicoNombreCtrl, esNumero: false),
+                ],
+              )
+          ),
+          const SizedBox(height: 40),
+
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: ElevatedButton(
+              onPressed: fase4Completa ? () {
+                print("¡Cuestionario finalizado exitosamente!");
+              } : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF008CCF),
+                disabledBackgroundColor: Colors.grey.withOpacity(0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+              child: const Text('Finalizar Registro', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   Widget _construirFasePlaceholder(String texto) {
     return Center(child: Text(texto, style: const TextStyle(color: Colors.white, fontSize: 20), textAlign: TextAlign.center));
   }
