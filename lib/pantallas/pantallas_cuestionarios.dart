@@ -1254,11 +1254,51 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
   String? _tipoPaciente;
   final TextEditingController _parentescoCtrl = TextEditingController();
 
+  // Variables Perfil Clínico del Paciente
+  String? _sexoPaciente;
+  final TextEditingController _edadPacienteCtrl = TextEditingController();
+  String? _tiempoDxPaciente;
+  String? _tipoDiabetesPaciente;
+  final TextEditingController _alergiasPacienteCtrl = TextEditingController();
+  final TextEditingController _pesoPacienteCtrl = TextEditingController();
+  final TextEditingController _alturaPacienteCtrl = TextEditingController();
+  double _imcPaciente = 0.0;
+
+  final List<String> _opcionesTiempoDx = ['Menos de 1 año', '1 a 5 años', '5 a 10 años', 'Más de 10 años'];
+  final List<String> _opcionesTipoDiabetes = ['Tipo 1', 'Tipo 2', 'Gestacional', 'LADA / Otro'];
+
+  @override
+  void initState() {
+    super.initState();
+    _pesoPacienteCtrl.addListener(_calcularIMCPaciente);
+    _alturaPacienteCtrl.addListener(_calcularIMCPaciente);
+  }
+
   @override
   void dispose() {
     _pageController.dispose();
     _parentescoCtrl.dispose();
+    _edadPacienteCtrl.dispose();
+    _alergiasPacienteCtrl.dispose();
+    _pesoPacienteCtrl.dispose();
+    _alturaPacienteCtrl.dispose();
     super.dispose();
+  }
+
+  void _calcularIMCPaciente() {
+    if (_pesoPacienteCtrl.text.isNotEmpty && _alturaPacienteCtrl.text.isNotEmpty) {
+      double? peso = double.tryParse(_pesoPacienteCtrl.text);
+      double? alturaCm = double.tryParse(_alturaPacienteCtrl.text);
+
+      if (peso != null && alturaCm != null && alturaCm > 0) {
+        double alturaMetros = alturaCm / 100;
+        setState(() {
+          _imcPaciente = peso / (alturaMetros * alturaMetros);
+        });
+      }
+    } else {
+      setState(() { _imcPaciente = 0.0; });
+    }
   }
 
   void _siguientePaso() {
@@ -1328,7 +1368,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
                 children: [
                   _construirFase0Advertencias(),
                   _construirFase1TipoPaciente(),
-                  _construirFasePlaceholder('Fase 2: Perfil Clínico del Paciente'),
+                  _construirFase2PerfilPaciente(),
                   _construirFasePlaceholder('Fase 3: Parámetros de Control'),
                   _construirFasePlaceholder('Fase 4: Medicación Habitual'),
                   _construirFasePlaceholder('Fase 5: Estilo de Vida y Seguridad'),
@@ -1476,6 +1516,86 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
     );
   }
 
+  Widget _construirFase2PerfilPaciente() {
+    bool fase2Completa = _sexoPaciente != null && _edadPacienteCtrl.text.isNotEmpty && _tiempoDxPaciente != null && _tipoDiabetesPaciente != null && _pesoPacienteCtrl.text.isNotEmpty && _alturaPacienteCtrl.text.isNotEmpty;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(35.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Perfil Clínico del Paciente', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 5),
+          const Text('Paso 2 de 5', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const SizedBox(height: 30),
+
+          const Text('Sexo Biológico del Paciente', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _crearChipSeleccion('Hombre', _sexoPaciente == 'Hombre', () => setState(() => _sexoPaciente = 'Hombre'))),
+              const SizedBox(width: 15),
+              Expanded(child: _crearChipSeleccion('Mujer', _sexoPaciente == 'Mujer', () => setState(() => _sexoPaciente = 'Mujer'))),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          _crearCampoTexto(titulo: 'Edad del Paciente', hint: 'Años', controlador: _edadPacienteCtrl, esNumero: true),
+          const SizedBox(height: 3),
+
+          const Text('Tiempo con diagnóstico', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
+          const SizedBox(height: 5),
+          _crearDropdown(valorActual: _tiempoDxPaciente, hint: 'Selecciona una opción', opciones: _opcionesTiempoDx, onChange: (val) => setState(() => _tiempoDxPaciente = val)),
+          const SizedBox(height: 20),
+
+          const Text('Tipo de Diabetes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
+          const SizedBox(height: 5),
+          _crearDropdown(valorActual: _tipoDiabetesPaciente, hint: 'Ej. Tipo 1', opciones: _opcionesTipoDiabetes, onChange: (val) => setState(() => _tipoDiabetesPaciente = val)),
+          const SizedBox(height: 20),
+
+          _crearCampoTexto(titulo: 'Alergias Conocidas (Opcional)', hint: 'Ej. Penicilina, Ninguna', controlador: _alergiasPacienteCtrl, esNumero: false),
+          const SizedBox(height: 20),
+
+          Row(
+            children: [
+              Expanded(child: _crearCampoTexto(titulo: 'Peso (kg)', hint: 'Ej. 75', controlador: _pesoPacienteCtrl, esNumero: true)),
+              const SizedBox(width: 15),
+              Expanded(child: _crearCampoTexto(titulo: 'Altura (cm)', hint: 'Ej. 170', controlador: _alturaPacienteCtrl, esNumero: true)),
+            ],
+          ),
+          const SizedBox(height: 15),
+
+          _crearTarjetaGlass(
+              hijo: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('I.M.C. del Paciente:', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text(
+                    _imcPaciente > 0 ? _imcPaciente.toStringAsFixed(1) : '--',
+                    style: const TextStyle(fontSize: 24, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold),
+                  ),
+                ],
+              )
+          ),
+          const SizedBox(height: 40),
+
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: ElevatedButton(
+              onPressed: fase2Completa ? _siguientePaso : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF008CCF),
+                disabledBackgroundColor: Colors.grey.withOpacity(0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+              child: const Text('Siguiente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _construirFasePlaceholder(String texto) {
     return Center(child: Text(texto, style: const TextStyle(color: Colors.white, fontSize: 20), textAlign: TextAlign.center));
   }
@@ -1522,6 +1642,25 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
     );
   }
 
+  Widget _crearChipSeleccion(String texto, bool seleccionado, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: seleccionado ? const Color(0xFF00D1FF).withOpacity(0.3) : Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: seleccionado ? const Color(0xFF00D1FF) : const Color(0xFFD2D2D2), width: 2),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+            texto,
+            style: TextStyle(color: seleccionado ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 16)
+        ),
+      ),
+    );
+  }
+
   Widget _crearCampoTexto({required String titulo, required String hint, required TextEditingController controlador, required bool esNumero, bool activo = true}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1541,6 +1680,29 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
           ),
         ),
       ],
+    );
+  }
+
+  Widget _crearDropdown({required String? valorActual, required String hint, required List<String> opciones, required Function(String?) onChange}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          itemHeight: null,
+          value: valorActual,
+          hint: Text(hint, style: const TextStyle(color: Colors.grey)),
+          onChanged: onChange,
+          items: opciones.map((String valor) => DropdownMenuItem<String>(
+              value: valor,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10.0),
+                child: Text(valor, style: const TextStyle(color: Colors.black)),
+              )
+          )).toList(),
+        ),
+      ),
     );
   }
 }
