@@ -1674,7 +1674,6 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
     );
   }
 
-  // Modificado: Se agregó focusNode como parámetro opcional
   Widget _crearCampoTexto({
     required String titulo,
     required String hint,
