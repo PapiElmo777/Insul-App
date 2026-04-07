@@ -13,7 +13,7 @@ class _PantallaCargaState extends State<PantallaCarga> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 5), () {
+    Future.delayed(const Duration(seconds: 3), () {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const PantallaLogin()),
@@ -45,8 +45,8 @@ class _PantallaCargaState extends State<PantallaCarga> {
               text: const TextSpan(
                 style: TextStyle(fontSize: 44, color: Colors.white),
                 children: [
-                  TextSpan(text: 'Insul ', style: TextStyle(fontWeight: FontWeight.w400)),
-                  TextSpan(text: 'App', style: TextStyle(fontWeight: FontWeight.bold)),
+                  TextSpan(text: 'Insul ', style: TextStyle(fontWeight: FontWeight.bold)),
+                  TextSpan(text: 'App', style: TextStyle(fontWeight: FontWeight.w400)),
                 ],
               ),
             ),
@@ -55,7 +55,7 @@ class _PantallaCargaState extends State<PantallaCarga> {
               'Monitoreo, cuidado y salud\nen tus manos',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18,
                 color: Color(0xFFE8E8E8),
                 fontWeight: FontWeight.w500,
               ),
