@@ -241,7 +241,7 @@ class PantallaCuestionarioPaciente extends StatefulWidget {
 class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPaciente> {
   final PageController _pageController = PageController();
   int _pasoActual = 0;
-  final int _totalPasos = 5;
+  final int _totalPasos = 6;
   bool _aceptoTerminos = false;
 
   String? _sexo;
@@ -495,6 +495,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
                   _construirFase2Parametros(),
                   _construirFase3Medicacion(),
                   _construirFase4EstiloVida(),
+                  _construirFase5Identificacion(),
                 ],
               ),
             ),
@@ -586,7 +587,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
         children: [
           const Text('Perfil Clínico', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 5),
-          const Text('Paso 1 de 4', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const Text('Paso 1 de 5', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
           const SizedBox(height: 30),
 
           const Text('Género', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
@@ -666,7 +667,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
         children: [
           const Text('Parámetros de Control', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 5),
-          const Text('Paso 2 de 4', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const Text('Paso 2 de 5', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
           const SizedBox(height: 25),
 
           _crearTarjetaGlass(
@@ -829,7 +830,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
         children: [
           const Text('Medicación Habitual', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 5),
-          const Text('Paso 3 de 4', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const Text('Paso 3 de 5', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
           const SizedBox(height: 30),
 
           if (_tipoDiabetes == 'Tipo 1') ...[
@@ -1070,7 +1071,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
         children: [
           const Text('Estilo de Vida y Seguridad', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 5),
-          const Text('Paso 4 de 4', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const Text('Paso 4 de 5', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
           const SizedBox(height: 30),
 
           _crearTarjetaGlass(
@@ -1141,19 +1142,126 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
           SizedBox(
             width: double.infinity, height: 50,
             child: ElevatedButton(
-              onPressed: fase4Completa ? () {
-                print("¡Cuestionario finalizado exitosamente!");
-              } : null,
+              onPressed: fase4Completa ? _siguientePaso : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF008CCF),
                 disabledBackgroundColor: Colors.grey.withOpacity(0.5),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
               ),
-              child: const Text('Finalizar Registro', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              child: const Text('Siguiente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _construirFase5Identificacion() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(35.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.badge, size: 60, color: Colors.white),
+          const SizedBox(height: 20),
+          const Text('Identificación Médica', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 5),
+          const Text('Paso 5 de 5', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const SizedBox(height: 30),
+
+          _crearTarjetaGlass(
+            hijo: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('¿Por qué es vital?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                SizedBox(height: 10),
+                Text(
+                  'Las directrices de la ADA (Asociación Americana de Diabetes) establecen que toda persona con diabetes debe portar una identificación médica visible.  En caso de una emergencia donde el paciente no pueda comunicarse, esto puede salvar tu vida indicando a los paramédicos cómo actuar.',
+                  style: TextStyle(fontSize: 15, color: Color(0xFFE8E8E8)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 40),
+
+          const Text('¿Deseas configurar tu Identificación Médica de Emergencia ahora?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 30),
+
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: ElevatedButton(
+              onPressed: () {
+                print("Llevar al módulo de Identificación Médica");
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00D1FF),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+              child: const Text('Sí, empezar ahora', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+            ),
+          ),
+          const SizedBox(height: 15),
+
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: OutlinedButton(
+              onPressed: () {
+                _mostrarDialogoFinalizacion();
+              },
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white, width: 2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+              child: const Text('Hacerlo después', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _mostrarDialogoFinalizacion() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C63BB),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle_outline, color: Color(0xFF00D1FF), size: 60),
+                const SizedBox(height: 20),
+                const Text('¡Registro Finalizado!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 10),
+                const Text('Tus datos clínicos han sido guardados exitosamente.\n\n¡Bienvenido a Insul App!', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Color(0xFFE8E8E8))),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      print("Navegar al Inicio del Paciente");
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00D1FF),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
+                    child: const Text('Ir al Inicio', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
   Widget _construirFasePlaceholder(String texto) {
@@ -1250,7 +1358,7 @@ class PantallaCuestionarioCuidador extends StatefulWidget {
 class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuidador> {
   final PageController _pageController = PageController();
   int _pasoActual = 0;
-  final int _totalPasos = 6;
+  final int _totalPasos = 7;
   bool _aceptoTerminos = false;
 
   // Variables datos del Paciente a cuidar
@@ -1503,6 +1611,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
                   _construirFase3Parametros(),
                   _construirFase4Medicacion(),
                   _construirFase5EstiloVida(),
+                  _construirFase6Identificacion(),
                 ],
               ),
             ),
@@ -1619,13 +1728,6 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
             icono: Icons.accessible,
             seleccionado: _tipoPaciente == 'Discapacidad',
             onTap: () => setState(() => _tipoPaciente = 'Discapacidad'),
-          ),
-          const SizedBox(height: 10),
-          _crearOpcionPaciente(
-            titulo: 'Otro Adulto',
-            icono: Icons.person,
-            seleccionado: _tipoPaciente == 'Adulto',
-            onTap: () => setState(() => _tipoPaciente = 'Adulto'),
           ),
           const SizedBox(height: 30),
 
@@ -2263,13 +2365,123 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
                 disabledBackgroundColor: Colors.grey.withOpacity(0.5),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
               ),
-              child: const Text('Siguiente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)), // Siguiente, porque iremos a la Fase 6 después
+              child: const Text('Siguiente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
             ),
           ),
         ],
       ),
     );
   }
+
+  Widget _construirFase6Identificacion() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(35.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.badge, size: 60, color: Colors.white),
+          const SizedBox(height: 20),
+          const Text('Identificación Médica', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 5),
+          const Text('Paso 6 de 6', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const SizedBox(height: 30),
+
+          _crearTarjetaGlass(
+            hijo: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('¿Por qué es vital?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                SizedBox(height: 10),
+                Text(
+                  'Las directrices de la ADA (Asociación Americana de Diabetes) establecen que toda persona con diabetes debe portar una identificación médica visible. En caso de una emergencia donde el paciente no pueda comunicarse, esto puede salvar su vida indicando a los paramédicos cómo actuar.',
+                  style: TextStyle(fontSize: 15, color: Color(0xFFE8E8E8)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 40),
+
+          const Text('¿Deseas configurar la Identificación Médica de Emergencia del paciente ahora?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 30),
+
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: ElevatedButton(
+              onPressed: () {
+                print("Llevar al módulo de Identificación Médica");
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00D1FF),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+              child: const Text('Sí, empezar ahora', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+            ),
+          ),
+          const SizedBox(height: 15),
+
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: OutlinedButton(
+              onPressed: () {
+                _mostrarDialogoFinalizacion();
+              },
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white, width: 2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+              child: const Text('Hacerlo después', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _mostrarDialogoFinalizacion() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C63BB),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle_outline, color: Color(0xFF00D1FF), size: 60),
+                const SizedBox(height: 20),
+                const Text('¡Registro Finalizado!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 10),
+                const Text('Los datos del paciente han sido guardados exitosamente.\n\n¡Bienvenido a Insul App!', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Color(0xFFE8E8E8))),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      print("Navegar al Inicio del Cuidador");
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00D1FF),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
+                    child: const Text('Ir al Inicio', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _construirFasePlaceholder(String texto) {
     return Center(child: Text(texto, style: const TextStyle(color: Colors.white, fontSize: 20), textAlign: TextAlign.center));
   }
