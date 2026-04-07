@@ -244,7 +244,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
   final int _totalPasos = 5;
   bool _aceptoTerminos = false;
 
-  // Variables Fase 1 (Perfil Clínico)
   String? _sexo;
   final TextEditingController _edadCtrl = TextEditingController();
   String? _tiempoDx;
@@ -252,9 +251,12 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
   final TextEditingController _alergiasCtrl = TextEditingController();
   final TextEditingController _pesoCtrl = TextEditingController();
   final TextEditingController _alturaCtrl = TextEditingController();
+
+  final FocusNode _pesoFocus = FocusNode();
+  final FocusNode _alturaFocus = FocusNode();
+
   double _imc = 0.0;
 
-  // Variables Fase 2 (Parámetros de Control)
   final TextEditingController _hipoCtrl = TextEditingController(text: '70');
   final TextEditingController _hiperCtrl = TextEditingController(text: '180');
   final TextEditingController _rangoMinCtrl = TextEditingController(text: '80');
@@ -263,22 +265,17 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
   final TextEditingController _fsiCtrl = TextEditingController();
   final TextEditingController _ricCtrl = TextEditingController();
 
-  // Variables Fase 3 (Medicación Habitual)
   String? _metodoInsulina;
-
-  // Variables Inyecciones
   final TextEditingController _insulinaBasalMarcaCtrl = TextEditingController();
   final TextEditingController _insulinaBasalDosisCtrl = TextEditingController();
   final TextEditingController _insulinaRapidaMarcaCtrl = TextEditingController();
   final TextEditingController _insulinaRapidaPatronCtrl = TextEditingController();
-
   final TextEditingController _bombaUnidadesCtrl = TextEditingController();
   final TextEditingController _bombaFrecuenciaCtrl = TextEditingController();
 
   final TextEditingController _medOralNombreCtrl = TextEditingController();
   final TextEditingController _medOralDosisCtrl = TextEditingController();
 
-  // Variables dinámicas para "Otros Medicamentos"
   final TextEditingController _otroMedNombreCtrl = TextEditingController();
   final TextEditingController _otroMedGramajeCtrl = TextEditingController();
   final TextEditingController _otroMedPropositoCtrl = TextEditingController();
@@ -290,7 +287,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
 
   String? _frecuenciaMonitoreo;
   final TextEditingController _otroMonitoreoCtrl = TextEditingController();
-// Variables Fase 4 (Estilo de Vida y Seguridad)
+
   String? _actividadFisica;
   final TextEditingController _emergenciaNombreCtrl = TextEditingController();
   final TextEditingController _emergenciaParentescoCtrl = TextEditingController();
@@ -318,8 +315,12 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
   @override
   void initState() {
     super.initState();
-    _pesoCtrl.addListener(_calcularIMC);
-    _alturaCtrl.addListener(_calcularIMC);
+    _pesoFocus.addListener(() {
+      if (!_pesoFocus.hasFocus) _calcularIMC();
+    });
+    _alturaFocus.addListener(() {
+      if (!_alturaFocus.hasFocus) _calcularIMC();
+    });
   }
 
   @override
@@ -329,13 +330,15 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     _alergiasCtrl.dispose();
     _pesoCtrl.dispose();
     _alturaCtrl.dispose();
+    _pesoFocus.dispose();
+    _alturaFocus.dispose();
+
     _hipoCtrl.dispose();
     _hiperCtrl.dispose();
     _rangoMinCtrl.dispose();
     _rangoMaxCtrl.dispose();
     _fsiCtrl.dispose();
     _ricCtrl.dispose();
-
     _insulinaBasalMarcaCtrl.dispose();
     _insulinaBasalDosisCtrl.dispose();
     _insulinaRapidaMarcaCtrl.dispose();
@@ -344,12 +347,11 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     _bombaFrecuenciaCtrl.dispose();
     _medOralNombreCtrl.dispose();
     _medOralDosisCtrl.dispose();
-
     _otroMedNombreCtrl.dispose();
     _otroMedGramajeCtrl.dispose();
     _otroMedPropositoCtrl.dispose();
     _otroMedFrecuenciaCtrl.dispose();
-
+    _otroMonitoreoCtrl.dispose();
     _emergenciaNombreCtrl.dispose();
     _emergenciaParentescoCtrl.dispose();
     _emergenciaTelefonoCtrl.dispose();
@@ -616,9 +618,9 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
 
           Row(
             children: [
-              Expanded(child: _crearCampoTexto(titulo: 'Peso (kg)', hint: 'Ej. 75', controlador: _pesoCtrl, esNumero: true)),
+              Expanded(child: _crearCampoTexto(titulo: 'Peso (kg)', hint: 'Ej. 75', controlador: _pesoCtrl, esNumero: true, focusNode: _pesoFocus)),
               const SizedBox(width: 15),
-              Expanded(child: _crearCampoTexto(titulo: 'Altura (cm)', hint: 'Ej. 170', controlador: _alturaCtrl, esNumero: true)),
+              Expanded(child: _crearCampoTexto(titulo: 'Altura (cm)', hint: 'Ej. 170', controlador: _alturaCtrl, esNumero: true, focusNode: _alturaFocus)),
             ],
           ),
           const SizedBox(height: 15),
@@ -1190,7 +1192,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     );
   }
 
-  Widget _crearCampoTexto({required String titulo, required String hint, required TextEditingController controlador, required bool esNumero, bool activo = true}) {
+  Widget _crearCampoTexto({required String titulo, required String hint, required TextEditingController controlador, required bool esNumero, bool activo = true, FocusNode? focusNode}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1198,6 +1200,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
         const SizedBox(height: 5),
         TextField(
           controller: controlador,
+          focusNode: focusNode,
           enabled: activo,
           keyboardType: esNumero ? TextInputType.number : TextInputType.text,
           inputFormatters: esNumero ? [FilteringTextInputFormatter.digitsOnly] : [],
@@ -1262,6 +1265,10 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
   final TextEditingController _alergiasPacienteCtrl = TextEditingController();
   final TextEditingController _pesoPacienteCtrl = TextEditingController();
   final TextEditingController _alturaPacienteCtrl = TextEditingController();
+
+  final FocusNode _pesoFocus = FocusNode();
+  final FocusNode _alturaFocus = FocusNode();
+
   double _imcPaciente = 0.0;
 
   final List<String> _opcionesTiempoDx = ['Menos de 1 año', '1 a 5 años', '5 a 10 años', 'Más de 10 años'];
@@ -1270,8 +1277,12 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
   @override
   void initState() {
     super.initState();
-    _pesoPacienteCtrl.addListener(_calcularIMCPaciente);
-    _alturaPacienteCtrl.addListener(_calcularIMCPaciente);
+    _pesoFocus.addListener(() {
+      if (!_pesoFocus.hasFocus) _calcularIMCPaciente();
+    });
+    _alturaFocus.addListener(() {
+      if (!_alturaFocus.hasFocus) _calcularIMCPaciente();
+    });
   }
 
   @override
@@ -1282,6 +1293,8 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
     _alergiasPacienteCtrl.dispose();
     _pesoPacienteCtrl.dispose();
     _alturaPacienteCtrl.dispose();
+    _pesoFocus.dispose();
+    _alturaFocus.dispose();
     super.dispose();
   }
 
@@ -1558,9 +1571,9 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
 
           Row(
             children: [
-              Expanded(child: _crearCampoTexto(titulo: 'Peso (kg)', hint: 'Ej. 75', controlador: _pesoPacienteCtrl, esNumero: true)),
+              Expanded(child: _crearCampoTexto(titulo: 'Peso (kg)', hint: 'Ej. 75', controlador: _pesoPacienteCtrl, esNumero: true, focusNode: _pesoFocus)),
               const SizedBox(width: 15),
-              Expanded(child: _crearCampoTexto(titulo: 'Altura (cm)', hint: 'Ej. 170', controlador: _alturaPacienteCtrl, esNumero: true)),
+              Expanded(child: _crearCampoTexto(titulo: 'Altura (cm)', hint: 'Ej. 170', controlador: _alturaPacienteCtrl, esNumero: true, focusNode: _alturaFocus)),
             ],
           ),
           const SizedBox(height: 15),
@@ -1661,7 +1674,15 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
     );
   }
 
-  Widget _crearCampoTexto({required String titulo, required String hint, required TextEditingController controlador, required bool esNumero, bool activo = true}) {
+  // Modificado: Se agregó focusNode como parámetro opcional
+  Widget _crearCampoTexto({
+    required String titulo,
+    required String hint,
+    required TextEditingController controlador,
+    required bool esNumero,
+    bool activo = true,
+    FocusNode? focusNode,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1669,6 +1690,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
         const SizedBox(height: 5),
         TextField(
           controller: controlador,
+          focusNode: focusNode,
           enabled: activo,
           keyboardType: esNumero ? TextInputType.number : TextInputType.text,
           onChanged: (value) => setState(() {}),
