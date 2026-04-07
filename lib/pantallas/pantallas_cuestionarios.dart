@@ -1290,7 +1290,6 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
   final TextEditingController _medOralNombreCtrl = TextEditingController();
   final TextEditingController _medOralDosisCtrl = TextEditingController();
 
-  // Variables para "Otros Medicamentos"
   final TextEditingController _otroMedNombreCtrl = TextEditingController();
   final TextEditingController _otroMedGramajeCtrl = TextEditingController();
   final TextEditingController _otroMedPropositoCtrl = TextEditingController();
@@ -1301,6 +1300,13 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
   int? _indiceEditando;
   String? _frecuenciaMonitoreoPaciente;
   final TextEditingController _otroMonitoreoCtrl = TextEditingController();
+
+  // Variables Estilo de Vida y Seguridad
+  final TextEditingController _medicoNombreCtrl = TextEditingController();
+  String? _riesgoCaidas;
+  String? _estadoCognitivo;
+  String? _autonomiaMenor;
+  final TextEditingController _contactoEscolarCtrl = TextEditingController();
   final List<String> _opcionesTiempoDx = ['Menos de 1 año', '1 a 5 años', '5 a 10 años', 'Más de 10 años'];
   final List<String> _opcionesTipoDiabetes = ['Tipo 1', 'Tipo 2', 'Gestacional', 'LADA / Otro'];
   final List<String> _opcionesMonitoreo = [
@@ -1311,6 +1317,8 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
     'Monitoreo continuo (Sensor)',
     'Otro protocolo'
   ];
+  final List<String> _opcionesRiesgoCaidas = ['Sí usa', 'No usa'];
+  final List<String> _opcionesEstadoCognitivo = ['Sí', 'A veces', 'No'];
 
   @override
   void initState() {
@@ -1352,6 +1360,8 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
     _otroMedPropositoCtrl.dispose();
     _otroMedFrecuenciaCtrl.dispose();
     _otroMonitoreoCtrl.dispose();
+    _medicoNombreCtrl.dispose();
+    _contactoEscolarCtrl.dispose();
     super.dispose();
   }
 
@@ -1492,7 +1502,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
                   _construirFase2PerfilPaciente(),
                   _construirFase3Parametros(),
                   _construirFase4Medicacion(),
-                  _construirFasePlaceholder('Fase 5: Estilo de Vida y Seguridad'),
+                  _construirFase5EstiloVida(),
                 ],
               ),
             ),
@@ -1584,7 +1594,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
         children: [
           const Text('Datos Generales del Paciente', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 5),
-          const Text('Paso 1 de 5', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const Text('Paso 1 de 6', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
           const SizedBox(height: 30),
 
           const Text('¿A quién estás cuidando?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
@@ -1609,6 +1619,13 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
             icono: Icons.accessible,
             seleccionado: _tipoPaciente == 'Discapacidad',
             onTap: () => setState(() => _tipoPaciente = 'Discapacidad'),
+          ),
+          const SizedBox(height: 10),
+          _crearOpcionPaciente(
+            titulo: 'Otro Adulto',
+            icono: Icons.person,
+            seleccionado: _tipoPaciente == 'Adulto',
+            onTap: () => setState(() => _tipoPaciente = 'Adulto'),
           ),
           const SizedBox(height: 30),
 
@@ -1647,7 +1664,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
         children: [
           const Text('Perfil Clínico del Paciente', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 5),
-          const Text('Paso 2 de 5', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const Text('Paso 2 de 6', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
           const SizedBox(height: 30),
 
           const Text('Sexo Biológico del Paciente', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
@@ -1727,7 +1744,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
         children: [
           const Text('Parámetros de Control', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 5),
-          const Text('Paso 3 de 5', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const Text('Paso 3 de 6', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
           const SizedBox(height: 25),
 
           _crearTarjetaGlass(
@@ -1890,7 +1907,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
         children: [
           const Text('Medicación del Paciente', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 5),
-          const Text('Paso 4 de 5', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const Text('Paso 4 de 6', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
           const SizedBox(height: 30),
 
           if (_tipoDiabetesPaciente == 'Tipo 1') ...[
@@ -2119,6 +2136,140 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
     );
   }
 
+  Widget _construirFase5EstiloVida() {
+    bool fase5Completa = _medicoNombreCtrl.text.isNotEmpty;
+
+    if (_tipoPaciente == 'Adulto Mayor') {
+      fase5Completa = fase5Completa && _riesgoCaidas != null && _estadoCognitivo != null;
+    } else if (_tipoPaciente == 'Menor de Edad') {
+      fase5Completa = fase5Completa && _autonomiaMenor != null && _contactoEscolarCtrl.text.isNotEmpty;
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(35.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Estilo de Vida y Seguridad', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 5),
+          const Text('Paso 5 de 6', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const SizedBox(height: 30),
+          _crearTarjetaGlass(
+              hijo: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.shield_outlined, color: Color(0xFF00D1FF), size: 28),
+                      SizedBox(width: 10),
+                      Text('Seguridad y Vigilancia', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ],
+                  ),
+                  const SizedBox(height: 15),
+                  const Text(
+                    'Como cuidador, eres el pilar principal. Mantén las notificaciones de Insul App activadas y verifica constantemente el estado del paciente. La tecnología es un apoyo, pero tu atención es insustituible.',
+                    style: TextStyle(fontSize: 14, color: Colors.white),
+                  ),
+                ],
+              )
+          ),
+          const SizedBox(height: 25),
+          _crearTarjetaGlass(
+              hijo: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Médico Tratante', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 5),
+                  const Text('¿A quién irán dirigidos los reportes clínicos?', style: TextStyle(fontSize: 13, color: Color(0xFFE8E8E8))),
+                  const SizedBox(height: 20),
+                  _crearCampoTexto(titulo: 'Nombre completo del Médico', hint: 'Ej. Dra. Carmen Ruiz', controlador: _medicoNombreCtrl, esNumero: false),
+                ],
+              )
+          ),
+          const SizedBox(height: 25),
+          if (_tipoPaciente == 'Adulto Mayor') ...[
+            _crearTarjetaGlass(
+                hijo: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Consideraciones del Adulto Mayor', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const SizedBox(height: 20),
+
+                    const Text('Riesgo de Caídas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
+                    const SizedBox(height: 5),
+                    const Text('¿El paciente usa andadera, bastón o silla de ruedas? (Una baja de azúcar causa mareos y puede ser crítico).', style: TextStyle(fontSize: 13, color: Color(0xFFE8E8E8))),
+                    const SizedBox(height: 10),
+                    _crearDropdown(
+                        valorActual: _riesgoCaidas,
+                        hint: 'Selecciona opción',
+                        opciones: _opcionesRiesgoCaidas,
+                        onChange: (val) => setState(() => _riesgoCaidas = val)
+                    ),
+                    const SizedBox(height: 20),
+
+                    const Text('Estado Cognitivo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
+                    const SizedBox(height: 5),
+                    const Text('¿El paciente es capaz de avisar verbalmente si se siente mal?', style: TextStyle(fontSize: 13, color: Color(0xFFE8E8E8))),
+                    const SizedBox(height: 10),
+                    _crearDropdown(
+                        valorActual: _estadoCognitivo,
+                        hint: 'Selecciona opción',
+                        opciones: _opcionesEstadoCognitivo,
+                        onChange: (val) => setState(() => _estadoCognitivo = val)
+                    ),
+                  ],
+                )
+            ),
+            const SizedBox(height: 40),
+          ],
+          if (_tipoPaciente == 'Menor de Edad') ...[
+            _crearTarjetaGlass(
+                hijo: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Consideraciones del Menor', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const SizedBox(height: 20),
+
+                    const Text('Autonomía', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
+                    const SizedBox(height: 5),
+                    const Text('¿El niño ya reconoce sus propios síntomas cuando se le baja el azúcar?', style: TextStyle(fontSize: 13, color: Color(0xFFE8E8E8))),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(child: _crearChipSeleccion('Sí', _autonomiaMenor == 'Sí', () => setState(() => _autonomiaMenor = 'Sí'))),
+                        const SizedBox(width: 15),
+                        Expanded(child: _crearChipSeleccion('Aún no', _autonomiaMenor == 'Aún no', () => setState(() => _autonomiaMenor = 'Aún no'))),
+                      ],
+                    ),
+                    const SizedBox(height: 25),
+
+                    const Text('Contacto Escolar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
+                    const SizedBox(height: 5),
+                    const Text('Solicitamos el teléfono de la escuela o maestro para generar un "Protocolo de Emergencia Escolar" en el futuro.', style: TextStyle(fontSize: 13, color: Color(0xFFE8E8E8))),
+                    const SizedBox(height: 10),
+                    _crearCampoTexto(titulo: 'Teléfono', hint: '10 dígitos', controlador: _contactoEscolarCtrl, esNumero: true),
+                  ],
+                )
+            ),
+            const SizedBox(height: 40),
+          ],
+
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: ElevatedButton(
+              onPressed: fase5Completa ? _siguientePaso : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF008CCF),
+                disabledBackgroundColor: Colors.grey.withOpacity(0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+              child: const Text('Siguiente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)), // Siguiente, porque iremos a la Fase 6 después
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   Widget _construirFasePlaceholder(String texto) {
     return Center(child: Text(texto, style: const TextStyle(color: Colors.white, fontSize: 20), textAlign: TextAlign.center));
   }
@@ -2184,7 +2335,14 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
     );
   }
 
-  Widget _crearCampoTexto({required String titulo, required String hint, required TextEditingController controlador, required bool esNumero, bool activo = true, FocusNode? focusNode}) {
+  Widget _crearCampoTexto({
+    required String titulo,
+    required String hint,
+    required TextEditingController controlador,
+    required bool esNumero,
+    bool activo = true,
+    FocusNode? focusNode,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
