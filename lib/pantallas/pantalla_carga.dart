@@ -36,11 +36,19 @@ class _PantallaCargaState extends State<PantallaCarga> with TickerProviderStateM
     _animacionOpacidad = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controladorOpacidad, curve: Curves.easeIn),
     );
-
     Future.delayed(const Duration(seconds: 5), () {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const PantallaLogin()),
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => const PantallaLogin(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: child,
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 800),
+        ),
       );
     });
   }
