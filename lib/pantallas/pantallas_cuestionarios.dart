@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'enfermeros/pantalla_inicio_enfermero.dart';
 //------------------------------------------------------------------------------------------------
 class PantallaCuestionarioEnfermero extends StatefulWidget {
   const PantallaCuestionarioEnfermero({super.key});
@@ -61,6 +62,54 @@ class _PantallaCuestionarioEnfermeroState extends State<PantallaCuestionarioEnfe
   void dispose() {
     _controladorPrincipal.dispose();
     super.dispose();
+  }
+
+  void _mostrarDialogoFinalizacion() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C63BB),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle_outline, color: Color(0xFF00D1FF), size: 60),
+                const SizedBox(height: 20),
+                const Text('¡Registro Finalizado!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 10),
+                const Text('Tu perfil médico ha sido verificado y guardado exitosamente.\n\n¡Bienvenido a Insul App!', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Color(0xFFE8E8E8))),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const PantallaInicioEnfermero()),
+                            (Route<dynamic> route) => false,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00D1FF),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
+                    child: const Text('Ir al Inicio', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -173,7 +222,9 @@ class _PantallaCuestionarioEnfermeroState extends State<PantallaCuestionarioEnfe
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      _mostrarDialogoFinalizacion();
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF008CCF),
                       shape: RoundedRectangleBorder(
