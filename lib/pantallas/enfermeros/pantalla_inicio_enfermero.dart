@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'pantalla_agregar_paciente.dart';
 
 class PantallaInicioEnfermero extends StatefulWidget {
   final String nombreEnfermero; // aqui va el name de la BD
@@ -89,7 +90,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                         Text(
                           'Hola, Enf. ${widget.nombreEnfermero}',
                           style: const TextStyle(
-                            fontSize: 28, // Ajustado para móviles
+                            fontSize: 28,
                             fontWeight: FontWeight.w700,
                             color: Color(0xFF2F2F2F),
                             letterSpacing: -0.5,
@@ -142,7 +143,10 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                   ),
                   ElevatedButton.icon(
                     onPressed: () {
-                      print("Navegar a Agregar Paciente");
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const PantallaAgregarPaciente()),
+                      );
                     },
                     icon: const Icon(Icons.add_circle_outline, size: 20, color: Colors.white),
                     label: const Text(
