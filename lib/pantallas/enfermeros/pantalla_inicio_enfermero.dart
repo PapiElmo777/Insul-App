@@ -18,32 +18,7 @@ class PantallaInicioEnfermero extends StatefulWidget {
 class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
   int _indiceNavegacionActual = 0;
   String _fechaFormateada = '';
-  final List<Map<String, dynamic>> _pacientesMock = [
-    {
-      'nombre': 'Marta Pérez',
-      'glucosa': 108,
-      'estadoGlucosa': 'normal',
-      'proximaDosis': '12:00 PM',
-    },
-    {
-      'nombre': 'Miguel Ruiz',
-      'glucosa': 142,
-      'estadoGlucosa': 'alerta',
-      'proximaDosis': '2:00 PM',
-    },
-    {
-      'nombre': 'Diego Martinez',
-      'glucosa': 250,
-      'estadoGlucosa': 'peligro',
-      'proximaDosis': '12:00 PM',
-    },
-    {
-      'nombre': 'Marta Perez',
-      'glucosa': 62,
-      'estadoGlucosa': 'alerta',
-      'proximaDosis': null,
-    },
-  ];
+  List<Map<String, dynamic>> _listaPacientes = [];
 
   @override
   void initState() {
@@ -142,11 +117,17 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                     ),
                   ),
                   ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
+                    onPressed: () async {
+                      final nuevoPaciente = await Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const PantallaAgregarPaciente()),
                       );
+
+                      if (nuevoPaciente != null) {
+                        setState(() {
+                          _listaPacientes.add(nuevoPaciente);
+                        });
+                      }
                     },
                     icon: const Icon(Icons.add_circle_outline, size: 20, color: Colors.white),
                     label: const Text(
@@ -170,11 +151,19 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
             const SizedBox(height: 10),
 
             Expanded(
-              child: ListView.builder(
+              child: _listaPacientes.isEmpty
+                  ? const Center(
+                child: Text(
+                  'No tienes pacientes asignados.\nToca "Agregar Paciente" para comenzar.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+              )
+                  : ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10.0),
-                itemCount: _pacientesMock.length,
+                itemCount: _listaPacientes.length,
                 itemBuilder: (context, index) {
-                  final paciente = _pacientesMock[index];
+                  final paciente = _listaPacientes[index];
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 15.0),
                     child: _TarjetaPaciente(
@@ -271,7 +260,6 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
   }
 }
 
-// Tarjeta de paciente
 class _TarjetaPaciente extends StatelessWidget {
   final String nombre;
   final int glucosa;
@@ -327,7 +315,7 @@ class _TarjetaPaciente extends StatelessWidget {
                   nombre,
                   style: const TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.w700, // Bold
+                    fontWeight: FontWeight.w700,
                     color: Colors.black,
                   ),
                 ),
@@ -353,7 +341,7 @@ class _TarjetaPaciente extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '$glucosa mg/dL',
+                      glucosa == 0 ? '-- mg/dL' : '$glucosa mg/dL',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -370,7 +358,7 @@ class _TarjetaPaciente extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Icon(Icons.colorize, color: Colors.black, size: 20), // Icono de jeringa/insulina
+                const Icon(Icons.colorize, color: Colors.black, size: 20),
                 const SizedBox(height: 4),
                 const Text(
                   'Proxima dosis',

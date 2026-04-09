@@ -182,8 +182,15 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
+                      Map<String, dynamic> nuevoPaciente = {
+                        'nombre': '${_nombreCtrl.text} ${_apellidosCtrl.text}'.trim(),
+                        'glucosa': 0,
+                        'estadoGlucosa': 'normal',
+                        'proximaDosis': 'Pendiente',
+                      };
+
                       Navigator.pop(context);
-                      Navigator.pop(context);
+                      Navigator.pop(context, nuevoPaciente);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00D1FF),
