@@ -41,6 +41,11 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
   bool _mostrarFormularioMedOral = false;
   int? _indiceEditandoMedOral;
 
+  // Variables observaciones
+  final TextEditingController _estadoGeneralCtrl = TextEditingController();
+  final TextEditingController _alergiasCtrl = TextEditingController();
+  final TextEditingController _dietaCtrl = TextEditingController();
+
   final List<String> _opcionesTipoDiabetes = ['Tipo 1', 'Tipo 2', 'Gestacional', 'LADA / Otro'];
   final List<String> _opcionesMonitoreo = [
     'Cada 2 horas',
@@ -74,6 +79,9 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
     _medOralNombreCtrl.dispose();
     _medOralGramajeCtrl.dispose();
     _medOralFrecuenciaCtrl.dispose();
+    _estadoGeneralCtrl.dispose();
+    _alergiasCtrl.dispose();
+    _dietaCtrl.dispose();
     super.dispose();
   }
 
@@ -147,6 +155,50 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
       Navigator.pop(context);
     }
   }
+  void _mostrarDialogoExito() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C63BB),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle_outline, color: Color(0xFF00D1FF), size: 60),
+                const SizedBox(height: 20),
+                const Text('¡Paciente Ingresado!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 10),
+                const Text('Los datos del paciente han sido registrados exitosamente en su turno.', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Color(0xFFE8E8E8))),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00D1FF),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
+                    child: const Text('Volver a Mis Pacientes', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -192,7 +244,7 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
                   _construirFase1Identidad(),
                   _construirFase2ControlGlucemico(),
                   _construirFase3Medicacion(),
-                  _construirFasePlaceholder('Fase 4: Observaciones de Ingreso'),
+                  _construirFase4Observaciones(),
                 ],
               ),
             ),
@@ -548,6 +600,80 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
     );
   }
 
+  // pestaña 4
+  Widget _construirFase4Observaciones() {
+    bool fase4Completa = _estadoGeneralCtrl.text.isNotEmpty && _dietaCtrl.text.isNotEmpty;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(35.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Observaciones', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 5),
+          const Text('Paso 4 de 4: Contexto Clínico', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
+          const SizedBox(height: 30),
+
+          _crearTarjetaGlass(
+              hijo: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Estado Clínico', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 20),
+
+                  const Text('Estado General al Ingreso', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
+                  const SizedBox(height: 5),
+                  TextField(
+                    controller: _estadoGeneralCtrl,
+                    maxLines: 3,
+                    onChanged: (value) => setState(() {}),
+                    decoration: InputDecoration(
+                      hintText: 'Breve nota sobre cómo llega el paciente (ej. "lúcido", "con mareos", "deshidratado").',
+                      hintStyle: const TextStyle(color: Color(0xFF848282)),
+                      filled: true, fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.all(15),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  _crearCampoTexto(titulo: 'Alergias Conocidas', hint: 'Ej. Penicilina, Látex, Ninguna', controlador: _alergiasCtrl, esNumero: false),
+                ],
+              )
+          ),
+          const SizedBox(height: 20),
+
+          _crearTarjetaGlass(
+              hijo: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Nutrición', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 20),
+                  _crearCampoTexto(titulo: 'Dieta Asignada', hint: 'Ej. Baja en carbohidratos, Ayuno...', controlador: _dietaCtrl, esNumero: false),
+                ],
+              )
+          ),
+          const SizedBox(height: 40),
+
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: ElevatedButton(
+              onPressed: fase4Completa ? () {
+                _mostrarDialogoExito();
+              } : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF008CCF),
+                disabledBackgroundColor: Colors.grey.withOpacity(0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+              child: const Text('Guardar Paciente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _construirGraficoGlucosa() {
     String hipo = _hipoCtrl.text.isEmpty ? '--' : _hipoCtrl.text;
     String rMin = _rangoMinCtrl.text.isEmpty ? '--' : _rangoMinCtrl.text;
@@ -614,6 +740,7 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
       ],
     );
   }
+
   Widget _construirFasePlaceholder(String texto) {
     return Center(child: Text(texto, style: const TextStyle(color: Colors.white, fontSize: 20), textAlign: TextAlign.center));
   }
