@@ -182,6 +182,13 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
+                      String dosisProxima = 'Pendiente';
+                      if (_tipoDiabetes != 'Tipo 2' && _tipoInsulina != null && _tipoInsulina != 'No usa insulina' && _insulinaDosisCtrl.text.isNotEmpty) {
+                        dosisProxima = 'Pendiente: ${_insulinaDosisCtrl.text} UI';
+                      } else if (_medicamentosOrales.isNotEmpty) {
+                        dosisProxima = 'Pendiente: Med. Oral';
+                      }
+
                       Map<String, dynamic> nuevoPaciente = {
                         'nombre': '${_nombreCtrl.text} ${_apellidosCtrl.text}'.trim(),
                         'edad': _edadCtrl.text,
@@ -191,14 +198,20 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
                         'alergias': _alergiasCtrl.text.isNotEmpty ? _alergiasCtrl.text : 'Ninguna',
                         'dieta': _dietaCtrl.text.isNotEmpty ? _dietaCtrl.text : 'Dieta normal',
                         'estadoGeneral': _estadoGeneralCtrl.text,
+                        'hipoLimit': int.tryParse(_hipoCtrl.text) ?? 70,
+                        'hiperLimit': int.tryParse(_hiperCtrl.text) ?? 180,
+                        'rangoMin': int.tryParse(_rangoMinCtrl.text) ?? 80,
+                        'rangoMax': int.tryParse(_rangoMaxCtrl.text) ?? 130,
+
                         'glucosa': 0,
                         'estadoGlucosa': 'normal',
-                        'proximaDosis': 'Pendiente',
+                        'proximaDosis': dosisProxima,
                         'historialGlucosa': <Map<String, dynamic>>[],
                         'observacionesTurno': <String>[],
                       };
+
                       List<Map<String, dynamic>> listaMedicamentos = [];
-                      if (_tipoInsulina != null && _tipoInsulina != 'No usa insulina') {
+                      if (_tipoDiabetes != 'Tipo 2' && _tipoInsulina != null && _tipoInsulina != 'No usa insulina') {
                         listaMedicamentos.add({
                           'nombre': 'Insulina $_tipoInsulina - ${_insulinaMarcaCtrl.text}',
                           'dosis': '${_insulinaDosisCtrl.text} UI',
@@ -287,6 +300,7 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
       ),
     );
   }
+//pestaña 1
   Widget _construirFase1Identidad() {
     bool fase1Completa = _nombreCtrl.text.isNotEmpty &&
         _apellidosCtrl.text.isNotEmpty &&
@@ -353,6 +367,7 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
     );
   }
 
+  //pestaña 2
   Widget _construirFase2ControlGlucemico() {
     bool fase2Completa = _tipoDiabetes != null &&
         _frecuenciaMonitoreo != null &&
@@ -447,11 +462,17 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
     );
   }
 
+  // pestaña 3
   Widget _construirFase3Medicacion() {
-    bool fase3Completa = _tipoInsulina != null;
-    if (_tipoInsulina != null && _tipoInsulina != 'No usa insulina') {
-      fase3Completa = fase3Completa && _insulinaMarcaCtrl.text.isNotEmpty && _insulinaDosisCtrl.text.isNotEmpty;
+    bool fase3Completa = true;
+
+    if (_tipoDiabetes != 'Tipo 2') {
+      fase3Completa = _tipoInsulina != null;
+      if (_tipoInsulina != null && _tipoInsulina != 'No usa insulina') {
+        fase3Completa = fase3Completa && _insulinaMarcaCtrl.text.isNotEmpty && _insulinaDosisCtrl.text.isNotEmpty;
+      }
     }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(35.0),
       child: Column(
@@ -461,40 +482,43 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
           const SizedBox(height: 5),
           const Text('Paso 3 de 4: Esquema Clínico', style: TextStyle(fontSize: 16, color: Color(0xFF00D1FF), fontWeight: FontWeight.bold)),
           const SizedBox(height: 30),
-          _crearTarjetaGlass(
-              hijo: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Esquema de Insulina', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                  const SizedBox(height: 20),
-                  const Text('Tipo de Insulina Principal', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
-                  const SizedBox(height: 10),
-                  _crearDropdown(
-                      valorActual: _tipoInsulina,
-                      hint: 'Seleccione el tipo',
-                      opciones: _opcionesTipoInsulina,
-                      onChange: (val) => setState(() => _tipoInsulina = val)
-                  ),
+          if (_tipoDiabetes != 'Tipo 2') ...[
+            _crearTarjetaGlass(
+                hijo: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Esquema de Insulina', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const SizedBox(height: 20),
+                    const Text('Tipo de Insulina Principal', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
+                    const SizedBox(height: 10),
+                    _crearDropdown(
+                        valorActual: _tipoInsulina,
+                        hint: 'Seleccione el tipo',
+                        opciones: _opcionesTipoInsulina,
+                        onChange: (val) => setState(() => _tipoInsulina = val)
+                    ),
 
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    child: (_tipoInsulina != null && _tipoInsulina != 'No usa insulina')
-                        ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 20),
-                        _crearCampoTexto(titulo: 'Marca de la Insulina', hint: 'Ej. Lantus, Humalog...', controlador: _insulinaMarcaCtrl, esNumero: false),
-                        const SizedBox(height: 15),
-                        _crearCampoTexto(titulo: 'Unidades Base Programadas', hint: 'Ej. 15 UI', controlador: _insulinaDosisCtrl, esNumero: false),
-                      ],
-                    )
-                        : const SizedBox.shrink(),
-                  ),
-                ],
-              )
-          ),
-          const SizedBox(height: 20),
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      child: (_tipoInsulina != null && _tipoInsulina != 'No usa insulina')
+                          ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 20),
+                          _crearCampoTexto(titulo: 'Marca de la Insulina', hint: 'Ej. Lantus, Humalog...', controlador: _insulinaMarcaCtrl, esNumero: false),
+                          const SizedBox(height: 15),
+                          _crearCampoTexto(titulo: 'Unidades Base Programadas', hint: 'Ej. 15 UI', controlador: _insulinaDosisCtrl, esNumero: false),
+                        ],
+                      )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                )
+            ),
+            const SizedBox(height: 20),
+          ],
+
           _crearTarjetaGlass(
               hijo: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -631,6 +655,7 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
     );
   }
 
+  // pestaña 4
   Widget _construirFase4Observaciones() {
     bool fase4Completa = _estadoGeneralCtrl.text.isNotEmpty && _dietaCtrl.text.isNotEmpty;
 
