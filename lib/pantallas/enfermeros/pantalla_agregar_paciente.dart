@@ -184,10 +184,37 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
                     onPressed: () {
                       Map<String, dynamic> nuevoPaciente = {
                         'nombre': '${_nombreCtrl.text} ${_apellidosCtrl.text}'.trim(),
+                        'edad': _edadCtrl.text,
+                        'expediente': _expedienteCtrl.text,
+                        'ubicacion': _ubicacionCtrl.text.isNotEmpty ? _ubicacionCtrl.text : 'Ubicación sin asignar',
+                        'tipoDiabetes': _tipoDiabetes ?? 'No especificado',
+                        'alergias': _alergiasCtrl.text.isNotEmpty ? _alergiasCtrl.text : 'Ninguna',
+                        'dieta': _dietaCtrl.text.isNotEmpty ? _dietaCtrl.text : 'Dieta normal',
+                        'estadoGeneral': _estadoGeneralCtrl.text,
                         'glucosa': 0,
                         'estadoGlucosa': 'normal',
                         'proximaDosis': 'Pendiente',
+                        'historialGlucosa': <Map<String, dynamic>>[],
+                        'observacionesTurno': <String>[],
                       };
+                      List<Map<String, dynamic>> listaMedicamentos = [];
+                      if (_tipoInsulina != null && _tipoInsulina != 'No usa insulina') {
+                        listaMedicamentos.add({
+                          'nombre': 'Insulina $_tipoInsulina - ${_insulinaMarcaCtrl.text}',
+                          'dosis': '${_insulinaDosisCtrl.text} UI',
+                          'frecuencia': 'Según esquema',
+                          'suministrado': false,
+                        });
+                      }
+                      for (var med in _medicamentosOrales) {
+                        listaMedicamentos.add({
+                          'nombre': med['nombre'],
+                          'dosis': med['gramaje'],
+                          'frecuencia': med['frecuencia'],
+                          'suministrado': false,
+                        });
+                      }
+                      nuevoPaciente['medicamentos'] = listaMedicamentos;
 
                       Navigator.pop(context);
                       Navigator.pop(context, nuevoPaciente);
@@ -260,7 +287,6 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
       ),
     );
   }
-//pestaña 1
   Widget _construirFase1Identidad() {
     bool fase1Completa = _nombreCtrl.text.isNotEmpty &&
         _apellidosCtrl.text.isNotEmpty &&
@@ -327,7 +353,6 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
     );
   }
 
-  //pestaña 2
   Widget _construirFase2ControlGlucemico() {
     bool fase2Completa = _tipoDiabetes != null &&
         _frecuenciaMonitoreo != null &&
@@ -422,7 +447,6 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
     );
   }
 
-  // pestaña 3
   Widget _construirFase3Medicacion() {
     bool fase3Completa = _tipoInsulina != null;
     if (_tipoInsulina != null && _tipoInsulina != 'No usa insulina') {
@@ -607,7 +631,6 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
     );
   }
 
-  // pestaña 4
   Widget _construirFase4Observaciones() {
     bool fase4Completa = _estadoGeneralCtrl.text.isNotEmpty && _dietaCtrl.text.isNotEmpty;
 
