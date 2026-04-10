@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'pantalla_registro.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class PantallaLogin extends StatefulWidget {
   const PantallaLogin({super.key});
@@ -64,7 +65,7 @@ class _PantallaLoginState extends State<PantallaLogin> with SingleTickerProvider
                   opacity: _animacionOpacidadHeader,
                   child: Column(
                     children: [
-                      Image.asset('assets/logo.png', width: 100),
+                      SvgPicture.asset('assets/logo1.svg', width: 120,colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),),
                       const SizedBox(height: 10),
                       RichText(
                         text: const TextSpan(

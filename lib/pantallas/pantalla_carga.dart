@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'pantalla_login.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class PantallaCarga extends StatefulWidget {
   const PantallaCarga({super.key});
@@ -80,7 +81,7 @@ class _PantallaCargaState extends State<PantallaCarga> with TickerProviderStateM
           children: [
             ScaleTransition(
               scale: _animacionEscala,
-              child: Image.asset('assets/logo.png', width: 120),
+              child: SvgPicture.asset('assets/logo1.svg', width: 120,colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),),
             ),
             const SizedBox(height: 20),
             FadeTransition(
