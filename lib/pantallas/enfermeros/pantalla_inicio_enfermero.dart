@@ -128,7 +128,6 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
       ),
     );
   }
-
   Widget _puntoRojo() {
     return Container(
       margin: const EdgeInsets.only(top: 4),
@@ -141,6 +140,52 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
     );
   }
 
+  Widget _construirLeyendaColores() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 5.0),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _itemLeyenda(const Color(0xFFFF6B6B), 'Hipo'),
+            const SizedBox(width: 15),
+            _itemLeyenda(const Color(0xFF06CA23), 'Normal'),
+            const SizedBox(width: 15),
+            _itemLeyenda(const Color(0xFFD9E00C), 'Precaución'),
+            const SizedBox(width: 15),
+            _itemLeyenda(const Color(0xFFFFB347), 'Hiper'),
+            const SizedBox(width: 15),
+            _itemLeyenda(Colors.grey, 'Sin Dato'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _itemLeyenda(Color color, String texto) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          texto,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.black87,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
   Widget _construirTabHome() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,6 +286,8 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
             ],
           ),
         ),
+
+        _construirLeyendaColores(),
         const SizedBox(height: 10),
 
         Expanded(
@@ -279,12 +326,15 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Padding(
-          padding: EdgeInsets.fromLTRB(25.0, 30.0, 25.0, 20.0),
+          padding: EdgeInsets.fromLTRB(25.0, 30.0, 25.0, 10.0),
           child: Text(
             'Directorio de Pacientes',
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.black),
           ),
         ),
+
+        const SizedBox(height: 10),
+
         Expanded(
           child: _listaPacientes.isEmpty
               ? const Center(
@@ -358,6 +408,19 @@ class _TarjetaPaciente extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF008CCF), width: 2),
+              ),
+              child: const Center(
+                child: Icon(Icons.person, color: Color(0xFF008CCF), size: 30),
+              ),
+            ),
+            const SizedBox(width: 15),
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -481,6 +544,12 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
           children: [
             Row(
               children: [
+                Container(
+                  width: 45, height: 45,
+                  decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFF008CCF), width: 2)),
+                  child: const Icon(Icons.person, color: Color(0xFF008CCF), size: 25),
+                ),
+                const SizedBox(width: 15),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
