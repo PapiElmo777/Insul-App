@@ -5,11 +5,11 @@ import 'pantalla_agregar_paciente.dart';
 import 'pantalla_detalle_paciente.dart';
 
 class PantallaInicioEnfermero extends StatefulWidget {
-  final String nombreEnfermero; // aqui va el name de la BD
+  final String nombreEnfermero;
 
   const PantallaInicioEnfermero({
     super.key,
-    this.nombreEnfermero = 'Alfredo',//temporal
+    this.nombreEnfermero = 'Alfredo',
   });
 
   @override
@@ -309,8 +309,14 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                 child: _TarjetaPaciente(
                   paciente: paciente,
                   onTap: () async {
-                    await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaDetallePaciente(paciente: paciente, nombreEnfermero: widget.nombreEnfermero)));
-                    setState(() {});
+                    final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaDetallePaciente(paciente: paciente, nombreEnfermero: widget.nombreEnfermero)));
+                    if (res == 'eliminar') {
+                      setState(() {
+                        _listaPacientes.remove(paciente);
+                      });
+                    } else {
+                      setState(() {});
+                    }
                   },
                 ),
               );
@@ -353,8 +359,14 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                 child: _TarjetaPacienteDetallada(
                   paciente: paciente,
                   onTap: () async {
-                    await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaDetallePaciente(paciente: paciente, nombreEnfermero: widget.nombreEnfermero)));
-                    setState(() {});
+                    final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaDetallePaciente(paciente: paciente, nombreEnfermero: widget.nombreEnfermero)));
+                    if (res == 'eliminar') {
+                      setState(() {
+                        _listaPacientes.remove(paciente);
+                      });
+                    } else {
+                      setState(() {});
+                    }
                   },
                 ),
               );

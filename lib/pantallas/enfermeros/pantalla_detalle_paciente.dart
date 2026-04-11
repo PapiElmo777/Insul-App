@@ -250,6 +250,30 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
     );
   }
 
+  void _mostrarDialogoEliminar() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Eliminar Paciente', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFF4A4A))),
+          content: const Text('¿Estás seguro de que deseas eliminar a este paciente? Toda su información y expediente clínico se perderá de forma permanente.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context, 'eliminar');
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF4A4A)),
+              child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _crearCampoEdicion(String label, TextEditingController controlador, {bool esNumero = false}) {
     return TextField(
       controller: controlador,
@@ -516,6 +540,20 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                   ],
                 ),
               ),
+
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: _mostrarDialogoEliminar,
+                  icon: const Icon(Icons.delete_forever, color: Colors.white),
+                  label: const Text('Eliminar Paciente', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF4A4A),
+                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
 
             ],
           ),
