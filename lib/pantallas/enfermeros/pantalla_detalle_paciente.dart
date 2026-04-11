@@ -269,7 +269,7 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
 
                     // Grafico / Historial
                     Container(
-                      height: 150,
+                      height: 180,
                       width: double.infinity,
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFD2D2D2))),
                       child: _historialGlucosa.isEmpty
@@ -282,8 +282,21 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                           final lectura = _historialGlucosa[index];
                           final fechaStr = DateFormat('dd/MM\nhh:mm a').format(lectura['fecha'] as DateTime);
                           int valor = lectura['valor'];
-                          Color c = (valor >= 80 && valor <= 130) ? const Color(0xFF06CA23) : const Color(0xFFE00925);
-                        //agregar los 3 colores para los rangos
+                          int hipo = widget.paciente['hipoLimit'] ?? 70;
+                          int hiper = widget.paciente['hiperLimit'] ?? 180;
+                          int minG = widget.paciente['rangoMin'] ?? 80;
+                          int maxG = widget.paciente['rangoMax'] ?? 130;
+
+                          Color c;
+                          if (valor < hipo) {
+                            c = const Color(0xFFFF6B6B);
+                          } else if (valor > hiper) {
+                            c = const Color(0xFFFFB347);
+                          } else if (valor >= minG && valor <= maxG) {
+                            c = const Color(0xFF06CA23);
+                          } else {
+                            c = const Color(0xFFD9E00C);
+                          }
                           return Padding(
                             padding: const EdgeInsets.only(right: 20),
                             child: Column(
@@ -291,7 +304,7 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                               children: [
                                 Text(valor.toString(), style: TextStyle(fontWeight: FontWeight.bold, color: c)),
                                 const SizedBox(height: 5),
-                                Container(width: 20, height: (valor.toDouble() / 3).clamp(10.0, 80.0), decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(5))),
+                                Container(width: 20, height: (valor.toDouble() / 2.5).clamp(10.0, 70.0), decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(5))),
                                 const SizedBox(height: 5),
                                 Text(fechaStr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: Colors.grey)),
                               ],
@@ -449,7 +462,7 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
     );
   }
 
-  // Estadisticas de glucosa
+  // Estadísticas de glucosa
   Widget _crearTarjetaStat(String titulo, String valor, String subtitulo, IconData icono, Color color) {
     return Container(
       padding: const EdgeInsets.all(15),

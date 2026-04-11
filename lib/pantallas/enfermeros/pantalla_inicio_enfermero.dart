@@ -327,13 +327,23 @@ class _TarjetaPaciente extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    int val = paciente['glucosa'] ?? 0;
+    int hipo = paciente['hipoLimit'] ?? 70;
+    int hiper = paciente['hiperLimit'] ?? 180;
+    int rMin = paciente['rangoMin'] ?? 80;
+    int rMax = paciente['rangoMax'] ?? 130;
+
     Color colorIndicador;
-    if (paciente['estadoGlucosa'] == 'normal') {
+    if (val == 0) {
+      colorIndicador = Colors.grey;
+    } else if (val < hipo) {
+      colorIndicador = const Color(0xFFFF6B6B);
+    } else if (val > hiper) {
+      colorIndicador = const Color(0xFFFFB347);
+    } else if (val >= rMin && val <= rMax) {
       colorIndicador = const Color(0xFF06CA23);
-    } else if (paciente['estadoGlucosa'] == 'alerta') {
-      colorIndicador = const Color(0xFFD9E00C);
     } else {
-      colorIndicador = const Color(0xFFE00925);
+      colorIndicador = const Color(0xFFD9E00C);
     }
 
     return GestureDetector(
@@ -348,19 +358,6 @@ class _TarjetaPaciente extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF008CCF), width: 2),
-              ),
-              child: const Center(
-                child: Icon(Icons.person, color: Color(0xFF008CCF), size: 30),
-              ),
-            ),
-            const SizedBox(width: 15),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -450,13 +447,23 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    int val = paciente['glucosa'] ?? 0;
+    int hipo = paciente['hipoLimit'] ?? 70;
+    int hiper = paciente['hiperLimit'] ?? 180;
+    int rMin = paciente['rangoMin'] ?? 80;
+    int rMax = paciente['rangoMax'] ?? 130;
+
     Color colorIndicador;
-    if (paciente['estadoGlucosa'] == 'normal') {
+    if (val == 0) {
+      colorIndicador = Colors.grey;
+    } else if (val < hipo) {
+      colorIndicador = const Color(0xFFFF6B6B);
+    } else if (val > hiper) {
+      colorIndicador = const Color(0xFFFFB347);
+    } else if (val >= rMin && val <= rMax) {
       colorIndicador = const Color(0xFF06CA23);
-    } else if (paciente['estadoGlucosa'] == 'alerta') {
-      colorIndicador = const Color(0xFFD9E00C);
     } else {
-      colorIndicador = const Color(0xFFE00925);
+      colorIndicador = const Color(0xFFD9E00C);
     }
 
     return GestureDetector(
@@ -474,12 +481,6 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: 45, height: 45,
-                  decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFF008CCF), width: 2)),
-                  child: const Icon(Icons.person, color: Color(0xFF008CCF), size: 25),
-                ),
-                const SizedBox(width: 15),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -531,7 +532,13 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
                     children: [
                       Container(width: 12, height: 12, decoration: BoxDecoration(color: colorIndicador, shape: BoxShape.circle)),
                       const SizedBox(width: 8),
-                      Text(paciente['glucosa'] == 0 ? '-- mg/dL' : '${paciente['glucosa']} mg/dL', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black)),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Último registro:', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          Text(paciente['glucosa'] == 0 ? '-- mg/dL' : '${paciente['glucosa']} mg/dL', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black)),
+                        ],
+                      )
                     ],
                   ),
                   Row(
