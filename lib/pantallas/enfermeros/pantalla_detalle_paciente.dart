@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 class PantallaDetallePaciente extends StatefulWidget {
   final Map<String, dynamic> paciente;
@@ -60,9 +60,11 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
   double _calcularTIR() {
     if (_historialGlucosa.isEmpty) return 0;
     int enRango = 0;
+    int minG = widget.paciente['rangoMin'] ?? 80;
+    int maxG = widget.paciente['rangoMax'] ?? 130;
     for (var item in _historialGlucosa) {
       int val = item['valor'];
-      if (val >= 80 && val <= 130) enRango++;
+      if (val >= minG && val <= maxG) enRango++;
     }
     return (enRango / _historialGlucosa.length) * 100;
   }
@@ -92,10 +94,18 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                       'fecha': DateTime.now(),
                     });
                     widget.paciente['glucosa'] = nuevoValor;
-                    if (nuevoValor < 80 || nuevoValor > 130) {
-                      widget.paciente['estadoGlucosa'] = (nuevoValor < 70 || nuevoValor > 180) ? 'peligro' : 'alerta';
-                    } else {
+                    int hipo = widget.paciente['hipoLimit'] ?? 70;
+                    int hiper = widget.paciente['hiperLimit'] ?? 180;
+                    int minG = widget.paciente['rangoMin'] ?? 80;
+                    int maxG = widget.paciente['rangoMax'] ?? 130;
+                    if (nuevoValor < hipo) {
+                      widget.paciente['estadoGlucosa'] = 'peligro';
+                    } else if (nuevoValor > hiper) {
+                      widget.paciente['estadoGlucosa'] = 'peligro';
+                    } else if (nuevoValor >= minG && nuevoValor <= maxG) {
                       widget.paciente['estadoGlucosa'] = 'normal';
+                    } else {
+                      widget.paciente['estadoGlucosa'] = 'alerta';
                     }
                   });
                   _glucosaCtrl.clear();
@@ -206,23 +216,21 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                 ),
                 child: Row(
                   children: [
-                    const SizedBox(width: 15),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(widget.paciente['nombre'] ?? 'Paciente', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
-                          const SizedBox(height: 5),
-                          Text(widget.paciente['ubicacion'] ?? 'Ubicación sin asignar', style: const TextStyle(fontSize: 16, color: Color(0xFFE8E8E8))),
-                          const SizedBox(height: 2),
-                          Text('Edad: ${widget.paciente['edad'] ?? '--'} | Dieta: ${widget.paciente['dieta'] ?? 'Normal'}', style: const TextStyle(fontSize: 14, color: Color(0xFFE8E8E8))),
+                          Text(widget.paciente['nombre'] ?? 'Paciente', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+                          const SizedBox(height: 8),
+                          Text(widget.paciente['ubicacion'] ?? 'Ubicación sin asignar', style: const TextStyle(fontSize: 18, color: Color(0xFFE8E8E8))),
+                          const SizedBox(height: 4),
+                          Text('Edad: ${widget.paciente['edad'] ?? '--'} | Dieta: ${widget.paciente['dieta'] ?? 'Normal'}', style: const TextStyle(fontSize: 16, color: Color(0xFFE8E8E8))),
                         ],
                       ),
                     ),
-                    // Boton Editar
                     Container(
                       decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-                      child: IconButton(icon: const Icon(Icons.edit, color: Colors.white), onPressed: () {}),
+                      child: IconButton(icon: const Icon(Icons.edit, color: Colors.white, size: 28), onPressed: () {}),
                     ),
                   ],
                 ),
@@ -264,48 +272,29 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
 
                     // Grafico / Historial
                     Container(
-                      height: 180,
+                      height: 280,
                       width: double.infinity,
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFD2D2D2))),
                       child: _historialGlucosa.isEmpty
                           ? const Center(child: Text('Aún no hay medidas registradas', style: TextStyle(color: Colors.grey)))
-                          : ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.all(15),
-                        itemCount: _historialGlucosa.length,
-                        itemBuilder: (context, index) {
-                          final lectura = _historialGlucosa[index];
-                          final fechaStr = DateFormat('dd/MM\nhh:mm a').format(lectura['fecha'] as DateTime);
-                          int valor = lectura['valor'];
-                          int hipo = widget.paciente['hipoLimit'] ?? 70;
-                          int hiper = widget.paciente['hiperLimit'] ?? 180;
-                          int minG = widget.paciente['rangoMin'] ?? 80;
-                          int maxG = widget.paciente['rangoMax'] ?? 130;
-
-                          Color c;
-                          if (valor < hipo) {
-                            c = const Color(0xFFFF6B6B);
-                          } else if (valor > hiper) {
-                            c = const Color(0xFFFFB347);
-                          } else if (valor >= minG && valor <= maxG) {
-                            c = const Color(0xFF06CA23);
-                          } else {
-                            c = const Color(0xFFD9E00C);
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 20),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(valor.toString(), style: TextStyle(fontWeight: FontWeight.bold, color: c)),
-                                const SizedBox(height: 5),
-                                Container(width: 20, height: (valor.toDouble() / 2.5).clamp(10.0, 70.0), decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(5))),
-                                const SizedBox(height: 5),
-                                Text(fechaStr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                              ],
+                          : ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Container(
+                            padding: const EdgeInsets.only(left: 10, right: 30, top: 10, bottom: 5),
+                            width: _historialGlucosa.length > 4 ? _historialGlucosa.length * 80.0 : MediaQuery.of(context).size.width - 40,
+                            child: CustomPaint(
+                              painter: _GraficaGlucosaPainter(
+                                historial: _historialGlucosa.reversed.toList(),
+                                hipo: widget.paciente['hipoLimit'] ?? 70,
+                                hiper: widget.paciente['hiperLimit'] ?? 180,
+                                rMin: widget.paciente['rangoMin'] ?? 80,
+                                rMax: widget.paciente['rangoMax'] ?? 130,
+                              ),
                             ),
-                          );
-                        },
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 15),
@@ -323,48 +312,48 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
               ),
               const Divider(height: 50, thickness: 1),
 
-              // Insulina
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Suministro de Insulina', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
-                        TextButton.icon(
-                          onPressed: _mostrarDialogoAgregarInsulina,
-                          icon: const Icon(Icons.colorize, color: Color(0xFF0C80EB)),
-                          label: const Text('Suministrar', style: TextStyle(color: Color(0xFF0C80EB), fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(15),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFD2D2D2))),
-                      child: widget.paciente['historialInsulina'].isEmpty
-                          ? const Text('No se ha suministrado insulina.', style: TextStyle(color: Colors.grey))
-                          : Column(
-                        children: List.generate(widget.paciente['historialInsulina'].length, (index) {
-                          final ins = widget.paciente['historialInsulina'][index];
-                          final fechaStr = DateFormat('dd MMM yyyy - hh:mm a').format(ins['fecha']);
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const CircleAvatar(backgroundColor: Color(0xFFE8F4F8), child: Icon(Icons.water_drop, color: Color(0xFF008CCF))),
-                            title: Text('${ins['unidades']} Unidades', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text(fechaStr),
-                          );
-                        }),
+              if (widget.paciente['tipoDiabetes'] != 'Tipo 2') ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Suministro de Insulina', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
+                          TextButton.icon(
+                            onPressed: _mostrarDialogoAgregarInsulina,
+                            icon: const Icon(Icons.colorize, color: Color(0xFF0C80EB)),
+                            label: const Text('Suministrar', style: TextStyle(color: Color(0xFF0C80EB), fontWeight: FontWeight.bold)),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFD2D2D2))),
+                        child: widget.paciente['historialInsulina'].isEmpty
+                            ? const Text('No se ha suministrado insulina.', style: TextStyle(color: Colors.grey))
+                            : Column(
+                          children: List.generate(widget.paciente['historialInsulina'].length, (index) {
+                            final ins = widget.paciente['historialInsulina'][index];
+                            final fechaStr = DateFormat('dd MMM yyyy - hh:mm a').format(ins['fecha']);
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const CircleAvatar(backgroundColor: Color(0xFFE8F4F8), child: Icon(Icons.water_drop, color: Color(0xFF008CCF))),
+                              title: Text('${ins['unidades']} Unidades', style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text(fechaStr),
+                            );
+                          }),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const Divider(height: 50, thickness: 1),
-
+                const Divider(height: 50, thickness: 1),
+              ],
               // Medicamentos
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -419,7 +408,6 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                         ),
                       ],
                     ),
-                    // Alergias
                     if (widget.paciente['alergias'] != null && widget.paciente['alergias'] != 'Ninguna')
                       Container(
                         width: double.infinity,
@@ -456,8 +444,6 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
       ),
     );
   }
-
-  // Estadísticas de glucosa
   Widget _crearTarjetaStat(String titulo, String valor, String subtitulo, IconData icono, Color color) {
     return Container(
       padding: const EdgeInsets.all(15),
@@ -478,4 +464,129 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
       ),
     );
   }
+}
+
+class _GraficaGlucosaPainter extends CustomPainter {
+  final List<Map<String, dynamic>> historial;
+  final int hipo, hiper, rMin, rMax;
+
+  _GraficaGlucosaPainter({
+    required this.historial,
+    required this.hipo,
+    required this.hiper,
+    required this.rMin,
+    required this.rMax,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (historial.isEmpty) return;
+
+    double maxY = hiper.toDouble() + 50.0;
+    double minY = hipo.toDouble() - 20.0;
+    if (minY < 0) minY = 0;
+
+    for (var item in historial) {
+      if (item['valor'] > maxY) maxY = item['valor'].toDouble() + 30;
+      if (item['valor'] < minY) minY = item['valor'].toDouble() - 10;
+    }
+
+    double graphHeight = size.height - 40;
+    double offsetX = 40.0;
+    double graphWidth = size.width - offsetX;
+
+    double valToY(double val) {
+      return graphHeight - (((val - minY) / (maxY - minY)) * graphHeight) + 10;
+    }
+
+    Paint bgPaint = Paint();
+
+    bgPaint.color = const Color(0xFFFF6B6B).withOpacity(0.1);
+    canvas.drawRect(Rect.fromLTRB(offsetX, valToY(hipo.toDouble()), size.width, graphHeight + 10), bgPaint);
+
+    bgPaint.color = const Color(0xFFFFB347).withOpacity(0.1);
+    canvas.drawRect(Rect.fromLTRB(offsetX, 10, size.width, valToY(hiper.toDouble())), bgPaint);
+
+    bgPaint.color = const Color(0xFF06CA23).withOpacity(0.15);
+    canvas.drawRect(Rect.fromLTRB(offsetX, valToY(rMax.toDouble()), size.width, valToY(rMin.toDouble())), bgPaint);
+
+    bgPaint.color = const Color(0xFFD9E00C).withOpacity(0.1);
+    canvas.drawRect(Rect.fromLTRB(offsetX, valToY(hiper.toDouble()), size.width, valToY(rMax.toDouble())), bgPaint);
+
+    bgPaint.color = const Color(0xFFD9E00C).withOpacity(0.1);
+    canvas.drawRect(Rect.fromLTRB(offsetX, valToY(rMin.toDouble()), size.width, valToY(hipo.toDouble())), bgPaint);
+
+    Paint lineRef = Paint()..color = Colors.grey.withOpacity(0.3)..strokeWidth = 1;
+    List<int> yLabels = [maxY.toInt(), hiper, rMax, rMin, hipo, minY.toInt()];
+    yLabels = yLabels.toSet().toList()..sort((a, b) => b.compareTo(a));
+
+    for (int yVal in yLabels) {
+      double yPos = valToY(yVal.toDouble());
+      canvas.drawLine(Offset(offsetX, yPos), Offset(size.width, yPos), lineRef);
+      TextPainter tpY = TextPainter(
+        text: TextSpan(text: '$yVal', style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+        textDirection: TextDirection.ltr,
+      );
+      tpY.layout();
+      tpY.paint(canvas, Offset(offsetX - tpY.width - 5, yPos - 6));
+    }
+
+    canvas.drawLine(Offset(offsetX, graphHeight + 10), Offset(size.width, graphHeight + 10), Paint()..color = Colors.grey..strokeWidth = 2);
+    canvas.drawLine(Offset(offsetX, 10), Offset(offsetX, graphHeight + 10), Paint()..color = Colors.grey..strokeWidth = 2);
+
+    List<Offset> points = [];
+    double stepX = historial.length > 1 ? graphWidth / (historial.length - 1) : graphWidth / 2;
+
+    for (int i = 0; i < historial.length; i++) {
+      double x = historial.length == 1 ? offsetX + (graphWidth / 2) : offsetX + (i * stepX);
+      double y = valToY(historial[i]['valor'].toDouble());
+      points.add(Offset(x, y));
+    }
+
+    Paint linePaint = Paint()
+      ..color = const Color(0xFF1C63BB)
+      ..strokeWidth = 3.5
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round;
+
+    Path path = Path();
+    if (points.isNotEmpty) {
+      path.moveTo(points[0].dx, points[0].dy);
+      for (int i = 1; i < points.length; i++) {
+        double controlPointX = (points[i - 1].dx + points[i].dx) / 2;
+        path.cubicTo(controlPointX, points[i - 1].dy, controlPointX, points[i].dy, points[i].dx, points[i].dy);
+      }
+      canvas.drawPath(path, linePaint);
+    }
+
+    for (int i = 0; i < points.length; i++) {
+      int val = historial[i]['valor'];
+      Color c;
+      if (val < hipo) c = const Color(0xFFFF6B6B);
+      else if (val > hiper) c = const Color(0xFFFFB347);
+      else if (val >= rMin && val <= rMax) c = const Color(0xFF06CA23);
+      else c = const Color(0xFFD9E00C);
+      canvas.drawCircle(points[i], 8.0, Paint()..color = Colors.white..style = PaintingStyle.fill);
+      canvas.drawCircle(points[i], 5.0, Paint()..color = c..style = PaintingStyle.fill);
+      TextPainter tpVal = TextPainter(
+        text: TextSpan(text: '$val', style: TextStyle(color: c, fontWeight: FontWeight.bold, fontSize: 13)),
+        textDirection: TextDirection.ltr,
+      );
+      tpVal.layout();
+      tpVal.paint(canvas, Offset(points[i].dx - tpVal.width / 2, points[i].dy - 24));
+      TextPainter tpFecha = TextPainter(
+        text: TextSpan(
+          text: DateFormat('dd/MM\nHH:mm').format(historial[i]['fecha']),
+          style: const TextStyle(color: Colors.black87, fontSize: 10, height: 1.2, fontWeight: FontWeight.w500),
+        ),
+        textDirection: TextDirection.ltr,
+        textAlign: TextAlign.center,
+      );
+      tpFecha.layout();
+      tpFecha.paint(canvas, Offset(points[i].dx - tpFecha.width / 2, graphHeight + 15));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
