@@ -192,6 +192,82 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
     );
   }
 
+  void _mostrarDialogoEditarPerfil() {
+    final TextEditingController nombreEditCtrl = TextEditingController(text: widget.paciente['nombre']);
+    final TextEditingController edadEditCtrl = TextEditingController(text: widget.paciente['edad']?.toString());
+    final TextEditingController expEditCtrl = TextEditingController(text: widget.paciente['expediente']);
+    final TextEditingController ubiEditCtrl = TextEditingController(text: widget.paciente['ubicacion']);
+    final TextEditingController dietaEditCtrl = TextEditingController(text: widget.paciente['dieta']);
+    final TextEditingController alergiasEditCtrl = TextEditingController(text: widget.paciente['alergias']);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Editar Perfil', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _crearCampoEdicion('Nombre', nombreEditCtrl),
+                const SizedBox(height: 10),
+                _crearCampoEdicion('Edad', edadEditCtrl, esNumero: true),
+                const SizedBox(height: 10),
+                _crearCampoEdicion('Expediente', expEditCtrl),
+                const SizedBox(height: 10),
+                _crearCampoEdicion('Ubicación (Cama/Piso)', ubiEditCtrl),
+                const SizedBox(height: 10),
+                _crearCampoEdicion('Dieta', dietaEditCtrl),
+                const SizedBox(height: 10),
+                _crearCampoEdicion('Alergias', alergiasEditCtrl),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  widget.paciente['nombre'] = nombreEditCtrl.text;
+                  widget.paciente['edad'] = edadEditCtrl.text;
+                  widget.paciente['expediente'] = expEditCtrl.text;
+                  widget.paciente['ubicacion'] = ubiEditCtrl.text;
+                  widget.paciente['dieta'] = dietaEditCtrl.text;
+                  widget.paciente['alergias'] = alergiasEditCtrl.text.isEmpty ? 'Ninguna' : alergiasEditCtrl.text;
+                });
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008CCF)),
+              child: const Text('Guardar', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _crearCampoEdicion(String label, TextEditingController controlador, {bool esNumero = false}) {
+    return TextField(
+      controller: controlador,
+      keyboardType: esNumero ? TextInputType.number : TextInputType.text,
+      inputFormatters: esNumero ? [FilteringTextInputFormatter.digitsOnly] : [],
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF008CCF), width: 2),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -230,7 +306,10 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                     ),
                     Container(
                       decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-                      child: IconButton(icon: const Icon(Icons.edit, color: Colors.white, size: 28), onPressed: () {}),
+                      child: IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.white, size: 28),
+                        onPressed: _mostrarDialogoEditarPerfil,
+                      ),
                     ),
                   ],
                 ),
