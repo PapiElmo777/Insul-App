@@ -206,21 +206,16 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 70, height: 70,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white, border: Border.all(color: const Color(0xFF00D1FF), width: 3)),
-                      child: const Icon(Icons.person, color: Color(0xFF1C63BB), size: 40),
-                    ),
                     const SizedBox(width: 15),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(widget.paciente['nombre'] ?? 'Paciente', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                          Text(widget.paciente['nombre'] ?? 'Paciente', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
                           const SizedBox(height: 5),
-                          Text(widget.paciente['ubicacion'] ?? 'Ubicación sin asignar', style: const TextStyle(fontSize: 14, color: Color(0xFFE8E8E8))),
+                          Text(widget.paciente['ubicacion'] ?? 'Ubicación sin asignar', style: const TextStyle(fontSize: 16, color: Color(0xFFE8E8E8))),
                           const SizedBox(height: 2),
-                          Text('Edad: ${widget.paciente['edad'] ?? '--'} | Dieta: ${widget.paciente['dieta'] ?? 'Normal'}', style: const TextStyle(fontSize: 12, color: Color(0xFFE8E8E8))),
+                          Text('Edad: ${widget.paciente['edad'] ?? '--'} | Dieta: ${widget.paciente['dieta'] ?? 'Normal'}', style: const TextStyle(fontSize: 14, color: Color(0xFFE8E8E8))),
                         ],
                       ),
                     ),

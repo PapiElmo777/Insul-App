@@ -408,19 +408,6 @@ class _TarjetaPaciente extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF008CCF), width: 2),
-              ),
-              child: const Center(
-                child: Icon(Icons.person, color: Color(0xFF008CCF), size: 30),
-              ),
-            ),
-            const SizedBox(width: 15),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -428,7 +415,7 @@ class _TarjetaPaciente extends StatelessWidget {
                   Text(
                     paciente['nombre'],
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 22,
                       fontWeight: FontWeight.w700,
                       color: Colors.black,
                     ),
@@ -437,7 +424,7 @@ class _TarjetaPaciente extends StatelessWidget {
                   const Text(
                     'Ultima glucosa',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: Colors.black87,
                     ),
@@ -544,18 +531,12 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: 45, height: 45,
-                  decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFF008CCF), width: 2)),
-                  child: const Icon(Icons.person, color: Color(0xFF008CCF), size: 25),
-                ),
-                const SizedBox(width: 15),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(paciente['nombre'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.black)),
-                      Text('Edad: ${paciente['edad']} | Exp: ${paciente['expediente']}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                      Text(paciente['nombre'], style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: Colors.black)),
+                      Text('Edad: ${paciente['edad']} | Exp: ${paciente['expediente']}', style: const TextStyle(fontSize: 16, color: Colors.black54)),
                     ],
                   ),
                 ),
@@ -573,8 +554,8 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Ubicación', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                      Text(paciente['ubicacion'], style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                      const Text('Ubicación', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      Text(paciente['ubicacion'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
                     ],
                   ),
                 ),
@@ -582,8 +563,8 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Tipo Diabetes', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                      Text(paciente['tipoDiabetes'], style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                      const Text('Tipo Diabetes', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      Text(paciente['tipoDiabetes'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
                     ],
                   ),
                 ),
@@ -627,7 +608,7 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
                 children: [
                   const Icon(Icons.warning_amber_rounded, color: Color(0xFFFF4A4A), size: 16),
                   const SizedBox(width: 5),
-                  Expanded(child: Text('Alergias: ${paciente['alergias']}', style: const TextStyle(fontSize: 12, color: Color(0xFFFF4A4A), fontWeight: FontWeight.bold))),
+                  Expanded(child: Text('Alergias: ${paciente['alergias']}', style: const TextStyle(fontSize: 16, color: Color(0xFFFF4A4A), fontWeight: FontWeight.bold))),
                 ],
               )
             ]
