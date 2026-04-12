@@ -26,9 +26,12 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
   List<Map<String, dynamic>> _listaPacientes = [];
   List<Map<String, dynamic>> _reportesGenerados = [];
 
+  // ELIMINAR AL AÑADIR LA BD Y SUSTITUIR POR LOS DATOS REALES DEL ENFERMERO
   String cedulaEnfermero = '12345678';
   String areaEnfermero = 'Medicina Interna';
   String hospitalEnfermero = 'Hospital Ángeles';
+  String correoEnfermero = 'alfredo.enfermero@insulapp.com';
+  String telefonoEnfermero = '+52 123 456 7890';
 
   @override
   void initState() {
@@ -59,36 +62,44 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
 
     return showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Generar Reporte de Turno', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Selecciona el turno que deseas finalizar:'),
-            const SizedBox(height: 15),
-            DropdownButtonFormField<String>(
-              value: turnoSeleccionado,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 10),
-              ),
-              items: ['Matutino', 'Vespertino', 'Nocturno']
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
-              onChanged: (value) => turnoSeleccionado = value,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text('Generar Reporte de Turno', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Selecciona el turno que deseas finalizar:'),
+                const SizedBox(height: 15),
+                DropdownButtonFormField<String>(
+                  value: turnoSeleccionado,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                  items: ['Matutino', 'Vespertino', 'Nocturno']
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (value) {
+                    setStateDialog(() {
+                      turnoSeleccionado = value;
+                    });
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, turnoSeleccionado),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0C80EB)),
-            child: const Text('Generar PDF', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, turnoSeleccionado),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0C80EB)),
+                child: const Text('Generar PDF', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -103,7 +114,9 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
             ? _construirTabDirectorioPacientes()
             : _indiceNavegacionActual == 2
             ? _construirTabReporte()
-            : const Center(child: Text("En construcción", style: TextStyle(color: Colors.grey))),
+            : _indiceNavegacionActual == 3
+            ? _construirTabPerfil()
+            : const Center(child: Text("Error de navegación", style: TextStyle(color: Colors.grey))),
       ),
 
       bottomNavigationBar: Container(
@@ -170,7 +183,13 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                 label: 'Historial',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline, size: 28, color: _indiceNavegacionActual == 4 ? Colors.black : const Color(0xFF888888)),
+                icon: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.person_outline, size: 28, color: _indiceNavegacionActual == 3 ? Colors.black : const Color(0xFF888888)),
+                    if (_indiceNavegacionActual == 3) _puntoRojo(),
+                  ],
+                ),
                 label: 'Perfil',
               ),
             ],
@@ -275,18 +294,25 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                 ),
               ),
 
-              Container(
-                width: 55,
-                height: 55,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.grey.shade300,
-                  image: const DecorationImage(
-                    image: AssetImage('assets/enfermero_placeholder.png'),
-                    fit: BoxFit.cover,
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _indiceNavegacionActual = 3;
+                  });
+                },
+                child: Container(
+                  width: 55,
+                  height: 55,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.grey.shade300,
+                    image: const DecorationImage(
+                      image: AssetImage('assets/enfermero_placeholder.png'),
+                      fit: BoxFit.cover,
+                    ),
                   ),
+                  child: const Icon(Icons.person, color: Colors.white, size: 30),
                 ),
-                child: const Icon(Icons.person, color: Colors.white, size: 30),
               ),
             ],
           ),
@@ -481,7 +507,6 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                         turno: turno,
                       );
                       final String idUnico = DateTime.now().millisecondsSinceEpoch.toString();
-
                       setState(() {
                         _reportesGenerados.insert(0, {
                           'id': idUnico,
@@ -565,6 +590,109 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
             }),
         ],
       ),
+    );
+  }
+  Widget _construirTabPerfil() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(30.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Mi Perfil', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.black)),
+          const SizedBox(height: 30),
+          Center(
+            child: Stack(
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.grey.shade300,
+                    border: Border.all(color: const Color(0xFF1C63BB), width: 3),
+                    image: const DecorationImage(
+                      image: AssetImage('assets/enfermero_placeholder.png'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  child: const Icon(Icons.person, color: Colors.white, size: 60),
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Funcionalidad de cámara en desarrollo')));
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF00D1FF),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.camera_alt, color: Colors.black, size: 20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 30),
+
+          _crearDatoPerfil(Icons.person, 'Nombre Completo', widget.nombreEnfermero),
+          const Divider(height: 20, color: Color(0xFFD2D2D2)),
+          _crearDatoPerfil(Icons.email, 'Correo Electrónico', correoEnfermero),
+          const Divider(height: 20, color: Color(0xFFD2D2D2)),
+          _crearDatoPerfil(Icons.phone, 'Teléfono', telefonoEnfermero),
+          const Divider(height: 20, color: Color(0xFFD2D2D2)),
+          _crearDatoPerfil(Icons.badge, 'Cédula Profesional', cedulaEnfermero),
+          const Divider(height: 20, color: Color(0xFFD2D2D2)),
+          _crearDatoPerfil(Icons.local_hospital, 'Institución Médica', hospitalEnfermero),
+          const Divider(height: 20, color: Color(0xFFD2D2D2)),
+          _crearDatoPerfil(Icons.medical_services, 'Área', areaEnfermero),
+
+          const SizedBox(height: 40),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
+              },
+              icon: const Icon(Icons.logout, color: Colors.white),
+              label: const Text('Cerrar Sesión', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF4A4A),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _crearDatoPerfil(IconData icono, String titulo, String valor) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: const BoxDecoration(color: Color(0xFFE8F4F8), shape: BoxShape.circle),
+          child: Icon(icono, color: const Color(0xFF1C63BB)),
+        ),
+        const SizedBox(width: 15),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(titulo, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+              const SizedBox(height: 2),
+              Text(valor, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+            ],
+          ),
+        ),
+        const Icon(Icons.edit, color: Color(0xFFD2D2D2), size: 20),
+      ],
     );
   }
 }
