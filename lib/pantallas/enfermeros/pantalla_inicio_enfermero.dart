@@ -170,10 +170,6 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                 label: 'Historial',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.favorite_border, size: 28, color: _indiceNavegacionActual == 3 ? Colors.black : const Color(0xFF888888)),
-                label: 'Favoritos',
-              ),
-              BottomNavigationBarItem(
                 icon: Icon(Icons.person_outline, size: 28, color: _indiceNavegacionActual == 4 ? Colors.black : const Color(0xFF888888)),
                 label: 'Perfil',
               ),
