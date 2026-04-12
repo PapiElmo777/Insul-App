@@ -4,6 +4,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import 'dart:typed_data';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import '../../servicios/reporte_enfermero_service.dart';
 import 'pantalla_agregar_paciente.dart';
 import 'pantalla_detalle_paciente.dart';
@@ -25,6 +27,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
   String _fechaFormateada = '';
   List<Map<String, dynamic>> _listaPacientes = [];
   List<Map<String, dynamic>> _reportesGenerados = [];
+  File? _imagenPerfil;
 
   // ELIMINAR AL AÑADIR LA BD Y SUSTITUIR POR LOS DATOS REALES DEL ENFERMERO
   String cedulaEnfermero = '12345678';
@@ -55,6 +58,71 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
     setState(() {
       _fechaFormateada = fecha;
     });
+  }
+
+  Future<void> _seleccionarImagen(ImageSource origen) async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final XFile? imagenSeleccionada = await picker.pickImage(source: origen);
+      if (imagenSeleccionada != null) {
+        setState(() {
+          _imagenPerfil = File(imagenSeleccionada.path);
+        });
+      }
+    } catch (e) {
+      debugPrint("Error al seleccionar imagen: $e");
+    }
+  }
+
+  void _mostrarOpcionesImagen() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Seleccionar foto de perfil',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Color(0xFF1C63BB)),
+                title: const Text('Elegir de la Galería'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _seleccionarImagen(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Color(0xFF1C63BB)),
+                title: const Text('Tomar una Foto'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _seleccionarImagen(ImageSource.camera);
+                },
+              ),
+              if (_imagenPerfil != null)
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text('Eliminar foto actual', style: TextStyle(color: Colors.red)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      _imagenPerfil = null;
+                    });
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<String?> preguntarTurno(BuildContext context) async {
@@ -306,12 +374,14 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.grey.shade300,
-                    image: const DecorationImage(
+                    image: _imagenPerfil != null
+                        ? DecorationImage(image: FileImage(_imagenPerfil!), fit: BoxFit.cover)
+                        : const DecorationImage(
                       image: AssetImage('assets/enfermero_placeholder.png'),
                       fit: BoxFit.cover,
                     ),
                   ),
-                  child: const Icon(Icons.person, color: Colors.white, size: 30),
+                  child: _imagenPerfil == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
                 ),
               ),
             ],
@@ -610,20 +680,20 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                     shape: BoxShape.circle,
                     color: Colors.grey.shade300,
                     border: Border.all(color: const Color(0xFF1C63BB), width: 3),
-                    image: const DecorationImage(
+                    image: _imagenPerfil != null
+                        ? DecorationImage(image: FileImage(_imagenPerfil!), fit: BoxFit.cover)
+                        : const DecorationImage(
                       image: AssetImage('assets/enfermero_placeholder.png'),
                       fit: BoxFit.cover,
                     ),
                   ),
-                  child: const Icon(Icons.person, color: Colors.white, size: 60),
+                  child: _imagenPerfil == null ? const Icon(Icons.person, color: Colors.white, size: 60) : null,
                 ),
                 Positioned(
                   bottom: 0,
                   right: 0,
                   child: GestureDetector(
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Funcionalidad de cámara en desarrollo')));
-                    },
+                    onTap: _mostrarOpcionesImagen,
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: const BoxDecoration(
