@@ -28,8 +28,9 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
   List<Map<String, dynamic>> _listaPacientes = [];
   List<Map<String, dynamic>> _reportesGenerados = [];
   File? _imagenPerfil;
+  final TextEditingController _busquedaCtrl = TextEditingController();
 
-  // ELIMINAR AL AÑADIR LA BD Y SUSTITUIR POR LOS DATOS REALES DEL ENFERMERO
+  late String _nombreEnfermeroLocal;
   String cedulaEnfermero = '12345678';
   String areaEnfermero = 'Medicina Interna';
   String hospitalEnfermero = 'Hospital Ángeles';
@@ -39,7 +40,14 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
   @override
   void initState() {
     super.initState();
+    _nombreEnfermeroLocal = widget.nombreEnfermero;
     _inicializarFecha();
+  }
+
+  @override
+  void dispose() {
+    _busquedaCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _inicializarFecha() async {
@@ -125,6 +133,80 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
     );
   }
 
+  void _mostrarDialogoEditarPerfilEnfermero() {
+    final TextEditingController nombreCtrl = TextEditingController(text: _nombreEnfermeroLocal);
+    final TextEditingController correoCtrl = TextEditingController(text: correoEnfermero);
+    final TextEditingController telefonoCtrl = TextEditingController(text: telefonoEnfermero);
+    final TextEditingController cedulaCtrl = TextEditingController(text: cedulaEnfermero);
+    final TextEditingController hospitalCtrl = TextEditingController(text: hospitalEnfermero);
+    final TextEditingController areaCtrl = TextEditingController(text: areaEnfermero);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Editar Perfil', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _crearCampoEdicion('Nombre Completo', nombreCtrl),
+                const SizedBox(height: 10),
+                _crearCampoEdicion('Correo Electrónico', correoCtrl),
+                const SizedBox(height: 10),
+                _crearCampoEdicion('Teléfono', telefonoCtrl),
+                const SizedBox(height: 10),
+                _crearCampoEdicion('Cédula Profesional', cedulaCtrl),
+                const SizedBox(height: 10),
+                _crearCampoEdicion('Institución Médica', hospitalCtrl),
+                const SizedBox(height: 10),
+                _crearCampoEdicion('Área', areaCtrl),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _nombreEnfermeroLocal = nombreCtrl.text;
+                  correoEnfermero = correoCtrl.text;
+                  telefonoEnfermero = telefonoCtrl.text;
+                  cedulaEnfermero = cedulaCtrl.text;
+                  hospitalEnfermero = hospitalCtrl.text;
+                  areaEnfermero = areaCtrl.text;
+                });
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008CCF)),
+              child: const Text('Guardar', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _crearCampoEdicion(String label, TextEditingController controlador) {
+    return TextField(
+      controller: controlador,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF008CCF), width: 2),
+        ),
+      ),
+    );
+  }
+
   Future<String?> preguntarTurno(BuildContext context) async {
     String? turnoSeleccionado = 'Matutino';
 
@@ -171,6 +253,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -266,6 +349,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
       ),
     );
   }
+
   Widget _puntoRojo() {
     return Container(
       margin: const EdgeInsets.only(top: 4),
@@ -324,72 +408,124 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
       ],
     );
   }
+
   Widget _construirTabHome() {
+    int totalPacientes = _listaPacientes.length;
+    int pacientesEstables = 0;
+    int pacientesPrioridad = 0;
+
+    for (var p in _listaPacientes) {
+      int val = p['glucosa'] ?? 0;
+      int hipo = p['hipoLimit'] ?? 70;
+      int hiper = p['hiperLimit'] ?? 180;
+      int rMin = p['rangoMin'] ?? 80;
+      int rMax = p['rangoMax'] ?? 130;
+
+      if (val != 0) {
+        if (val >= rMin && val <= rMax) {
+          pacientesEstables++;
+        } else if (val < hipo || val > hiper) {
+          pacientesPrioridad++;
+        }
+      }
+    }
+
+    List<Map<String, dynamic>> pacientesFiltrados = _listaPacientes.where((p) {
+      String termino = _busquedaCtrl.text.toLowerCase();
+      String nombre = (p['nombre'] ?? '').toLowerCase();
+      String ubicacion = (p['ubicacion'] ?? '').toLowerCase();
+      return nombre.contains(termino) || ubicacion.contains(termino);
+    }).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(25.0, 30.0, 25.0, 20.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Container(
+          padding: const EdgeInsets.fromLTRB(25.0, 30.0, 25.0, 30.0),
+          decoration: const BoxDecoration(
+            color: Color(0xFF1C63BB),
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
+          ),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Hola, Enf. ${widget.nombreEnfermero}',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF2F2F2F),
-                        letterSpacing: -0.5,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      _fechaFormateada,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF888888),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _indiceNavegacionActual = 3;
-                  });
-                },
-                child: Container(
-                  width: 55,
-                  height: 55,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.grey.shade300,
-                    image: _imagenPerfil != null
-                        ? DecorationImage(image: FileImage(_imagenPerfil!), fit: BoxFit.cover)
-                        : const DecorationImage(
-                      image: AssetImage('assets/enfermero_placeholder.png'),
-                      fit: BoxFit.cover,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hola, Enf. $_nombreEnfermeroLocal',
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          _fechaFormateada,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFFE8E8E8),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: _imagenPerfil == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
-                ),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _indiceNavegacionActual = 3;
+                      });
+                    },
+                    child: Container(
+                      width: 55,
+                      height: 55,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.2),
+                        border: Border.all(color: Colors.white, width: 2),
+                        image: _imagenPerfil != null
+                            ? DecorationImage(image: FileImage(_imagenPerfil!), fit: BoxFit.cover)
+                            : const DecorationImage(
+                          image: AssetImage('assets/enfermero_placeholder.png'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      child: _imagenPerfil == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
 
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10.0),
+          padding: const EdgeInsets.all(25.0),
+          child: Row(
+            children: [
+              Expanded(child: _crearTarjetaDashboard('Total', totalPacientes.toString(), Icons.people, const Color(0xFF1C63BB))),
+              const SizedBox(width: 10),
+              Expanded(child: _crearTarjetaDashboard('Estables', pacientesEstables.toString(), Icons.check_circle, const Color(0xFF06CA23))),
+              const SizedBox(width: 10),
+              Expanded(child: _crearTarjetaDashboard('Atención', pacientesPrioridad.toString(), Icons.warning, const Color(0xFFFF4A4A))),
+            ],
+          ),
+        ),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 25.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -414,10 +550,10 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                     });
                   }
                 },
-                icon: const Icon(Icons.add_circle_outline, size: 20, color: Colors.white),
+                icon: const Icon(Icons.add, size: 20, color: Colors.white),
                 label: const Text(
-                  'Agregar Paciente',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  'Añadir',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0C80EB),
@@ -425,9 +561,8 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
-                    side: const BorderSide(color: Color(0xFFD2D2D2), width: 1),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                 ),
               ),
             ],
@@ -435,28 +570,53 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
         ),
 
         _construirLeyendaColores(),
-        const SizedBox(height: 10),
+        const SizedBox(height: 15),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 25.0),
+          child: Container(
+            height: 50,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F7FA),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: const Color(0xFFE8E8E8), width: 1.5),
+            ),
+            child: TextField(
+              controller: _busquedaCtrl,
+              onChanged: (val) => setState(() {}),
+              decoration: const InputDecoration(
+                hintText: 'Buscar paciente o cama...',
+                hintStyle: TextStyle(color: Colors.grey),
+                prefixIcon: Icon(Icons.search, color: Color(0xFF1C63BB)),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 15),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 15),
 
         Expanded(
-          child: _listaPacientes.isEmpty
-              ? const Center(
+          child: pacientesFiltrados.isEmpty
+              ? Center(
             child: Text(
-              'No tienes pacientes asignados.\nToca "Agregar Paciente" para comenzar.',
+              _listaPacientes.isEmpty
+                  ? 'No tienes pacientes asignados.\nToca "Añadir" para comenzar.'
+                  : 'No se encontraron pacientes.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 16),
+              style: const TextStyle(color: Colors.grey, fontSize: 16),
             ),
           )
               : ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10.0),
-            itemCount: _listaPacientes.length,
+            padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 5.0),
+            itemCount: pacientesFiltrados.length,
             itemBuilder: (context, index) {
-              final paciente = _listaPacientes[index];
+              final paciente = pacientesFiltrados[index];
               return Padding(
                 padding: const EdgeInsets.only(bottom: 15.0),
                 child: _TarjetaPaciente(
                   paciente: paciente,
                   onTap: () async {
-                    final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaDetallePaciente(paciente: paciente, nombreEnfermero: widget.nombreEnfermero)));
+                    final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaDetallePaciente(paciente: paciente, nombreEnfermero: _nombreEnfermeroLocal)));
                     if (res == 'eliminar') {
                       setState(() {
                         _listaPacientes.remove(paciente);
@@ -471,6 +631,26 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _crearTarjetaDashboard(String titulo, String valor, IconData icono, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Column(
+        children: [
+          Icon(icono, color: color, size: 28),
+          const SizedBox(height: 8),
+          Text(valor, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
+          const SizedBox(height: 2),
+          Text(titulo, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
+        ],
+      ),
     );
   }
 
@@ -506,7 +686,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                 child: _TarjetaPacienteDetallada(
                   paciente: paciente,
                   onTap: () async {
-                    final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaDetallePaciente(paciente: paciente, nombreEnfermero: widget.nombreEnfermero)));
+                    final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaDetallePaciente(paciente: paciente, nombreEnfermero: _nombreEnfermeroLocal)));
                     if (res == 'eliminar') {
                       setState(() {
                         _listaPacientes.remove(paciente);
@@ -565,7 +745,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                       if (turno == null) return;
 
                       final enfermero = DatosEnfermero(
-                        nombre: widget.nombreEnfermero,
+                        nombre: _nombreEnfermeroLocal,
                         cedula: cedulaEnfermero,
                         area: areaEnfermero,
                         hospital: hospitalEnfermero,
@@ -662,6 +842,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
       ),
     );
   }
+
   Widget _construirTabPerfil() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(30.0),
@@ -709,7 +890,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
           ),
           const SizedBox(height: 30),
 
-          _crearDatoPerfil(Icons.person, 'Nombre Completo', widget.nombreEnfermero),
+          _crearDatoPerfil(Icons.person, 'Nombre Completo', _nombreEnfermeroLocal),
           const Divider(height: 20, color: Color(0xFFD2D2D2)),
           _crearDatoPerfil(Icons.email, 'Correo Electrónico', correoEnfermero),
           const Divider(height: 20, color: Color(0xFFD2D2D2)),
@@ -722,6 +903,22 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
           _crearDatoPerfil(Icons.medical_services, 'Área', areaEnfermero),
 
           const SizedBox(height: 40),
+
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: _mostrarDialogoEditarPerfilEnfermero,
+              icon: const Icon(Icons.edit, color: Colors.white),
+              label: const Text('Editar Perfil', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1C63BB),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 15),
+
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -761,7 +958,6 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
             ],
           ),
         ),
-        const Icon(Icons.edit, color: Color(0xFFD2D2D2), size: 20),
       ],
     );
   }
@@ -785,12 +981,16 @@ class _TarjetaPaciente extends StatelessWidget {
     int rMax = paciente['rangoMax'] ?? 130;
 
     Color colorIndicador;
+    bool esAlerta = false;
+
     if (val == 0) {
       colorIndicador = Colors.grey;
     } else if (val < hipo) {
       colorIndicador = const Color(0xFFFF6B6B);
+      esAlerta = true;
     } else if (val > hiper) {
       colorIndicador = const Color(0xFFFFB347);
+      esAlerta = true;
     } else if (val >= rMin && val <= rMax) {
       colorIndicador = const Color(0xFF06CA23);
     } else {
@@ -803,7 +1003,13 @@ class _TarjetaPaciente extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFD2D2D2), width: 1.5),
+          border: Border.all(
+              color: esAlerta ? colorIndicador : const Color(0xFFD2D2D2),
+              width: esAlerta ? 2.5 : 1.5
+          ),
+          boxShadow: esAlerta
+              ? [BoxShadow(color: colorIndicador.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))]
+              : null,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Row(
@@ -813,19 +1019,33 @@ class _TarjetaPaciente extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    paciente['nombre'],
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black,
-                    ),
+                  Row(
+                    children: [
+                      if (esAlerta) const Padding(padding: EdgeInsets.only(right: 5), child: Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20)),
+                      Expanded(
+                        child: Text(
+                          paciente['nombre'],
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Cama/Ubicación: ${paciente['ubicacion']}',
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 8),
                   const Text(
-                    'Ultima glucosa',
+                    'Última glucosa',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: Colors.black87,
                     ),
@@ -845,8 +1065,8 @@ class _TarjetaPaciente extends StatelessWidget {
                       Text(
                         paciente['glucosa'] == 0 ? '-- mg/dL' : '${paciente['glucosa']} mg/dL',
                         style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
                           color: Colors.black,
                         ),
                       ),
@@ -857,28 +1077,35 @@ class _TarjetaPaciente extends StatelessWidget {
             ),
 
             if (paciente['proximaDosis'] != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Icon(Icons.colorize, color: Colors.black, size: 20),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Proxima dosis',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F7FA),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.colorize, color: Color(0xFF1C63BB), size: 20),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Próx. dosis',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black54,
+                      ),
                     ),
-                  ),
-                  Text(
-                    paciente['proximaDosis'],
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black,
+                    Text(
+                      paciente['proximaDosis'],
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1C63BB),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
           ],
         ),
