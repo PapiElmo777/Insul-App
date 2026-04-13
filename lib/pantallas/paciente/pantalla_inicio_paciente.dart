@@ -110,6 +110,124 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
     return ((count / _registrosGlucosa.length) * 100).round();
   }
 
+  // Acciones Rápidas
+  void _mostrarFormularioNuevaMedida() {
+    final TextEditingController valorCtrl = TextEditingController();
+    final TextEditingController notasCtrl = TextEditingController();
+    String momentoSeleccionado = 'Antes de comer';
+    DateTime fechaSeleccionada = DateTime.now();
+
+    showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (BuildContext context) {
+          return StatefulBuilder(
+              builder: (BuildContext context, StateSetter setStateSheet) {
+                return Container(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                    left: 20, right: 20, top: 20,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
+                        const SizedBox(height: 20),
+                        const Text('Nueva Medición', style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold, fontSize: 22)),
+                        const SizedBox(height: 25),
+
+                        const Align(alignment: Alignment.centerLeft, child: Text('Nivel de Glucosa (mg/dL) *', style: TextStyle(fontWeight: FontWeight.w600))),
+                        const SizedBox(height: 5),
+                        TextField(
+                          controller: valorCtrl,
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          decoration: InputDecoration(
+                            hintText: 'ej. 120',
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+
+                        const Align(alignment: Alignment.centerLeft, child: Text('Periodo:', style: TextStyle(fontWeight: FontWeight.w600))),
+                        const SizedBox(height: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 15),
+                          decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(15)),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: momentoSeleccionado,
+                              isExpanded: true,
+                              items: ['Ayunas', 'Antes de comer', 'Después de comer', 'Antes de dormir', 'Madrugada', 'Otro']
+                                  .map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                              onChanged: (val) => setStateSheet(() => momentoSeleccionado = val!),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+
+                        const Align(alignment: Alignment.centerLeft, child: Text('Notas: (opcional)', style: TextStyle(fontWeight: FontWeight.w600))),
+                        const SizedBox(height: 5),
+                        TextField(
+                          controller: notasCtrl,
+                          decoration: InputDecoration(
+                            hintText: 'Ej. Me siento mareado, comí pastel...',
+                            hintStyle: const TextStyle(fontSize: 13),
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                          ),
+                        ),
+                        const SizedBox(height: 25),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              if (valorCtrl.text.isNotEmpty) {
+                                int valor = int.tryParse(valorCtrl.text) ?? 0;
+                                if (valor > 0) {
+                                  setState(() {
+                                    _registrosGlucosa.insert(0, {
+                                      'valor': valor,
+                                      'momento': momentoSeleccionado,
+                                      'fecha': fechaSeleccionada,
+                                      'notas': notasCtrl.text,
+                                    });
+                                  });
+                                  Navigator.pop(context);
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.save_alt, color: Colors.white),
+                            label: const Text('Guardar Nueva Lectura', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0C80EB),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                      ],
+                    ),
+                  ),
+                );
+              }
+          );
+        }
+    );
+  }
+
   void _mostrarDialogoTIR() {
     final int pctNormal = _calcularTIR();
     final int pctHipo = _calcularPorcentaje((val) => val < limiteHipo);
@@ -589,9 +707,109 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 25),
+
+                // Acciones Rápidas
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFD2D2D2), width: 1.5),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Acciones Rápidas',
+                        style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w700, fontSize: 24, color: Color(0xFF2F2F2F)),
+                      ),
+                      const SizedBox(height: 15),
+                      const Divider(color: Color(0xFFE8E8E8), thickness: 1.5, height: 1),
+                      _crearAccionRapida(Icons.edit_document, 'Registrar Lectura de Glucosa', () {
+                        _mostrarFormularioNuevaMedida();
+                      }),
+                      _crearAccionRapida(Icons.edit_document, 'Registrar Medicamento', () {
+                      }),
+                      const Divider(color: Color(0xFFE8E8E8), thickness: 1.5, height: 1),
+                      _crearAccionRapida(Icons.timeline, 'Ver Historial Completo', () {
+                        setState(() {
+                          _indiceNavegacionActual = 1;
+                        });
+                      }),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 25),
+
+                // Informacion Importante
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF2F2F2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Información importante',
+                        style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2F2F2F)),
+                      ),
+                      const SizedBox(height: 15),
+                      _crearVinietaInfo('Esta aplicación es una herramienta de apoyo, no reemplaza la consulta médica'),
+                      const SizedBox(height: 10),
+                      _crearVinietaInfo('Consulta con tu médico para establecer tu rango objetivo personalizado'),
+                      const SizedBox(height: 10),
+                      _crearVinietaInfo('Mantén tu información actualizada para obtener mejores resultados.'),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 20),
               ],
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _crearAccionRapida(IconData icono, String texto, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 15.0),
+        child: Row(
+          children: [
+            Icon(icono, color: const Color(0xFF1C63BB), size: 26),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Text(
+                texto,
+                style: const TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w500, color: Color(0xFF2F2F2F)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _crearVinietaInfo(String texto) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(top: 6.0, right: 8.0),
+          child: Icon(Icons.circle, size: 6, color: Color(0xFF2F2F2F)),
+        ),
+        Expanded(
+          child: Text(
+            texto,
+            style: const TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF2F2F2F), height: 1.4),
           ),
         ),
       ],
