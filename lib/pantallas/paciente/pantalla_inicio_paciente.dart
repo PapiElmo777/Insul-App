@@ -133,30 +133,32 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
               children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border.all(color: const Color(0xFFD2D2D2), width: 2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Última Lectura',
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 22,
-                            color: Color(0xFF3F3F3F),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Última Lectura',
+                            style: TextStyle(
+                              fontFamily: 'Roboto',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 18,
+                              color: Color(0xFF3F3F3F),
+                            ),
+                          ),
+                          Icon(Icons.timeline, color: Colors.grey.shade500, size: 24),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
@@ -164,30 +166,29 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                             ultimaGlucosa.toString(),
                             style: const TextStyle(
                               fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w600,
-                              fontSize: 64,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 52,
                               height: 1.0,
                               color: Color(0xFF01689C),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           const Text(
                             'mg/dL',
                             style: TextStyle(
                               fontFamily: 'Roboto',
                               fontWeight: FontWeight.w500,
-                              fontSize: 24,
+                              fontSize: 20,
                               color: Color(0xFF848282),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 8),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                             decoration: BoxDecoration(
                               color: const Color(0xFFCBFB97),
                               border: Border.all(color: const Color(0xFF2B940B), width: 1.5),
@@ -198,14 +199,14 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                               style: TextStyle(
                                 fontFamily: 'Roboto',
                                 fontWeight: FontWeight.w600,
-                                fontSize: 12,
+                                fontSize: 11,
                                 color: Color(0xFF2B940B),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               border: Border.all(color: const Color(0xFF888888), width: 1.5),
@@ -216,23 +217,24 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                               style: TextStyle(
                                 fontFamily: 'Roboto',
                                 fontWeight: FontWeight.w600,
-                                fontSize: 12,
+                                fontSize: 11,
                                 color: Color(0xFF888888),
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
                             tiempoUltimaLectura,
                             style: const TextStyle(
                               fontFamily: 'Roboto',
                               fontWeight: FontWeight.w500,
-                              fontSize: 14,
+                              fontSize: 13,
                               color: Color(0xFFC5C5C5),
                             ),
                           ),
@@ -245,7 +247,6 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                                 fontWeight: FontWeight.w600,
                                 fontSize: 12,
                                 color: Color(0xFF888888),
-                                decoration: TextDecoration.underline,
                               ),
                             ),
                           ),
@@ -254,13 +255,13 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 15),
 
                 Row(
                   children: [
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 15),
+                        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 12),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           border: Border.all(color: const Color(0xFFD2D2D2), width: 2),
@@ -273,28 +274,33 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                               style: TextStyle(
                                 fontFamily: 'Poppins',
                                 fontWeight: FontWeight.w600,
-                                fontSize: 15,
+                                fontSize: 14,
                                 color: Color(0xFF2F2F2F),
                               ),
                             ),
-                            const SizedBox(height: 5),
+                            const SizedBox(height: 2),
                             Text(
                               '$tirPorcentaje%',
                               style: const TextStyle(
                                 fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 48,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 38,
                                 height: 1.2,
                                 color: Color(0xFF01689C),
                               ),
                             ),
-                            const Text(
-                              'Últimos 30 días',
-                              style: TextStyle(
-                                fontFamily: 'Roboto',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                                color: Color(0xFF888888),
+                            GestureDetector(
+                              onTap: () {
+                              },
+                              child: const Text(
+                                'Ver mas',
+                                style: TextStyle(
+                                  fontFamily: 'Roboto',
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                  color: Color(0xFF888888),
+                                  decoration: TextDecoration.underline,
+                                ),
                               ),
                             ),
                           ],
@@ -302,10 +308,9 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                       ),
                     ),
                     const SizedBox(width: 15),
-                    // Promedio General
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 15),
+                        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 12),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           border: Border.all(color: const Color(0xFFD2D2D2), width: 2),
@@ -318,17 +323,17 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                               style: TextStyle(
                                 fontFamily: 'Poppins',
                                 fontWeight: FontWeight.w600,
-                                fontSize: 15,
+                                fontSize: 14,
                                 color: Color(0xFF2F2F2F),
                               ),
                             ),
-                            const SizedBox(height: 5),
+                            const SizedBox(height: 2),
                             Text(
                               promedioGlucosa.toString(),
                               style: const TextStyle(
                                 fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 48,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 38,
                                 height: 1.2,
                                 color: Color(0xFF01689C),
                               ),
