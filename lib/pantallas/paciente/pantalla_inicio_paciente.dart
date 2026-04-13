@@ -24,6 +24,10 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
   final int promedioGlucosa = 97;
   final int tirPorcentaje = 90;
 
+  //Variables Temporales
+  final int limiteHipo = 80;
+  final int limiteHiper = 130;
+
   @override
   void initState() {
     super.initState();
@@ -52,6 +56,144 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
     } else {
       return 'Buenas noches';
     }
+  }
+
+  void _mostrarDialogoTIR() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Tiempo en Rango (TIR)',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Color(0xFF2F2F2F),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.grey),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Distribución de tus medidas de glucosa en comparación con los objetivos médicos.',
+                  style: TextStyle(fontFamily: 'Roboto', fontSize: 13, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 35),
+
+                // Grafico TIR
+                SizedBox(
+                  height: 280,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 15),
+                              child: _etiquetaTir('Hiperglucemia', '5%', const Color(0xFFFBC02D)),
+                            ),
+                            _etiquetaTir('En Rango', '90%', const Color(0xFF8CC63F), esMeta: true),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _etiquetaTir('Hipoglucemia', '5%', const Color(0xFFED1C24)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      ClipPath(
+                        clipper: _DropClipper(),
+                        child: Container(
+                          width: 155,
+                          height: 280,
+                          color: Colors.white,
+                          child: Column(
+                            children: [
+                              // Seccion Alta
+                              Container(
+                                height: 85,
+                                width: double.infinity,
+                                color: const Color(0xFFFBE337),
+                                alignment: Alignment.bottomCenter,
+                                padding: const EdgeInsets.only(bottom: 5),
+                                child: Text('>$limiteHiper\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87, height: 1.2)),
+                              ),
+                              // Seccon Objetivo
+                              Container(
+                                height: 145,
+                                width: double.infinity,
+                                color: const Color(0xFF8CC63F),
+                                alignment: Alignment.center,
+                                child: Text('Rango Objetivo\n$limiteHipo-$limiteHiper\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white, height: 1.2)),
+                              ),
+                              // Seccion Baja
+                              Container(
+                                height: 50,
+                                width: double.infinity,
+                                color: const Color(0xFFED1C24),
+                                alignment: Alignment.topCenter,
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text('<$limiteHipo mg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 15),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _etiquetaTir(String titulo, String porcentaje, Color color, {bool esMeta = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(titulo, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
+        Text(porcentaje, style: TextStyle(fontSize: 26, color: color, fontWeight: FontWeight.bold)),
+        if (esMeta)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            margin: const EdgeInsets.only(top: 4),
+            decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Text('META', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+                SizedBox(width: 4),
+                Icon(Icons.arrow_forward_ios, color: Colors.white, size: 10),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 
   @override
@@ -247,6 +389,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                                 fontWeight: FontWeight.w600,
                                 fontSize: 12,
                                 color: Color(0xFF888888),
+                                decoration: TextDecoration.underline,
                               ),
                             ),
                           ),
@@ -290,8 +433,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                               ),
                             ),
                             GestureDetector(
-                              onTap: () {
-                              },
+                              onTap: _mostrarDialogoTIR,
                               child: const Text(
                                 'Ver mas',
                                 style: TextStyle(
@@ -462,4 +604,30 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
       ),
     );
   }
+}
+
+// Gota TIR
+class _DropClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+    double w = size.width;
+    double h = size.height;
+    double r = w / 2;
+    double cy = h - r;
+    path.moveTo(w / 2, 0);
+    path.quadraticBezierTo(w, cy - (r * 1.2), w, cy);
+    path.arcToPoint(
+      Offset(0, cy),
+      radius: Radius.circular(r),
+      clockwise: true,
+    );
+    path.quadraticBezierTo(0, cy - (r * 1.2), w / 2, 0);
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
