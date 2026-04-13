@@ -442,15 +442,20 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                               child: GestureDetector(
                                 onTapUp: (details) {
                                   double offsetX = 40.0;
-                                  double graphWidth = (registrosGrafica.length > 5 ? registrosGrafica.length * 50.0 : MediaQuery.of(context).size.width - 80) - offsetX;
-                                  double stepX = registrosGrafica.length > 1 ? graphWidth / (registrosGrafica.length - 1) : graphWidth / 2;
+                                  double paddingX = 20.0;
+                                  double startX = offsetX + paddingX;
+
+                                  double totalWidth = (registrosGrafica.length > 5 ? registrosGrafica.length * 50.0 : MediaQuery.of(context).size.width - 80) - offsetX;
+                                  double activeWidth = totalWidth - (paddingX * 2);
+
+                                  double stepX = registrosGrafica.length > 1 ? activeWidth / (registrosGrafica.length - 1) : activeWidth / 2;
                                   double dx = details.localPosition.dx;
 
-                                  int index = ((dx - offsetX) / stepX).round();
+                                  int index = ((dx - startX) / stepX).round();
 
                                   if (index >= 0 && index < registrosGrafica.length) {
-                                    double pointX = registrosGrafica.length == 1 ? offsetX + (graphWidth / 2) : offsetX + (index * stepX);
-                                    if ((dx - pointX).abs() < 25.0) {
+                                    double pointX = registrosGrafica.length == 1 ? startX + (activeWidth / 2) : startX + (index * stepX);
+                                    if ((dx - pointX).abs() < 30.0) {
                                       setState(() { _indiceSeleccionadoGrafica = index; });
                                       int indiceReal = (registrosGrafica.length - 1) - index;
                                       _mostrarDetallesPunto(registrosGrafica[indiceReal]);
@@ -707,7 +712,11 @@ class _GraficaPacientePainter extends CustomPainter {
 
     double graphHeight = size.height - 40;
     double offsetX = 40.0;
+    double paddingX = 20.0;
+    double startX = offsetX + paddingX;
+
     double graphWidth = size.width - offsetX;
+    double activeWidth = graphWidth - (paddingX * 2);
 
     double valToY(double val) {
       return graphHeight - (((val - minY) / (maxY - minY)) * graphHeight) + 10;
@@ -746,10 +755,10 @@ class _GraficaPacientePainter extends CustomPainter {
     }
 
     List<Offset> points = [];
-    double stepX = historial.length > 1 ? graphWidth / (historial.length - 1) : graphWidth / 2;
+    double stepX = historial.length > 1 ? activeWidth / (historial.length - 1) : activeWidth / 2;
 
     for (int i = 0; i < historial.length; i++) {
-      double x = historial.length == 1 ? offsetX + (graphWidth / 2) : offsetX + (i * stepX);
+      double x = historial.length == 1 ? startX + (activeWidth / 2) : startX + (i * stepX);
       double y = valToY(historial[i]['valor'].toDouble());
       points.add(Offset(x, y));
     }
