@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'pantalla_registros_paciente.dart';
 
 class PantallaInicioPaciente extends StatefulWidget {
   final String nombrePaciente;
@@ -18,15 +19,13 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
   int _indiceNavegacionActual = 0;
   String _fechaFormateada = '';
 
-  // DATOS TEMPORALES
-  final int ultimaGlucosa = 102;
-  final String tiempoUltimaLectura = '9/3/2026 a las 11:29';
-  final int promedioGlucosa = 97;
-  final int tirPorcentaje = 90;
+  // Variables de control temporales
+  final int limiteHipo = 70;
+  final int limiteHiper = 180;
+  final int rangoMin = 80;
+  final int rangoMax = 130;
 
-  //Variables Temporales
-  final int limiteHipo = 80;
-  final int limiteHiper = 130;
+  List<Map<String, dynamic>> _registrosGlucosa = [];
 
   @override
   void initState() {
@@ -58,7 +57,64 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
     }
   }
 
+  int _obtenerUltimaGlucosa() {
+    if (_registrosGlucosa.isEmpty) return 0;
+    return _registrosGlucosa.first['valor'];
+  }
+
+  String _obtenerTiempoUltimaLectura() {
+    if (_registrosGlucosa.isEmpty) return '--';
+    final fecha = _registrosGlucosa.first['fecha'] as DateTime;
+    return DateFormat("d/M/yyyy 'a las' HH:mm", 'es_ES').format(fecha);
+  }
+
+  String _obtenerMomentoUltimaLectura() {
+    if (_registrosGlucosa.isEmpty) return '--';
+    return _registrosGlucosa.first['momento'];
+  }
+
+  String _obtenerEstadoGlucosa(int valor) {
+    if (valor < limiteHipo) return 'Bajo';
+    if (valor > limiteHiper) return 'Alto';
+    if (valor >= rangoMin && valor <= rangoMax) return 'Normal';
+    return 'Alerta';
+  }
+
+  int _calcularPromedioGlucosa() {
+    if (_registrosGlucosa.isEmpty) return 0;
+    int suma = 0;
+    for (var r in _registrosGlucosa) {
+      suma += r['valor'] as int;
+    }
+    return (suma / _registrosGlucosa.length).round();
+  }
+
+  int _calcularTIR() {
+    if (_registrosGlucosa.isEmpty) return 0;
+    int enRango = 0;
+    for (var r in _registrosGlucosa) {
+      int val = r['valor'] as int;
+      if (val >= rangoMin && val <= rangoMax) {
+        enRango++;
+      }
+    }
+    return ((enRango / _registrosGlucosa.length) * 100).round();
+  }
+
+  int _calcularPorcentaje(bool Function(int) condicion) {
+    if (_registrosGlucosa.isEmpty) return 0;
+    int count = 0;
+    for (var r in _registrosGlucosa) {
+      if (condicion(r['valor'] as int)) count++;
+    }
+    return ((count / _registrosGlucosa.length) * 100).round();
+  }
+
   void _mostrarDialogoTIR() {
+    final int pctNormal = _calcularTIR();
+    final int pctHipo = _calcularPorcentaje((val) => val < limiteHipo);
+    final int pctHiper = _registrosGlucosa.isEmpty ? 0 : 100 - pctNormal - pctHipo;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -96,8 +152,6 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 35),
-
-                // Grafico TIR
                 SizedBox(
                   height: 280,
                   child: Row(
@@ -110,12 +164,12 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                           children: [
                             Padding(
                               padding: const EdgeInsets.only(top: 15),
-                              child: _etiquetaTir('Hiperglucemia', '5%', const Color(0xFFFBC02D)),
+                              child: _etiquetaTir('Hiperglucemia', '$pctHiper%', const Color(0xFFFBC02D)),
                             ),
-                            _etiquetaTir('En Rango', '90%', const Color(0xFF8CC63F), esMeta: true),
+                            _etiquetaTir('En Rango', '$pctNormal%', const Color(0xFF8CC63F), esMeta: true),
                             Padding(
                               padding: const EdgeInsets.only(bottom: 10),
-                              child: _etiquetaTir('Hipoglucemia', '5%', const Color(0xFFED1C24)),
+                              child: _etiquetaTir('Hipoglucemia', '$pctHipo%', const Color(0xFFED1C24)),
                             ),
                           ],
                         ),
@@ -129,7 +183,6 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                           color: Colors.white,
                           child: Column(
                             children: [
-                              // Seccion Alta
                               Container(
                                 height: 85,
                                 width: double.infinity,
@@ -138,15 +191,13 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                                 padding: const EdgeInsets.only(bottom: 5),
                                 child: Text('>$limiteHiper\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87, height: 1.2)),
                               ),
-                              // Seccon Objetivo
                               Container(
                                 height: 145,
                                 width: double.infinity,
                                 color: const Color(0xFF8CC63F),
                                 alignment: Alignment.center,
-                                child: Text('Rango Objetivo\n$limiteHipo-$limiteHiper\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white, height: 1.2)),
+                                child: Text('Rango Objetivo\n$rangoMin-$rangoMax\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white, height: 1.2)),
                               ),
-                              // Seccion Baja
                               Container(
                                 height: 50,
                                 width: double.infinity,
@@ -203,6 +254,19 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
       body: SafeArea(
         child: _indiceNavegacionActual == 0
             ? _construirDashboard()
+            : _indiceNavegacionActual == 1
+            ? PantallaRegistrosPaciente(
+          registros: _registrosGlucosa,
+          limiteHipo: limiteHipo,
+          limiteHiper: limiteHiper,
+          rangoMin: rangoMin,
+          rangoMax: rangoMax,
+          onAgregarRegistro: (nuevoRegistro) {
+            setState(() {
+              _registrosGlucosa.insert(0, nuevoRegistro);
+            });
+          },
+        )
             : _construirPlaceholderTabs(),
       ),
       bottomNavigationBar: _construirBottomNavigation(),
@@ -210,6 +274,31 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
   }
 
   Widget _construirDashboard() {
+    final ultimaG = _obtenerUltimaGlucosa();
+    final estadoG = _obtenerEstadoGlucosa(ultimaG);
+
+    Color colorFondo;
+    Color colorTexto = Colors.white;
+    Color colorBorde;
+
+    if (estadoG == 'Bajo') {
+      colorFondo = const Color(0xFFFFEDC6);
+      colorTexto = const Color(0xFFE08D01);
+      colorBorde = const Color(0xFFE08D01);
+    } else if (estadoG == 'Alto') {
+      colorFondo = const Color(0xFFFFBCBC);
+      colorTexto = const Color(0xFF810404);
+      colorBorde = const Color(0xFF810404);
+    } else if (estadoG == 'Normal') {
+      colorFondo = const Color(0xFFCBFB97);
+      colorTexto = const Color(0xFF2B940B);
+      colorBorde = const Color(0xFF2B940B);
+    } else {
+      colorFondo = Colors.yellow.shade100;
+      colorTexto = Colors.orange.shade800;
+      colorBorde = Colors.orange.shade800;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -305,7 +394,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                         textBaseline: TextBaseline.alphabetic,
                         children: [
                           Text(
-                            ultimaGlucosa.toString(),
+                            _registrosGlucosa.isEmpty ? '--' : ultimaG.toString(),
                             style: const TextStyle(
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w700,
@@ -327,52 +416,53 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFCBFB97),
-                              border: Border.all(color: const Color(0xFF2B940B), width: 1.5),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Text(
-                              'Normal',
-                              style: TextStyle(
-                                fontFamily: 'Roboto',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 11,
-                                color: Color(0xFF2B940B),
+                      if (_registrosGlucosa.isNotEmpty)
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: colorFondo,
+                                border: Border.all(color: colorBorde, width: 1.5),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                estadoG,
+                                style: TextStyle(
+                                  fontFamily: 'Roboto',
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                  color: colorTexto,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(color: const Color(0xFF888888), width: 1.5),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Text(
-                              'En ayunas',
-                              style: TextStyle(
-                                fontFamily: 'Roboto',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 11,
-                                color: Color(0xFF888888),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(color: const Color(0xFF888888), width: 1.5),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                _obtenerMomentoUltimaLectura(),
+                                style: const TextStyle(
+                                  fontFamily: 'Roboto',
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                  color: Color(0xFF888888),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            tiempoUltimaLectura,
+                            _obtenerTiempoUltimaLectura(),
                             style: const TextStyle(
                               fontFamily: 'Roboto',
                               fontWeight: FontWeight.w500,
@@ -381,7 +471,11 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                             ),
                           ),
                           GestureDetector(
-                            onTap: () {},
+                            onTap: () {
+                              setState(() {
+                                _indiceNavegacionActual = 1;
+                              });
+                            },
                             child: const Text(
                               'Ver todos registros',
                               style: TextStyle(
@@ -423,7 +517,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '$tirPorcentaje%',
+                              _registrosGlucosa.isEmpty ? '--%' : '${_calcularTIR()}%',
                               style: const TextStyle(
                                 fontFamily: 'Poppins',
                                 fontWeight: FontWeight.w700,
@@ -433,14 +527,14 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                               ),
                             ),
                             GestureDetector(
-                              onTap: _mostrarDialogoTIR,
-                              child: const Text(
+                              onTap: _registrosGlucosa.isEmpty ? null : _mostrarDialogoTIR,
+                              child: Text(
                                 'Ver mas',
                                 style: TextStyle(
                                   fontFamily: 'Roboto',
                                   fontWeight: FontWeight.w600,
                                   fontSize: 12,
-                                  color: Color(0xFF888888),
+                                  color: _registrosGlucosa.isEmpty ? Colors.transparent : const Color(0xFF888888),
                                   decoration: TextDecoration.underline,
                                 ),
                               ),
@@ -471,7 +565,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              promedioGlucosa.toString(),
+                              _registrosGlucosa.isEmpty ? '--' : _calcularPromedioGlucosa().toString(),
                               style: const TextStyle(
                                 fontFamily: 'Poppins',
                                 fontWeight: FontWeight.w700,
