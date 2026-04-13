@@ -296,7 +296,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                               color: Color(0xFF3F3F3F),
                             ),
                           ),
-                          Icon(Icons.timeline, color: Colors.grey.shade500, size: 24),
+                          Icon(Icons.show_chart_rounded, color: Colors.grey.shade500, size: 24),
                         ],
                       ),
                       const SizedBox(height: 5),
