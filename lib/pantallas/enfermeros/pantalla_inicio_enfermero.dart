@@ -744,40 +744,60 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                       final turno = await preguntarTurno(context);
                       if (turno == null) return;
 
-                      final enfermero = DatosEnfermero(
-                        nombre: _nombreEnfermeroLocal,
-                        cedula: cedulaEnfermero,
-                        area: areaEnfermero,
-                        hospital: hospitalEnfermero,
-                      );
-
-                      final bytes = await ReportePdfService.generarReporteTurno(
-                        pacientes: _listaPacientes,
-                        enfermero: enfermero,
-                        turno: turno,
-                      );
-                      final String idUnico = DateTime.now().millisecondsSinceEpoch.toString();
-                      setState(() {
-                        _reportesGenerados.insert(0, {
-                          'id': idUnico,
-                          'fecha': DateTime.now(),
-                          'turno': turno,
-                          'pacientes': _listaPacientes.length,
-                          'bytes': bytes,
-                        });
-                      });
-
-                      if (!mounted) return;
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => VisorPdfPantalla(
-                            bytes: bytes,
-                            turno: turno,
-                            reporteId: idUnico,
-                          ),
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
                         ),
                       );
+
+                      try {
+                        final enfermero = DatosEnfermero(
+                          nombre: _nombreEnfermeroLocal,
+                          cedula: cedulaEnfermero,
+                          area: areaEnfermero,
+                          hospital: hospitalEnfermero,
+                        );
+
+                        final bytes = await ReportePdfService.generarReporteTurno(
+                          pacientes: _listaPacientes,
+                          enfermero: enfermero,
+                          turno: turno,
+                        );
+
+                        final String idUnico = DateTime.now().millisecondsSinceEpoch.toString();
+
+                        setState(() {
+                          _reportesGenerados = [
+                            {
+                              'id': idUnico,
+                              'fecha': DateTime.now(),
+                              'turno': turno,
+                              'pacientes': _listaPacientes.length,
+                              'bytes': bytes,
+                            },
+                            ..._reportesGenerados
+                          ];
+                        });
+
+                        if (!mounted) return;
+                        Navigator.pop(context);
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => VisorPdfPantalla(
+                              bytes: bytes,
+                              turno: turno,
+                              reporteId: idUnico,
+                            ),
+                          ),
+                        );
+                      } catch (e) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al generar: $e')));
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1C63BB),
@@ -807,6 +827,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
               final reporte = _reportesGenerados[index];
               final fechaStr = DateFormat('dd/MM/yyyy HH:mm').format(reporte['fecha']);
               return Card(
+                key: Key(reporte['id']), // IMPORTANTE: Obliga a redibujar esta tarjeta específicamente
                 margin: const EdgeInsets.only(bottom: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
