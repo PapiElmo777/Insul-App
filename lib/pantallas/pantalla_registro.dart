@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'pantallas_cuestionarios.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class PantallaRegistro extends StatefulWidget {
   const PantallaRegistro({super.key});
@@ -86,14 +87,14 @@ class _PantallaRegistroState extends State<PantallaRegistro> with SingleTickerPr
                     Center(
                       child: Column(
                         children: [
-                          Image.asset('assets/logo.png', width: 80),
+                          SvgPicture.asset('assets/logo1.svg', width: 80,colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),),
                           const SizedBox(height: 10),
                           RichText(
                             text: const TextSpan(
                               style: TextStyle(fontSize: 32, color: Colors.white),
                               children: [
-                                TextSpan(text: 'Insul ', style: TextStyle(fontWeight: FontWeight.w400)),
-                                TextSpan(text: 'App', style: TextStyle(fontWeight: FontWeight.bold)),
+                                TextSpan(text: 'Insul ', style: TextStyle(fontWeight: FontWeight.bold)),
+                                TextSpan(text: 'App', style: TextStyle(fontWeight: FontWeight.w400)),
                               ],
                             ),
                           ),

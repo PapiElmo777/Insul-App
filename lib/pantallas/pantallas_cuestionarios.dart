@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'enfermeros/pantalla_inicio_enfermero.dart';
+import 'paciente/pantalla_inicio_paciente.dart';
 //------------------------------------------------------------------------------------------------
 class PantallaCuestionarioEnfermero extends StatefulWidget {
   const PantallaCuestionarioEnfermero({super.key});
@@ -1298,8 +1299,13 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
-                      print("Navegar al Inicio del Paciente");
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PantallaInicioPaciente(nombrePaciente: 'Cesar'),
+                        ),
+                            (Route<dynamic> route) => false
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00D1FF),
