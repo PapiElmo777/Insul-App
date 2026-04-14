@@ -28,17 +28,19 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
   int? _indiceSeleccionadoGrafica;
 
   String _obtenerEstadoGlucosa(int valor) {
-    if (valor < widget.limiteHipo) return 'Bajo';
-    if (valor > widget.limiteHiper) return 'Alto';
+    if (valor < widget.limiteHipo) return 'Hipoglucemia';
+    if (valor >= widget.limiteHipo && valor < widget.rangoMin) return 'Bajo';
     if (valor >= widget.rangoMin && valor <= widget.rangoMax) return 'Normal';
-    return 'Alerta';
+    if (valor > widget.rangoMax && valor <= widget.limiteHiper) return 'Elevado';
+    return 'Hiperglucemia';
   }
 
   Color _obtenerColorEstado(String estado) {
-    if (estado == 'Bajo') return const Color(0xFFFF9800);
-    if (estado == 'Alto') return const Color(0xFFF44336);
-    if (estado == 'Normal') return const Color(0xFF4CAF50);
-    return Colors.orange.shade600; // Alerta
+    if (estado == 'Hipoglucemia') return const Color(0xFFD32F2F);
+    if (estado == 'Bajo') return const Color(0xFFE65100);
+    if (estado == 'Normal') return const Color(0xFF2E7D32);
+    if (estado == 'Elevado') return const Color(0xFFAB47BC);
+    return const Color(0xFF6A1B9A);
   }
 
   List<Map<String, dynamic>> _obtenerRegistrosFiltrados() {
@@ -508,15 +510,15 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                         ],
                       ),
                       const SizedBox(height: 15),
-                      _filaReferencia('Hipoglucemia', '< ${widget.limiteHipo} mg/dL', const Color(0xFFFF9800)),
+                      _filaReferencia('Hipoglucemia', '< ${widget.limiteHipo} mg/dL', const Color(0xFFD32F2F)),
                       const Divider(color: Colors.white, thickness: 1),
-                      _filaReferencia('Bajo / Alerta', '${widget.limiteHipo} - ${widget.rangoMin - 1} mg/dL', Colors.orange.shade600),
+                      _filaReferencia('Bajo', '${widget.limiteHipo} - ${widget.rangoMin - 1} mg/dL', const Color(0xFFE65100)),
                       const Divider(color: Colors.white, thickness: 1),
-                      _filaReferencia('Normal / Meta', '${widget.rangoMin} - ${widget.rangoMax} mg/dL', const Color(0xFF4CAF50)),
+                      _filaReferencia('Normal / Meta', '${widget.rangoMin} - ${widget.rangoMax} mg/dL', const Color(0xFF2E7D32)),
                       const Divider(color: Colors.white, thickness: 1),
-                      _filaReferencia('Elevado / Alerta', '${widget.rangoMax + 1} - ${widget.limiteHiper} mg/dL', const Color(0xFFFFC107)),
+                      _filaReferencia('Elevado', '${widget.rangoMax + 1} - ${widget.limiteHiper} mg/dL', const Color(0xFFAB47BC)),
                       const Divider(color: Colors.white, thickness: 1),
-                      _filaReferencia('Hiperglucemia', '> ${widget.limiteHiper} mg/dL', const Color(0xFFF44336)),
+                      _filaReferencia('Hiperglucemia', '> ${widget.limiteHiper} mg/dL', const Color(0xFF6A1B9A)),
                     ],
                   ),
                 ),
@@ -559,26 +561,31 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
     String estado = _obtenerEstadoGlucosa(val);
     Color colorFondo, colorBorde, colorTexto, colorIcono;
 
-    if (estado == 'Bajo') {
-      colorFondo = const Color(0xFFFFEDC6);
-      colorBorde = const Color(0xFFF09802);
-      colorTexto = const Color(0xFFE08D01);
-      colorIcono = const Color(0xFFFFE2A4);
-    } else if (estado == 'Alto') {
-      colorFondo = const Color(0xFFFFBCBC);
-      colorBorde = const Color(0xFF810404);
-      colorTexto = const Color(0xFF810404);
-      colorIcono = const Color(0xFFFF7B7B);
+    if (estado == 'Hipoglucemia') {
+      colorFondo = const Color(0xFFFFEBEE);
+      colorBorde = const Color(0xFFD32F2F);
+      colorTexto = const Color(0xFFD32F2F);
+      colorIcono = const Color(0xFFFFCDD2);
+    } else if (estado == 'Bajo') {
+      colorFondo = const Color(0xFFFFF3E0);
+      colorBorde = const Color(0xFFE65100);
+      colorTexto = const Color(0xFFE65100);
+      colorIcono = const Color(0xFFFFE0B2);
     } else if (estado == 'Normal') {
-      colorFondo = const Color(0xFFDBFED1);
-      colorBorde = const Color(0xFF4FAB04);
-      colorTexto = const Color(0xFF2B940B);
-      colorIcono = const Color(0xFFC1FFB0);
+      colorFondo = const Color(0xFFE8F5E9);
+      colorBorde = const Color(0xFF2E7D32);
+      colorTexto = const Color(0xFF2E7D32);
+      colorIcono = const Color(0xFFC8E6C9);
+    } else if (estado == 'Elevado') {
+      colorFondo = const Color(0xFFF3E5F5);
+      colorBorde = const Color(0xFFAB47BC);
+      colorTexto = const Color(0xFFAB47BC);
+      colorIcono = const Color(0xFFE1BEE7);
     } else {
-      colorFondo = Colors.yellow.shade100;
-      colorBorde = Colors.orange.shade600;
-      colorTexto = Colors.orange.shade800;
-      colorIcono = Colors.yellow.shade200;
+      colorFondo = const Color(0xFFEDE7F6);
+      colorBorde = const Color(0xFF6A1B9A);
+      colorTexto = const Color(0xFF6A1B9A);
+      colorIcono = const Color(0xFFD1C4E9);
     }
 
     return Container(
@@ -724,19 +731,19 @@ class _GraficaPacientePainter extends CustomPainter {
 
     Paint bgPaint = Paint();
 
-    bgPaint.color = const Color(0xFFFF9800).withOpacity(0.1); // Hipo
+    bgPaint.color = const Color(0xFFD32F2F).withOpacity(0.1);
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(limiteHipo.toDouble()), size.width, graphHeight + 10), bgPaint);
 
-    bgPaint.color = Colors.orange.shade600.withOpacity(0.1); // Alerta
+    bgPaint.color = const Color(0xFFE65100).withOpacity(0.1);
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(rangoMin.toDouble()), size.width, valToY(limiteHipo.toDouble())), bgPaint);
 
-    bgPaint.color = const Color(0xFF4CAF50).withOpacity(0.15); // Normal
+    bgPaint.color = const Color(0xFF2E7D32).withOpacity(0.15);
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(rangoMax.toDouble()), size.width, valToY(rangoMin.toDouble())), bgPaint);
 
-    bgPaint.color = const Color(0xFFFFC107).withOpacity(0.1); // Elevado
+    bgPaint.color = const Color(0xFFAB47BC).withOpacity(0.1);
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(limiteHiper.toDouble()), size.width, valToY(rangoMax.toDouble())), bgPaint);
 
-    bgPaint.color = const Color(0xFFF44336).withOpacity(0.1); // Hiper
+    bgPaint.color = const Color(0xFF6A1B9A).withOpacity(0.1);
     canvas.drawRect(Rect.fromLTRB(offsetX, 10, size.width, valToY(limiteHiper.toDouble())), bgPaint);
 
     Paint lineRef = Paint()..color = Colors.grey.withOpacity(0.3)..strokeWidth = 1;
@@ -782,11 +789,11 @@ class _GraficaPacientePainter extends CustomPainter {
     for (int i = 0; i < points.length; i++) {
       int val = historial[i]['valor'];
       Color c;
-      if (val < limiteHipo) c = const Color(0xFFFF9800);
-      else if (val > limiteHiper) c = const Color(0xFFF44336);
-      else if (val >= rangoMin && val <= rangoMax) c = const Color(0xFF4CAF50);
-      else if (val < rangoMin) c = Colors.orange.shade600;
-      else c = const Color(0xFFFFC107);
+      if (val < limiteHipo) c = const Color(0xFFD32F2F);
+      else if (val > limiteHiper) c = const Color(0xFF6A1B9A);
+      else if (val >= rangoMin && val <= rangoMax) c = const Color(0xFF2E7D32);
+      else if (val < rangoMin) c = const Color(0xFFE65100);
+      else c = const Color(0xFFAB47BC);
 
       if (indiceSeleccionado == i) {
         canvas.drawCircle(points[i], 14.0, Paint()..color = c.withOpacity(0.4)..style = PaintingStyle.fill);

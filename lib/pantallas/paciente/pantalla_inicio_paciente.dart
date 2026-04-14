@@ -74,10 +74,11 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
   }
 
   String _obtenerEstadoGlucosa(int valor) {
-    if (valor < limiteHipo) return 'Bajo';
-    if (valor > limiteHiper) return 'Alto';
+    if (valor < limiteHipo) return 'Hipoglucemia';
+    if (valor >= limiteHipo && valor < rangoMin) return 'Bajo';
     if (valor >= rangoMin && valor <= rangoMax) return 'Normal';
-    return 'Alerta';
+    if (valor > rangoMax && valor <= limiteHiper) return 'Elevado';
+    return 'Hiperglucemia';
   }
 
   int _calcularPromedioGlucosa() {
@@ -282,12 +283,12 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                           children: [
                             Padding(
                               padding: const EdgeInsets.only(top: 15),
-                              child: _etiquetaTir('Hiperglucemia', '$pctHiper%', const Color(0xFFFBC02D)),
+                              child: _etiquetaTir('Hiperglucemia', '$pctHiper%', const Color(0xFF6A1B9A)),
                             ),
-                            _etiquetaTir('En Rango', '$pctNormal%', const Color(0xFF8CC63F), esMeta: true),
+                            _etiquetaTir('En Rango', '$pctNormal%', const Color(0xFF2E7D32), esMeta: true),
                             Padding(
                               padding: const EdgeInsets.only(bottom: 10),
-                              child: _etiquetaTir('Hipoglucemia', '$pctHipo%', const Color(0xFFED1C24)),
+                              child: _etiquetaTir('Hipoglucemia', '$pctHipo%', const Color(0xFFD32F2F)),
                             ),
                           ],
                         ),
@@ -304,22 +305,22 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                               Container(
                                 height: 85,
                                 width: double.infinity,
-                                color: const Color(0xFFFBE337),
+                                color: const Color(0xFF6A1B9A),
                                 alignment: Alignment.bottomCenter,
                                 padding: const EdgeInsets.only(bottom: 5),
-                                child: Text('>$limiteHiper\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87, height: 1.2)),
+                                child: Text('>$limiteHiper\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white, height: 1.2)),
                               ),
                               Container(
                                 height: 145,
                                 width: double.infinity,
-                                color: const Color(0xFF8CC63F),
+                                color: const Color(0xFF2E7D32),
                                 alignment: Alignment.center,
                                 child: Text('Rango Objetivo\n$rangoMin-$rangoMax\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white, height: 1.2)),
                               ),
                               Container(
                                 height: 50,
                                 width: double.infinity,
-                                color: const Color(0xFFED1C24),
+                                color: const Color(0xFFD32F2F),
                                 alignment: Alignment.topCenter,
                                 padding: const EdgeInsets.only(top: 8),
                                 child: Text('<$limiteHipo mg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13)),
@@ -365,6 +366,53 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
     );
   }
 
+  Widget _construirLeyendaColores() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _itemLeyenda(const Color(0xFFD32F2F), 'Hipo'),
+            const SizedBox(width: 15),
+            _itemLeyenda(const Color(0xFFE65100), 'Bajo'),
+            const SizedBox(width: 15),
+            _itemLeyenda(const Color(0xFF2E7D32), 'Normal'),
+            const SizedBox(width: 15),
+            _itemLeyenda(const Color(0xFFAB47BC), 'Elevado'),
+            const SizedBox(width: 15),
+            _itemLeyenda(const Color(0xFF6A1B9A), 'Hiper'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _itemLeyenda(Color color, String texto) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          texto,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.black87,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -399,22 +447,26 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
     Color colorTexto = Colors.white;
     Color colorBorde;
 
-    if (estadoG == 'Bajo') {
-      colorFondo = const Color(0xFFFFEDC6);
-      colorTexto = const Color(0xFFE08D01);
-      colorBorde = const Color(0xFFE08D01);
-    } else if (estadoG == 'Alto') {
-      colorFondo = const Color(0xFFFFBCBC);
-      colorTexto = const Color(0xFF810404);
-      colorBorde = const Color(0xFF810404);
+    if (estadoG == 'Hipoglucemia') {
+      colorFondo = const Color(0xFFFFEBEE);
+      colorTexto = const Color(0xFFD32F2F);
+      colorBorde = const Color(0xFFD32F2F);
+    } else if (estadoG == 'Bajo') {
+      colorFondo = const Color(0xFFFFF3E0);
+      colorTexto = const Color(0xFFE65100);
+      colorBorde = const Color(0xFFE65100);
     } else if (estadoG == 'Normal') {
-      colorFondo = const Color(0xFFCBFB97);
-      colorTexto = const Color(0xFF2B940B);
-      colorBorde = const Color(0xFF2B940B);
+      colorFondo = const Color(0xFFE8F5E9);
+      colorTexto = const Color(0xFF2E7D32);
+      colorBorde = const Color(0xFF2E7D32);
+    } else if (estadoG == 'Elevado') {
+      colorFondo = const Color(0xFFF3E5F5);
+      colorTexto = const Color(0xFFAB47BC);
+      colorBorde = const Color(0xFFAB47BC);
     } else {
-      colorFondo = Colors.yellow.shade100;
-      colorTexto = Colors.orange.shade800;
-      colorBorde = Colors.orange.shade800;
+      colorFondo = const Color(0xFFEDE7F6);
+      colorTexto = const Color(0xFF6A1B9A);
+      colorBorde = const Color(0xFF6A1B9A);
     }
 
     return Column(
@@ -610,7 +662,8 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 15),
+                _construirLeyendaColores(),
+                const SizedBox(height: 5),
 
                 Row(
                   children: [
