@@ -447,8 +447,9 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                                   double paddingX = 20.0;
                                   double startX = offsetX + paddingX;
 
-                                  double totalWidth = (registrosGrafica.length > 5 ? registrosGrafica.length * 50.0 : MediaQuery.of(context).size.width - 80) - offsetX;
-                                  double activeWidth = totalWidth - (paddingX * 2);
+                                  double customPaintWidth = (registrosGrafica.length > 5 ? registrosGrafica.length * 50.0 : MediaQuery.of(context).size.width - 80) - 40.0;
+                                  double graphWidth = customPaintWidth - offsetX;
+                                  double activeWidth = graphWidth - (paddingX * 2);
 
                                   double stepX = registrosGrafica.length > 1 ? activeWidth / (registrosGrafica.length - 1) : activeWidth / 2;
                                   double dx = details.localPosition.dx;
@@ -512,11 +513,11 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                       const SizedBox(height: 15),
                       _filaReferencia('Hipoglucemia', '< ${widget.limiteHipo} mg/dL', const Color(0xFFD32F2F)),
                       const Divider(color: Colors.white, thickness: 1),
-                      _filaReferencia('Bajo', '${widget.limiteHipo} - ${widget.rangoMin - 1} mg/dL', const Color(0xFFE65100)),
+                      _filaReferencia('Bajo / Alerta', '${widget.limiteHipo} - ${widget.rangoMin - 1} mg/dL', const Color(0xFFE65100)),
                       const Divider(color: Colors.white, thickness: 1),
                       _filaReferencia('Normal / Meta', '${widget.rangoMin} - ${widget.rangoMax} mg/dL', const Color(0xFF2E7D32)),
                       const Divider(color: Colors.white, thickness: 1),
-                      _filaReferencia('Elevado', '${widget.rangoMax + 1} - ${widget.limiteHiper} mg/dL', const Color(0xFFAB47BC)),
+                      _filaReferencia('Elevado / Alerta', '${widget.rangoMax + 1} - ${widget.limiteHiper} mg/dL', const Color(0xFFAB47BC)),
                       const Divider(color: Colors.white, thickness: 1),
                       _filaReferencia('Hiperglucemia', '> ${widget.limiteHiper} mg/dL', const Color(0xFF6A1B9A)),
                     ],

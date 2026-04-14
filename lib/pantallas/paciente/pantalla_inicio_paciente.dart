@@ -266,7 +266,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  'Distribución de tus medidas de glucosa en comparación con los objetivos médicos.',
+                  'El TIR es el porcentaje del tiempo que tu glucosa está en niveles normales (dentro del rango objetivo).',
                   style: TextStyle(fontFamily: 'Roboto', fontSize: 13, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
@@ -678,7 +678,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                         child: Column(
                           children: [
                             const Text(
-                              'TIR (Rango)',
+                              'Tiempo en nivel normal (TIR)',
                               style: TextStyle(
                                 fontFamily: 'Poppins',
                                 fontWeight: FontWeight.w600,
