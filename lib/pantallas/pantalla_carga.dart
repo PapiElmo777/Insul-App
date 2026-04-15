@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:async';
 import 'pantalla_login.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import '../database/database_helper.dart';
+import 'enfermeros/pantalla_inicio_enfermero.dart';
+import 'paciente/pantalla_inicio_paciente.dart';
 
 class PantallaCarga extends StatefulWidget {
   const PantallaCarga({super.key});
@@ -10,55 +13,40 @@ class PantallaCarga extends StatefulWidget {
   State<PantallaCarga> createState() => _PantallaCargaState();
 }
 
-class _PantallaCargaState extends State<PantallaCarga> with TickerProviderStateMixin {
-  late AnimationController _controladorLatido;
-  late Animation<double> _animacionEscala;
-  late AnimationController _controladorOpacidad;
-  late Animation<double> _animacionOpacidad;
-
+class _PantallaCargaState extends State<PantallaCarga> {
   @override
   void initState() {
     super.initState();
-
-    _controladorLatido = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..repeat(reverse: true);
-
-    _animacionEscala = Tween<double>(begin: 1.0, end: 1.15).animate(
-      CurvedAnimation(parent: _controladorLatido, curve: Curves.easeInOut),
-    );
-
-    _controladorOpacidad = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..forward();
-
-    _animacionOpacidad = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controladorOpacidad, curve: Curves.easeIn),
-    );
-    Future.delayed(const Duration(seconds: 5), () {
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => const PantallaLogin(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 800),
-        ),
-      );
-    });
+    _verificarSesion();
   }
 
-  @override
-  void dispose() {
-    _controladorLatido.dispose();
-    _controladorOpacidad.dispose();
-    super.dispose();
+  Future<void> _verificarSesion() async {
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+
+    final db = DatabaseHelper();
+    final usuarioId = await db.obtenerSesionActiva();
+
+    if (usuarioId != null) {
+      final usuario = await db.obtenerUsuarioPorId(usuarioId);
+      if (usuario != null && mounted) {
+        final rol = usuario['rol'] as String;
+        if (rol == 'Enfermero') {
+          Navigator.pushReplacement(context,
+              MaterialPageRoute(builder: (_) => const PantallaInicioEnfermero()));
+        } else if (rol == 'Paciente') {
+          Navigator.pushReplacement(context,
+              MaterialPageRoute(builder: (_) => PantallaInicioPaciente(nombrePaciente: usuario['nombre'])));
+        } else {
+          Navigator.pushReplacement(context,
+              MaterialPageRoute(builder: (_) => const PantallaLogin()));
+        }
+      } else {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PantallaLogin()));
+      }
+    } else {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PantallaLogin()));
+    }
   }
 
   @override
@@ -79,36 +67,31 @@ class _PantallaCargaState extends State<PantallaCarga> with TickerProviderStateM
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ScaleTransition(
-              scale: _animacionEscala,
-              child: SvgPicture.asset('assets/logo1.svg', width: 120,colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),),
-            ),
+            SvgPicture.asset('assets/logo1.svg', width: 120,colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn)),
             const SizedBox(height: 20),
-            FadeTransition(
-              opacity: _animacionOpacidad,
-              child: Column(
+            RichText(
+              text: const TextSpan(
+                style: TextStyle(fontSize: 44, color: Colors.white),
                 children: [
-                  RichText(
-                    text: const TextSpan(
-                      style: TextStyle(fontSize: 44, color: Colors.white),
-                      children: [
-                        TextSpan(text: 'Insul ', style: TextStyle(fontWeight: FontWeight.bold)),
-                        TextSpan(text: 'App', style: TextStyle(fontWeight: FontWeight.w400)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Monitoreo, cuidado y salud\nen tus manos',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Color(0xFFE8E8E8),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  TextSpan(text: 'Insul ', style: TextStyle(fontWeight: FontWeight.w400)),
+                  TextSpan(text: 'App', style: TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Monitoreo, cuidado y salud\nen tus manos',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20,
+                color: Color(0xFFE8E8E8),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 60),
+            const CircularProgressIndicator(
+              color: Color(0xFF00D1FF),
+              strokeWidth: 2,
             ),
           ],
         ),

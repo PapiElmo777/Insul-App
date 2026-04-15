@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'pantalla_registro.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'pantalla_registro.dart';
+import '../database/database_helper.dart';
+import 'enfermeros/pantalla_inicio_enfermero.dart';
+import 'paciente/pantalla_inicio_paciente.dart';
 
 class PantallaLogin extends StatefulWidget {
   const PantallaLogin({super.key});
@@ -15,6 +18,11 @@ class _PantallaLoginState extends State<PantallaLogin> with SingleTickerProvider
   late Animation<Offset> _animacionSlideCampos;
   late Animation<Offset> _animacionSlideBoton;
   late Animation<Offset> _animacionSlideFooter;
+
+  final TextEditingController _correoCtrl = TextEditingController();
+  final TextEditingController _contrasenaCtrl = TextEditingController();
+  bool _cargando = false;
+  String? _error;
 
   @override
   void initState() {
@@ -46,127 +54,185 @@ class _PantallaLoginState extends State<PantallaLogin> with SingleTickerProvider
 
   @override
   void dispose() {
+    _correoCtrl.dispose();
+    _contrasenaCtrl.dispose();
     _controladorPrincipal.dispose();
     super.dispose();
+  }
+
+  Future<void> _iniciarSesion() async {
+    if (_correoCtrl.text.trim().isEmpty || _contrasenaCtrl.text.isEmpty) {
+      setState(() => _error = 'Por favor completa todos los campos.');
+      return;
+    }
+
+    setState(() { _cargando = true; _error = null; });
+
+    final db = DatabaseHelper();
+    final usuario = await db.obtenerUsuarioPorCorreo(_correoCtrl.text.trim().toLowerCase());
+
+    if (usuario == null || usuario['contrasena'] != _contrasenaCtrl.text) {
+      setState(() {
+        _cargando = false;
+        _error = 'Correo o contraseña incorrectos.';
+      });
+      return;
+    }
+
+    await db.guardarSesion(usuario['id'] as int);
+
+    if (!mounted) return;
+
+    final rol = usuario['rol'] as String;
+    if (rol == 'Enfermero') {
+      Navigator.pushReplacement(context,
+          MaterialPageRoute(builder: (_) => const PantallaInicioEnfermero()));
+    } else if (rol == 'Paciente') {
+      Navigator.pushReplacement(context,
+          MaterialPageRoute(builder: (_) => PantallaInicioPaciente(nombrePaciente: usuario['nombre'])));
+    } else {
+      setState(() {
+        _cargando = false;
+        _error = 'Rol no implementado.';
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1C63BB),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 35.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                FadeTransition(
-                  opacity: _animacionOpacidadHeader,
-                  child: Column(
-                    children: [
-                      SvgPicture.asset('assets/logo1.svg', width: 120,colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),),
-                      const SizedBox(height: 10),
-                      RichText(
-                        text: const TextSpan(
-                          style: TextStyle(fontSize: 40, color: Colors.white),
-                          children: [
-                            TextSpan(text: 'Insul ', style: TextStyle(fontWeight: FontWeight.bold)),
-                            TextSpan(text: 'App', style: TextStyle(fontWeight: FontWeight.w400)),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      const Text(
-                        'Inicia sesión en tu cuenta',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 35),
-
-                SlideTransition(
-                  position: _animacionSlideCampos,
-                  child: Column(
-                    children: [
-                      _crearCampoTexto(hint: 'Correo Electrónico', ocultaTexto: false, icono: Icons.email_outlined),
-                      const SizedBox(height: 20),
-                      _crearCampoTexto(hint: 'Contraseña', ocultaTexto: true, icono: Icons.lock_outline),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 30),
-                SlideTransition(
-                  position: _animacionSlideBoton,
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF008CCF),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                          side: const BorderSide(color: Color(0xFFD2D2D2), width: 1.5),
-                        ),
-                        elevation: 5,
-                      ),
-                      child: const Text(
-                        'Iniciar Sesión',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 15),
-
-                SlideTransition(
-                  position: _animacionSlideFooter,
-                  child: Column(
-                    children: [
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: GestureDetector(
-                          onTap: () {},
-                          child: const Text(
-                            '¿Olvidaste tu contraseña?',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 25),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const PantallaRegistro()),
-                          );
-                        },
-                        child: RichText(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF074E9E), Color(0xFF256CC8)],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 35.0, vertical: 50.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  FadeTransition(
+                    opacity: _animacionOpacidadHeader,
+                    child: Column(
+                      children: [
+                        SvgPicture.asset('assets/logo1.svg', width: 120,colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),),
+                        const SizedBox(height: 10),
+                        RichText(
                           text: const TextSpan(
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 40, color: Colors.white),
                             children: [
-                              TextSpan(text: '¿No tienes Cuenta? ', style: TextStyle(color: Colors.white)),
-                              TextSpan(text: 'Regístrate', style: TextStyle(color: Color(0xFF00D1FF))),
+                              TextSpan(text: 'Insul ', style: TextStyle(fontWeight: FontWeight.bold)),
+                              TextSpan(text: 'App', style: TextStyle(fontWeight: FontWeight.w400)),
                             ],
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 40),
+                        const Text(
+                          'Inicia sesión en tu cuenta',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 35),
+
+                  if (_error != null) ...[
+                    Text(_error!, style: const TextStyle(color: Color(0xFFFF6B6B), fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 15),
+                  ],
+
+                  SlideTransition(
+                    position: _animacionSlideCampos,
+                    child: Column(
+                      children: [
+                        _crearCampoTexto(hint: 'Correo Electrónico', ocultaTexto: false, icono: Icons.email_outlined, controlador: _correoCtrl),
+                        const SizedBox(height: 20),
+                        _crearCampoTexto(hint: 'Contraseña', ocultaTexto: true, icono: Icons.lock_outline, controlador: _contrasenaCtrl),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  SlideTransition(
+                    position: _animacionSlideBoton,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _cargando ? null : _iniciarSesion,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF008CCF),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25),
+                            side: const BorderSide(color: Color(0xFFD2D2D2), width: 1.5),
+                          ),
+                          elevation: 5,
+                        ),
+                        child: _cargando
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text(
+                          'Iniciar Sesión',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+
+                  SlideTransition(
+                    position: _animacionSlideFooter,
+                    child: Column(
+                      children: [
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () {},
+                            child: const Text(
+                              '¿Olvidaste tu contraseña?',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 25),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const PantallaRegistro()),
+                            );
+                          },
+                          child: RichText(
+                            text: const TextSpan(
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                              children: [
+                                TextSpan(text: '¿No tienes Cuenta? ', style: TextStyle(color: Colors.white)),
+                                TextSpan(text: 'Regístrate', style: TextStyle(color: Color(0xFF00D1FF))),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -174,8 +240,9 @@ class _PantallaLoginState extends State<PantallaLogin> with SingleTickerProvider
     );
   }
 
-  Widget _crearCampoTexto({required String hint, required bool ocultaTexto, required IconData icono}) {
+  Widget _crearCampoTexto({required String hint, required bool ocultaTexto, required IconData icono, required TextEditingController controlador}) {
     return TextField(
+      controller: controlador,
       obscureText: ocultaTexto,
       decoration: InputDecoration(
         prefixIcon: Icon(icono, color: const Color(0xFF1C63BB)),

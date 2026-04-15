@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../database/database_helper.dart';
 import 'enfermeros/pantalla_inicio_enfermero.dart';
 import 'paciente/pantalla_inicio_paciente.dart';
 //------------------------------------------------------------------------------------------------
@@ -19,6 +20,10 @@ class _PantallaCuestionarioEnfermeroState extends State<PantallaCuestionarioEnfe
   late Animation<Offset> _animacionSlidePaso2;
   late Animation<Offset> _animacionSlidePaso3;
   late Animation<Offset> _animacionSlideBoton;
+
+  final TextEditingController _cedulaCtrl = TextEditingController();
+  final TextEditingController _institucionCtrl = TextEditingController();
+  final TextEditingController _otraAreaCtrl = TextEditingController();
 
   final List<String> areas = [
     'Medicina Interna',
@@ -62,7 +67,27 @@ class _PantallaCuestionarioEnfermeroState extends State<PantallaCuestionarioEnfe
   @override
   void dispose() {
     _controladorPrincipal.dispose();
+    _cedulaCtrl.dispose();
+    _institucionCtrl.dispose();
+    _otraAreaCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _guardarDatosYFinalizar() async {
+    final db = DatabaseHelper();
+    final usuarioId = await db.obtenerSesionActiva();
+
+    if (usuarioId != null) {
+      await db.insertarEnfermero({
+        'usuario_id': usuarioId,
+        'cedula': _cedulaCtrl.text,
+        'institucion': _institucionCtrl.text,
+        'area': areaSeleccionada == 'Otra' ? _otraAreaCtrl.text : (areaSeleccionada ?? ''),
+      });
+    }
+
+    if (!mounted) return;
+    _mostrarDialogoFinalizacion();
   }
 
   void _mostrarDialogoFinalizacion() {
@@ -160,13 +185,13 @@ class _PantallaCuestionarioEnfermeroState extends State<PantallaCuestionarioEnfe
 
               SlideTransition(
                 position: _animacionSlidePaso1,
-                child: _crearCampoTexto(titulo: 'Cédula Profesional', hint: 'Ej. 12345678', esNumero: true, icono: Icons.badge_outlined),
+                child: _crearCampoTexto(titulo: 'Cédula Profesional', hint: 'Ej. 12345678', esNumero: true, icono: Icons.badge_outlined, controlador: _cedulaCtrl),
               ),
               const SizedBox(height: 20),
 
               SlideTransition(
                 position: _animacionSlidePaso2,
-                child: _crearCampoTexto(titulo: 'Institución Médica', hint: 'Hospital o Clínica donde laboras', icono: Icons.local_hospital_outlined),
+                child: _crearCampoTexto(titulo: 'Institución Médica', hint: 'Hospital o Clínica donde laboras', icono: Icons.local_hospital_outlined, controlador: _institucionCtrl),
               ),
               const SizedBox(height: 20),
 
@@ -208,7 +233,7 @@ class _PantallaCuestionarioEnfermeroState extends State<PantallaCuestionarioEnfe
                       child: areaSeleccionada == 'Otra'
                           ? Padding(
                         padding: const EdgeInsets.only(top: 15.0),
-                        child: _crearCampoTexto(titulo: 'Especifica el área', hint: 'Escribe tu área médica', icono: Icons.edit_outlined),
+                        child: _crearCampoTexto(titulo: 'Especifica el área', hint: 'Escribe tu área médica', icono: Icons.edit_outlined, controlador: _otraAreaCtrl),
                       )
                           : const SizedBox.shrink(),
                     ),
@@ -224,7 +249,7 @@ class _PantallaCuestionarioEnfermeroState extends State<PantallaCuestionarioEnfe
                   height: 50,
                   child: ElevatedButton(
                     onPressed: () {
-                      _mostrarDialogoFinalizacion();
+                      _guardarDatosYFinalizar();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF008CCF),
@@ -245,7 +270,7 @@ class _PantallaCuestionarioEnfermeroState extends State<PantallaCuestionarioEnfe
     );
   }
 
-  Widget _crearCampoTexto({required String titulo, required String hint, bool esNumero = false, required IconData icono}) {
+  Widget _crearCampoTexto({required String titulo, required String hint, bool esNumero = false, required IconData icono, required TextEditingController controlador}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -255,6 +280,7 @@ class _PantallaCuestionarioEnfermeroState extends State<PantallaCuestionarioEnfe
         ),
         const SizedBox(height: 5),
         TextField(
+          controller: controlador,
           keyboardType: esNumero ? TextInputType.number : TextInputType.text,
           inputFormatters: esNumero ? [FilteringTextInputFormatter.digitsOnly] : [],
           decoration: InputDecoration(
@@ -500,6 +526,115 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     } else {
       Navigator.pop(context);
     }
+  }
+
+  Future<void> _guardarDatosPacienteYFinalizar() async {
+    final db = DatabaseHelper();
+    final usuarioId = await db.obtenerSesionActiva();
+    String nombreUsuario = 'Paciente';
+
+    if (usuarioId != null) {
+      final pacienteData = {
+        'usuario_id': usuarioId,
+        'sexo': _sexo ?? '',
+        'edad': int.tryParse(_edadCtrl.text) ?? 0,
+        'tiempo_dx': _tiempoDx ?? '',
+        'tipo_diabetes': _tipoDiabetes ?? '',
+        'alergias': _alergiasCtrl.text,
+        'peso': double.tryParse(_pesoCtrl.text) ?? 0.0,
+        'altura': double.tryParse(_alturaCtrl.text) ?? 0.0,
+        'imc': _imc,
+        'limite_hipo': double.tryParse(_hipoCtrl.text) ?? 70.0,
+        'limite_hiper': double.tryParse(_hiperCtrl.text) ?? 180.0,
+        'rango_min': double.tryParse(_rangoMinCtrl.text) ?? 80.0,
+        'rango_max': double.tryParse(_rangoMaxCtrl.text) ?? 130.0,
+        'metodo_insulina': _metodoInsulina ?? '',
+        'insulina_basal_marca': _insulinaBasalMarcaCtrl.text,
+        'insulina_basal_dosis': _insulinaBasalDosisCtrl.text,
+        'insulina_rapida_marca': _insulinaRapidaMarcaCtrl.text,
+        'insulina_rapida_patron': _insulinaRapidaPatronCtrl.text,
+        'bomba_unidades': _bombaUnidadesCtrl.text,
+        'bomba_frecuencia': _bombaFrecuenciaCtrl.text,
+        'med_oral_nombre': _medOralNombreCtrl.text,
+        'med_oral_dosis': _medOralDosisCtrl.text,
+        'frecuencia_monitoreo': _frecuenciaMonitoreo ?? '',
+        'actividad_fisica': _actividadFisica ?? '',
+        'emergencia_nombre': _emergenciaNombreCtrl.text,
+        'emergencia_parentesco': _emergenciaParentescoCtrl.text,
+        'emergencia_telefono': _emergenciaTelefonoCtrl.text,
+        'medico_nombre': _medicoNombreCtrl.text,
+      };
+
+      final pacienteId = await db.insertarPaciente(pacienteData);
+
+      for (var med in _otrosMedicamentos) {
+        await db.insertarOtroMedicamento({
+          'paciente_id': pacienteId,
+          'nombre': med['nombre'],
+          'gramaje': med['gramaje'],
+          'proposito': med['proposito'],
+          'frecuencia': med['frecuencia'],
+        });
+      }
+
+      final usuario = await db.obtenerUsuarioPorId(usuarioId);
+      if (usuario != null) {
+        nombreUsuario = usuario['nombre'] as String;
+      }
+    }
+
+    if (!mounted) return;
+    _mostrarDialogoFinalizacion(nombreUsuario);
+  }
+
+  void _mostrarDialogoFinalizacion(String nombrePaciente) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C63BB),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle_outline, color: Color(0xFF00D1FF), size: 60),
+                const SizedBox(height: 20),
+                const Text('¡Registro Finalizado!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 10),
+                const Text('Tus datos clínicos han sido guardados exitosamente.\n\n¡Bienvenido a Insul App!', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Color(0xFFE8E8E8))),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PantallaInicioPaciente(nombrePaciente: nombrePaciente),
+                        ),
+                            (Route<dynamic> route) => false,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00D1FF),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
+                    child: const Text('Ir al Inicio', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -1243,7 +1378,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
             width: double.infinity, height: 50,
             child: ElevatedButton(
               onPressed: () {
-                print("Llevar al módulo de Identificación Médica");
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00D1FF),
@@ -1258,7 +1392,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
             width: double.infinity, height: 50,
             child: OutlinedButton(
               onPressed: () {
-                _mostrarDialogoFinalizacion();
+                _guardarDatosPacienteYFinalizar();
               },
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.white, width: 2),
@@ -1270,59 +1404,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
         ],
       ),
     );
-  }
-
-  void _mostrarDialogoFinalizacion() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1C63BB),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.check_circle_outline, color: Color(0xFF00D1FF), size: 60),
-                const SizedBox(height: 20),
-                const Text('¡Registro Finalizado!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-                const SizedBox(height: 10),
-                const Text('Tus datos clínicos han sido guardados exitosamente.\n\n¡Bienvenido a Insul App!', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Color(0xFFE8E8E8))),
-                const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PantallaInicioPaciente(nombrePaciente: 'Cesar'),
-                        ),
-                            (Route<dynamic> route) => false
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00D1FF),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    ),
-                    child: const Text('Ir al Inicio', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
-                )
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-  Widget _construirFasePlaceholder(String texto) {
-    return Center(child: Text(texto, style: const TextStyle(color: Colors.white, fontSize: 20), textAlign: TextAlign.center));
   }
 
   Widget _crearTarjetaGlass({required Widget hijo}) {
@@ -1418,11 +1499,9 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
   final int _totalPasos = 7;
   bool _aceptoTerminos = false;
 
-  // Variables datos del Paciente a cuidar
   String? _tipoPaciente;
   final TextEditingController _parentescoCtrl = TextEditingController();
 
-  // Variables Perfil Clínico del Paciente
   String? _sexoPaciente;
   final TextEditingController _edadPacienteCtrl = TextEditingController();
   String? _tiempoDxPaciente;
@@ -1436,7 +1515,6 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
 
   double _imcPaciente = 0.0;
 
-  // Variables Parámetros de Control
   final TextEditingController _hipoCtrl = TextEditingController(text: '70');
   final TextEditingController _hiperCtrl = TextEditingController(text: '180');
   final TextEditingController _rangoMinCtrl = TextEditingController(text: '80');
@@ -1444,7 +1522,6 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
   final TextEditingController _fsiCtrl = TextEditingController();
   final TextEditingController _ricCtrl = TextEditingController();
 
-  // Variables Medicación Habitual del Paciente
   String? _metodoInsulinaPaciente;
   final TextEditingController _insulinaBasalMarcaCtrl = TextEditingController();
   final TextEditingController _insulinaBasalDosisCtrl = TextEditingController();
@@ -2465,7 +2542,6 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
             width: double.infinity, height: 50,
             child: ElevatedButton(
               onPressed: () {
-                print("Llevar al módulo de Identificación Médica");
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00D1FF),
@@ -2522,7 +2598,6 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      print("Navegar al Inicio del Cuidador");
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00D1FF),
@@ -2537,10 +2612,6 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
         );
       },
     );
-  }
-
-  Widget _construirFasePlaceholder(String texto) {
-    return Center(child: Text(texto, style: const TextStyle(color: Colors.white, fontSize: 20), textAlign: TextAlign.center));
   }
 
   Widget _crearTarjetaGlass({required Widget hijo}) {

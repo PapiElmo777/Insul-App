@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'pantallas_cuestionarios.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'pantallas_cuestionarios.dart';
+import '../database/database_helper.dart';
 
 class PantallaRegistro extends StatefulWidget {
   const PantallaRegistro({super.key});
@@ -12,6 +13,14 @@ class PantallaRegistro extends StatefulWidget {
 class _PantallaRegistroState extends State<PantallaRegistro> with SingleTickerProviderStateMixin {
   String ladaSeleccionada = '+52';
   String? rolSeleccionado;
+  bool _cargando = false;
+  String? _error;
+
+  final TextEditingController _nombreCtrl = TextEditingController();
+  final TextEditingController _apellidosCtrl = TextEditingController();
+  final TextEditingController _correoCtrl = TextEditingController();
+  final TextEditingController _contrasenaCtrl = TextEditingController();
+  final TextEditingController _telefonoCtrl = TextEditingController();
 
   final List<Map<String, String>> paises = [
     {'bandera': '🇲🇽', 'lada': '+52'},
@@ -59,8 +68,66 @@ class _PantallaRegistroState extends State<PantallaRegistro> with SingleTickerPr
 
   @override
   void dispose() {
+    _nombreCtrl.dispose();
+    _apellidosCtrl.dispose();
+    _correoCtrl.dispose();
+    _contrasenaCtrl.dispose();
+    _telefonoCtrl.dispose();
     _controladorPrincipal.dispose();
     super.dispose();
+  }
+
+  Future<void> _continuar() async {
+    if (_nombreCtrl.text.trim().isEmpty ||
+        _apellidosCtrl.text.trim().isEmpty ||
+        _correoCtrl.text.trim().isEmpty ||
+        _contrasenaCtrl.text.isEmpty ||
+        _telefonoCtrl.text.trim().isEmpty ||
+        rolSeleccionado == null) {
+      setState(() => _error = 'Por favor completa todos los campos.');
+      return;
+    }
+
+    setState(() { _cargando = true; _error = null; });
+
+    final db = DatabaseHelper();
+
+    final usuarioExistente = await db.obtenerUsuarioPorCorreo(_correoCtrl.text.trim().toLowerCase());
+    if (usuarioExistente != null) {
+      setState(() {
+        _cargando = false;
+        _error = 'Este correo ya está registrado.';
+      });
+      return;
+    }
+
+    final datosUsuario = {
+      'nombre': _nombreCtrl.text.trim(),
+      'apellidos': _apellidosCtrl.text.trim(),
+      'correo': _correoCtrl.text.trim().toLowerCase(),
+      'contrasena': _contrasenaCtrl.text,
+      'telefono': _telefonoCtrl.text.trim(),
+      'lada': ladaSeleccionada,
+      'rol': rolSeleccionado,
+    };
+
+    final usuarioId = await db.insertarUsuario(datosUsuario);
+    await db.guardarSesion(usuarioId);
+
+    if (!mounted) return;
+
+    if (rolSeleccionado == 'Enfermero') {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PantallaCuestionarioEnfermero()));
+    } else if (rolSeleccionado == 'Paciente') {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PantallaCuestionarioPaciente()));
+    } else if (rolSeleccionado == 'Cuidador') {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PantallaCuestionarioCuidador()));
+    } else {
+      setState(() {
+        _cargando = false;
+        _error = 'Rol en desarrollo.';
+      });
+    }
   }
 
   @override
@@ -87,7 +154,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> with SingleTickerPr
                     Center(
                       child: Column(
                         children: [
-                          SvgPicture.asset('assets/logo1.svg', width: 80,colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),),
+                          SvgPicture.asset('assets/logo1.svg', width: 80,colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),),
                           const SizedBox(height: 10),
                           RichText(
                             text: const TextSpan(
@@ -106,6 +173,10 @@ class _PantallaRegistroState extends State<PantallaRegistro> with SingleTickerPr
                       'Registro de Cuenta',
                       style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 15),
+                      Text(_error!, style: const TextStyle(color: Color(0xFFFF6B6B), fontWeight: FontWeight.bold)),
+                    ],
                   ],
                 ),
               ),
@@ -115,13 +186,13 @@ class _PantallaRegistroState extends State<PantallaRegistro> with SingleTickerPr
                 position: _animacionSlideCampos1,
                 child: Column(
                   children: [
-                    _crearCampoTexto(titulo: 'Nombre completo', hint: 'Ej. Juan Pablo', icono: Icons.person_outline),
+                    _crearCampoTexto(titulo: 'Nombre completo', hint: 'Ej. Juan Pablo', icono: Icons.person_outline, controlador: _nombreCtrl),
                     const SizedBox(height: 15),
-                    _crearCampoTexto(titulo: 'Apellidos', hint: 'Ej. Jiménez', icono: Icons.person_outline),
+                    _crearCampoTexto(titulo: 'Apellidos', hint: 'Ej. Jiménez', icono: Icons.person_outline, controlador: _apellidosCtrl),
                     const SizedBox(height: 15),
-                    _crearCampoTexto(titulo: 'Correo electrónico', hint: 'ejemplo@correo.com', icono: Icons.email_outlined),
+                    _crearCampoTexto(titulo: 'Correo electrónico', hint: 'ejemplo@correo.com', icono: Icons.email_outlined, controlador: _correoCtrl),
                     const SizedBox(height: 15),
-                    _crearCampoTexto(titulo: 'Contraseña', hint: 'Contraseña', ocultaTexto: true, icono: Icons.lock_outline),
+                    _crearCampoTexto(titulo: 'Contraseña', hint: 'Contraseña', ocultaTexto: true, icono: Icons.lock_outline, controlador: _contrasenaCtrl),
                   ],
                 ),
               ),
@@ -167,10 +238,11 @@ class _PantallaRegistroState extends State<PantallaRegistro> with SingleTickerPr
                             ),
                           ),
                           const VerticalDivider(width: 1, thickness: 2, color: Color(0xFFD2D2D2)),
-                          const Expanded(
+                          Expanded(
                             child: TextField(
+                              controller: _telefonoCtrl,
                               keyboardType: TextInputType.phone,
-                              decoration: InputDecoration(
+                              decoration: const InputDecoration(
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 14),
                                 hintText: '10 dígitos',
@@ -231,25 +303,15 @@ class _PantallaRegistroState extends State<PantallaRegistro> with SingleTickerPr
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: () {
-                          if (rolSeleccionado == 'Enfermero') {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const PantallaCuestionarioEnfermero()));
-                          } else if (rolSeleccionado == 'Paciente') {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const PantallaCuestionarioPaciente()));
-                          } else if (rolSeleccionado == 'Cuidador') {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const PantallaCuestionarioCuidador()));
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Por favor selecciona un rol antes de continuar.')),
-                            );
-                          }
-                        },
+                        onPressed: _cargando ? null : _continuar,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF008CCF),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25), side: const BorderSide(color: Color(0xFFD2D2D2), width: 1.5)),
                           elevation: 5,
                         ),
-                        child: const Text('Continuar con el registro', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                        child: _cargando
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text('Continuar con el registro', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -278,7 +340,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> with SingleTickerPr
     );
   }
 
-  Widget _crearCampoTexto({required String titulo, required String hint, bool ocultaTexto = false, required IconData icono}) {
+  Widget _crearCampoTexto({required String titulo, required String hint, bool ocultaTexto = false, required IconData icono, required TextEditingController controlador}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -288,6 +350,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> with SingleTickerPr
         ),
         const SizedBox(height: 5),
         TextField(
+          controller: controlador,
           obscureText: ocultaTexto,
           decoration: InputDecoration(
             prefixIcon: Icon(icono, color: const Color(0xFF1C63BB)),
