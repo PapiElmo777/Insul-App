@@ -9,13 +9,14 @@ import 'package:image_picker/image_picker.dart';
 import '../../servicios/reporte_enfermero_service.dart';
 import 'pantalla_agregar_paciente.dart';
 import 'pantalla_detalle_paciente.dart';
+import '../../database/database_helper.dart';
 
 class PantallaInicioEnfermero extends StatefulWidget {
   final String nombreEnfermero;
 
   const PantallaInicioEnfermero({
     super.key,
-    this.nombreEnfermero = 'Alfredo',
+    this.nombreEnfermero = 'Enfermero',
   });
 
   @override
@@ -30,6 +31,8 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
   File? _imagenPerfil;
   final TextEditingController _busquedaCtrl = TextEditingController();
 
+  bool _cargandoDatos = true;
+
   late String _nombreEnfermeroLocal;
   String cedulaEnfermero = '12345678';
   String areaEnfermero = 'Medicina Interna';
@@ -42,6 +45,32 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
     super.initState();
     _nombreEnfermeroLocal = widget.nombreEnfermero;
     _inicializarFecha();
+    _cargarDatosBD();
+  }
+
+  Future<void> _cargarDatosBD() async {
+    final db = DatabaseHelper();
+    final usuarioId = await db.obtenerSesionActiva();
+
+    if (usuarioId != null) {
+      final usuario = await db.obtenerUsuarioPorId(usuarioId);
+      final enfermero = await db.obtenerEnfermeroPorUsuario(usuarioId);
+
+      if (usuario != null && enfermero != null) {
+        _nombreEnfermeroLocal = usuario['nombre'] ?? widget.nombreEnfermero;
+        correoEnfermero = usuario['correo'] ?? '';
+        telefonoEnfermero = usuario['telefono'] ?? '';
+        cedulaEnfermero = enfermero['cedula'] ?? '';
+        hospitalEnfermero = enfermero['institucion'] ?? '';
+        areaEnfermero = enfermero['area'] ?? '';
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _cargandoDatos = false;
+      });
+    }
   }
 
   @override
@@ -256,6 +285,13 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
 
   @override
   Widget build(BuildContext context) {
+    if (_cargandoDatos) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF1C63BB))),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -827,7 +863,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
               final reporte = _reportesGenerados[index];
               final fechaStr = DateFormat('dd/MM/yyyy HH:mm').format(reporte['fecha']);
               return Card(
-                key: Key(reporte['id']), // IMPORTANTE: Obliga a redibujar esta tarjeta específicamente
+                key: Key(reporte['id']),
                 margin: const EdgeInsets.only(bottom: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),

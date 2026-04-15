@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'pantalla_registros_paciente.dart';
+import '../../database/database_helper.dart';
 
 class PantallaInicioPaciente extends StatefulWidget {
   final String nombrePaciente;
 
   const PantallaInicioPaciente({
     super.key,
-    this.nombrePaciente = 'Cesar',
+    this.nombrePaciente = 'Paciente',
   });
 
   @override
@@ -19,11 +20,14 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
   int _indiceNavegacionActual = 0;
   String _fechaFormateada = '';
 
-  // Variables de control temporales
-  final int limiteHipo = 70;
-  final int limiteHiper = 180;
-  final int rangoMin = 80;
-  final int rangoMax = 130;
+  int? _pacienteId;
+  bool _cargandoDatos = true;
+
+  // Variables de control (Se sobreescribirán con la BD)
+  int limiteHipo = 70;
+  int limiteHiper = 180;
+  int rangoMin = 80;
+  int rangoMax = 130;
 
   List<Map<String, dynamic>> _registrosGlucosa = [];
 
@@ -31,6 +35,38 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
   void initState() {
     super.initState();
     _inicializarFecha();
+    _cargarDatosBD();
+  }
+
+  Future<void> _cargarDatosBD() async {
+    final db = DatabaseHelper();
+    final usuarioId = await db.obtenerSesionActiva();
+
+    if (usuarioId != null) {
+      final paciente = await db.obtenerPacientePorUsuario(usuarioId);
+      if (paciente != null) {
+        _pacienteId = paciente['id'];
+
+        limiteHipo = (paciente['limite_hipo'] as num?)?.toInt() ?? 70;
+        limiteHiper = (paciente['limite_hiper'] as num?)?.toInt() ?? 180;
+        rangoMin = (paciente['rango_min'] as num?)?.toInt() ?? 80;
+        rangoMax = (paciente['rango_max'] as num?)?.toInt() ?? 130;
+
+        final registrosBD = await db.obtenerRegistrosGlucosa(_pacienteId!);
+        _registrosGlucosa = registrosBD.map((r) => {
+          'valor': (r['valor'] as num).toInt(),
+          'momento': r['momento'],
+          'fecha': DateTime.parse(r['fecha']),
+          'notas': r['notas'] ?? '',
+        }).toList();
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _cargandoDatos = false;
+      });
+    }
   }
 
   Future<void> _inicializarFecha() async {
@@ -194,19 +230,24 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton.icon(
-                            onPressed: () {
+                            onPressed: () async {
                               if (valorCtrl.text.isNotEmpty) {
                                 int valor = int.tryParse(valorCtrl.text) ?? 0;
-                                if (valor > 0) {
-                                  setState(() {
-                                    _registrosGlucosa.insert(0, {
-                                      'valor': valor,
-                                      'momento': momentoSeleccionado,
-                                      'fecha': fechaSeleccionada,
-                                      'notas': notasCtrl.text,
-                                    });
+                                if (valor > 0 && _pacienteId != null) {
+                                  final db = DatabaseHelper();
+                                  await db.insertarRegistroGlucosa({
+                                    'paciente_id': _pacienteId,
+                                    'valor': valor,
+                                    'momento': momentoSeleccionado,
+                                    'notas': notasCtrl.text,
+                                    'fecha': fechaSeleccionada.toIso8601String(),
                                   });
-                                  Navigator.pop(context);
+
+                                  await _cargarDatosBD();
+
+                                  if (mounted) {
+                                    Navigator.pop(context);
+                                  }
                                 }
                               }
                             },
@@ -415,6 +456,13 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
 
   @override
   Widget build(BuildContext context) {
+    if (_cargandoDatos) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F7FA),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF1C63BB))),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       body: SafeArea(
@@ -427,10 +475,18 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
           limiteHiper: limiteHiper,
           rangoMin: rangoMin,
           rangoMax: rangoMax,
-          onAgregarRegistro: (nuevoRegistro) {
-            setState(() {
-              _registrosGlucosa.insert(0, nuevoRegistro);
-            });
+          onAgregarRegistro: (nuevoRegistro) async {
+            if (_pacienteId != null) {
+              final db = DatabaseHelper();
+              await db.insertarRegistroGlucosa({
+                'paciente_id': _pacienteId,
+                'valor': nuevoRegistro['valor'],
+                'momento': nuevoRegistro['momento'],
+                'notas': nuevoRegistro['notas'],
+                'fecha': (nuevoRegistro['fecha'] as DateTime).toIso8601String(),
+              });
+              await _cargarDatosBD();
+            }
           },
         )
             : _construirPlaceholderTabs(),
