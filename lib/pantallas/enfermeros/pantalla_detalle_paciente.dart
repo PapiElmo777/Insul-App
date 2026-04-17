@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
+import '../../database/database_helper.dart';
 
 class PantallaDetallePaciente extends StatefulWidget {
   final Map<String, dynamic> paciente;
@@ -20,22 +21,41 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
   final TextEditingController _glucosaCtrl = TextEditingController();
   final TextEditingController _observacionCtrl = TextEditingController();
   final TextEditingController _insulinaCtrl = TextEditingController();
-  late List<Map<String, dynamic>> _historialGlucosa;
-  late List<Map<String, dynamic>> _medicamentos;
-  late List<String> _observaciones;
+
+  List<Map<String, dynamic>> _historialGlucosa = [];
+  List<Map<String, dynamic>> _medicamentos = [];
+  List<Map<String, dynamic>> _historialInsulina = [];
+  List<String> _observacionesBD = [];
+  bool _cargando = true;
 
   @override
   void initState() {
     super.initState();
+    _cargarDatosPaciente();
+  }
 
-    _historialGlucosa = widget.paciente['historialGlucosa'] ?? <Map<String, dynamic>>[];
-    _medicamentos = widget.paciente['medicamentos'] ?? <Map<String, dynamic>>[];
-    _observaciones = widget.paciente['observacionesTurno'] ?? <String>[];
-    if (widget.paciente['historialInsulina'] == null) {
-      widget.paciente['historialInsulina'] = <Map<String, dynamic>>[];
-    }
-    if (_observaciones.isEmpty && widget.paciente['estadoGeneral'] != null && widget.paciente['estadoGeneral'].toString().isNotEmpty) {
-      _observaciones.add('NOTA DE INGRESO:\n${widget.paciente['estadoGeneral']}');
+  Future<void> _cargarDatosPaciente() async {
+    final db = DatabaseHelper();
+    final pacienteId = widget.paciente['id'];
+
+    final glucosa = await db.obtenerGlucosaEnfermero(pacienteId);
+    final meds = await db.obtenerMedicamentosEnfermero(pacienteId);
+    final insul = await db.obtenerInsulinaEnfermero(pacienteId);
+    final obs = await db.obtenerObservacionesEnfermero(pacienteId);
+
+    if (mounted) {
+      setState(() {
+        _historialGlucosa = glucosa.map((e) => {'valor': e['valor'], 'fecha': DateTime.parse(e['fecha'])}).toList();
+        _medicamentos = List<Map<String, dynamic>>.from(meds);
+        _historialInsulina = insul.map((e) => {'unidades': e['unidades'], 'fecha': DateTime.parse(e['fecha'])}).toList();
+
+        _observacionesBD = obs.map((e) => e['nota'] as String).toList();
+        if (_observacionesBD.isEmpty && widget.paciente['estadoGeneral'] != null && widget.paciente['estadoGeneral'].toString().isNotEmpty) {
+          _observacionesBD.add('NOTA DE INGRESO:\n${widget.paciente['estadoGeneral']}');
+        }
+
+        _cargando = false;
+      });
     }
   }
 
@@ -47,7 +67,6 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
     super.dispose();
   }
 
-  // Calculos
   double _calcularPromedio() {
     if (_historialGlucosa.isEmpty) return 0;
     double suma = 0;
@@ -85,31 +104,22 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (_glucosaCtrl.text.isNotEmpty) {
                   int nuevoValor = int.parse(_glucosaCtrl.text);
-                  setState(() {
-                    _historialGlucosa.insert(0, {
-                      'valor': nuevoValor,
-                      'fecha': DateTime.now(),
-                    });
-                    widget.paciente['glucosa'] = nuevoValor;
-                    int hipo = widget.paciente['hipoLimit'] ?? 70;
-                    int hiper = widget.paciente['hiperLimit'] ?? 180;
-                    int minG = widget.paciente['rangoMin'] ?? 80;
-                    int maxG = widget.paciente['rangoMax'] ?? 130;
-                    if (nuevoValor < hipo) {
-                      widget.paciente['estadoGlucosa'] = 'peligro';
-                    } else if (nuevoValor > hiper) {
-                      widget.paciente['estadoGlucosa'] = 'peligro';
-                    } else if (nuevoValor >= minG && nuevoValor <= maxG) {
-                      widget.paciente['estadoGlucosa'] = 'normal';
-                    } else {
-                      widget.paciente['estadoGlucosa'] = 'alerta';
-                    }
+                  final db = DatabaseHelper();
+                  await db.insertarGlucosaEnfermero({
+                    'paciente_id': widget.paciente['id'],
+                    'valor': nuevoValor,
+                    'fecha': DateTime.now().toIso8601String()
                   });
-                  _glucosaCtrl.clear();
-                  Navigator.pop(context);
+
+                  await _cargarDatosPaciente();
+
+                  if (mounted) {
+                    _glucosaCtrl.clear();
+                    Navigator.pop(context);
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008CCF)),
@@ -137,16 +147,21 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (_insulinaCtrl.text.isNotEmpty) {
-                  setState(() {
-                    widget.paciente['historialInsulina'].insert(0, {
-                      'unidades': int.parse(_insulinaCtrl.text),
-                      'fecha': DateTime.now(),
-                    });
+                  final db = DatabaseHelper();
+                  await db.insertarInsulinaEnfermero({
+                    'paciente_id': widget.paciente['id'],
+                    'unidades': int.parse(_insulinaCtrl.text),
+                    'fecha': DateTime.now().toIso8601String()
                   });
-                  _insulinaCtrl.clear();
-                  Navigator.pop(context);
+
+                  await _cargarDatosPaciente();
+
+                  if (mounted) {
+                    _insulinaCtrl.clear();
+                    Navigator.pop(context);
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008CCF)),
@@ -173,14 +188,22 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (_observacionCtrl.text.isNotEmpty) {
-                  setState(() {
-                    String hora = DateFormat('hh:mm a').format(DateTime.now());
-                    _observaciones.insert(0, "[$hora] Enf. ${widget.nombreEnfermero}:\n${_observacionCtrl.text}");
+                  String hora = DateFormat('hh:mm a').format(DateTime.now());
+                  final db = DatabaseHelper();
+                  await db.insertarObservacionEnfermero({
+                    'paciente_id': widget.paciente['id'],
+                    'nota': "[$hora] Enf. ${widget.nombreEnfermero}:\n${_observacionCtrl.text}",
+                    'fecha': DateTime.now().toIso8601String()
                   });
-                  _observacionCtrl.clear();
-                  Navigator.pop(context);
+
+                  await _cargarDatosPaciente();
+
+                  if (mounted) {
+                    _observacionCtrl.clear();
+                    Navigator.pop(context);
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008CCF)),
@@ -230,7 +253,17 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
               child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                final db = DatabaseHelper();
+                await db.actualizarPacienteEnfermero(widget.paciente['id'], {
+                  'nombre': nombreEditCtrl.text,
+                  'edad': edadEditCtrl.text,
+                  'expediente': expEditCtrl.text,
+                  'ubicacion': ubiEditCtrl.text,
+                  'dieta': dietaEditCtrl.text,
+                  'alergias': alergiasEditCtrl.text.isEmpty ? 'Ninguna' : alergiasEditCtrl.text,
+                });
+
                 setState(() {
                   widget.paciente['nombre'] = nombreEditCtrl.text;
                   widget.paciente['edad'] = edadEditCtrl.text;
@@ -239,7 +272,8 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                   widget.paciente['dieta'] = dietaEditCtrl.text;
                   widget.paciente['alergias'] = alergiasEditCtrl.text.isEmpty ? 'Ninguna' : alergiasEditCtrl.text;
                 });
-                Navigator.pop(context);
+
+                if (mounted) Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008CCF)),
               child: const Text('Guardar', style: TextStyle(color: Colors.white)),
@@ -294,6 +328,13 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
 
   @override
   Widget build(BuildContext context) {
+    if (_cargando) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F7FA),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF1C63BB))),
+      );
+    }
+
     return DefaultTabController(
       length: 3,
       child: Scaffold(
@@ -437,11 +478,11 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(15),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFD2D2D2))),
-                        child: widget.paciente['historialInsulina'].isEmpty
+                        child: _historialInsulina.isEmpty
                             ? const Text('No se ha suministrado insulina.', style: TextStyle(color: Colors.grey))
                             : Column(
-                          children: List.generate(widget.paciente['historialInsulina'].length, (index) {
-                            final ins = widget.paciente['historialInsulina'][index];
+                          children: List.generate(_historialInsulina.length, (index) {
+                            final ins = _historialInsulina[index];
                             final fechaStr = DateFormat('dd MMM yyyy - hh:mm a').format(ins['fecha']);
                             return ListTile(
                               contentPadding: EdgeInsets.zero,
@@ -469,7 +510,7 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                       const Text('No hay medicamentos registrados.', style: TextStyle(color: Colors.grey)),
                     ...List.generate(_medicamentos.length, (index) {
                       final med = _medicamentos[index];
-                      bool suministrado = med['suministrado'];
+                      bool suministrado = med['suministrado'] == 1;
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 10),
@@ -483,8 +524,10 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                           value: suministrado,
                           activeColor: const Color(0xFF06CA23),
                           checkColor: Colors.white,
-                          onChanged: (bool? val) {
-                            setState(() { med['suministrado'] = val!; });
+                          onChanged: (bool? val) async {
+                            final db = DatabaseHelper();
+                            await db.actualizarEstadoMedicamentoEnfermero(med['id'], val! ? 1 : 0);
+                            await _cargarDatosPaciente();
                           },
                         ),
                       );
@@ -527,13 +570,13 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                       ),
 
                     const SizedBox(height: 10),
-                    ...List.generate(_observaciones.length, (index) {
+                    ...List.generate(_observacionesBD.length, (index) {
                       return Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(15),
                         margin: const EdgeInsets.only(bottom: 10),
                         decoration: BoxDecoration(color: const Color(0xFFFFF9E6), borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFFFD166))),
-                        child: Text(_observaciones[index], style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                        child: Text(_observacionesBD[index], style: const TextStyle(fontSize: 14, color: Colors.black87)),
                       );
                     }),
                     const SizedBox(height: 40),

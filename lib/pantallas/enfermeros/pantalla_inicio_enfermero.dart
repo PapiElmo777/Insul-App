@@ -10,6 +10,7 @@ import '../../servicios/reporte_enfermero_service.dart';
 import 'pantalla_agregar_paciente.dart';
 import 'pantalla_detalle_paciente.dart';
 import '../../database/database_helper.dart';
+import '../pantalla_login.dart';
 
 class PantallaInicioEnfermero extends StatefulWidget {
   final String nombreEnfermero;
@@ -32,6 +33,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
   final TextEditingController _busquedaCtrl = TextEditingController();
 
   bool _cargandoDatos = true;
+  int? _enfermeroId;
 
   late String _nombreEnfermeroLocal;
   String cedulaEnfermero = '12345678';
@@ -63,6 +65,49 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
         cedulaEnfermero = enfermero['cedula'] ?? '';
         hospitalEnfermero = enfermero['institucion'] ?? '';
         areaEnfermero = enfermero['area'] ?? '';
+        _enfermeroId = enfermero['id'];
+
+        if (usuario['foto_perfil'] != null && usuario['foto_perfil'].toString().isNotEmpty) {
+          _imagenPerfil = File(usuario['foto_perfil']);
+        }
+
+        final pacientesBD = await db.obtenerPacientesDeEnfermero(_enfermeroId!);
+        List<Map<String, dynamic>> pacientesTemp = [];
+
+        for (var p in pacientesBD) {
+          final glucosaBD = await db.obtenerGlucosaEnfermero(p['id']);
+          int ultimaGlucosa = 0;
+          if (glucosaBD.isNotEmpty) {
+            ultimaGlucosa = (glucosaBD.first['valor'] as num).toInt();
+          }
+
+          pacientesTemp.add({
+            'id': p['id'],
+            'nombre': p['nombre'],
+            'edad': p['edad'],
+            'expediente': p['expediente'],
+            'ubicacion': p['ubicacion'],
+            'tipoDiabetes': p['tipo_diabetes'],
+            'alergias': p['alergias'],
+            'dieta': p['dieta'],
+            'estadoGeneral': p['estado_general'],
+            'hipoLimit': (p['hipo_limit'] as num).toInt(),
+            'hiperLimit': (p['hiper_limit'] as num).toInt(),
+            'rangoMin': (p['rango_min'] as num).toInt(),
+            'rangoMax': (p['rango_max'] as num).toInt(),
+            'glucosa': ultimaGlucosa,
+          });
+        }
+        _listaPacientes = pacientesTemp;
+
+        final reportesBD = await db.obtenerReportesDeEnfermero(_enfermeroId!);
+        _reportesGenerados = reportesBD.map((r) => {
+          'id': r['id'],
+          'turno': r['turno'],
+          'fecha': DateTime.parse(r['fecha']),
+          'pacientes': r['cantidad_pacientes'],
+          'bytes': r['archivo_bytes'] as Uint8List,
+        }).toList();
       }
     }
 
@@ -102,6 +147,11 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
     try {
       final XFile? imagenSeleccionada = await picker.pickImage(source: origen);
       if (imagenSeleccionada != null) {
+        final db = DatabaseHelper();
+        final usuarioId = await db.obtenerSesionActiva();
+        if (usuarioId != null) {
+          await db.actualizarFotoPerfil(usuarioId, imagenSeleccionada.path);
+        }
         setState(() {
           _imagenPerfil = File(imagenSeleccionada.path);
         });
@@ -148,7 +198,12 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                 ListTile(
                   leading: const Icon(Icons.delete, color: Colors.red),
                   title: const Text('Eliminar foto actual', style: TextStyle(color: Colors.red)),
-                  onTap: () {
+                  onTap: () async {
+                    final db = DatabaseHelper();
+                    final usuarioId = await db.obtenerSesionActiva();
+                    if (usuarioId != null) {
+                      await db.actualizarFotoPerfil(usuarioId, '');
+                    }
                     Navigator.pop(context);
                     setState(() {
                       _imagenPerfil = null;
@@ -200,7 +255,25 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
               child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                final db = DatabaseHelper();
+                final usuarioId = await db.obtenerSesionActiva();
+
+                if (usuarioId != null) {
+                  final baseDatos = await db.db;
+                  await baseDatos.update('usuarios', {
+                    'nombre': nombreCtrl.text,
+                    'correo': correoCtrl.text,
+                    'telefono': telefonoCtrl.text,
+                  }, where: 'id = ?', whereArgs: [usuarioId]);
+
+                  await db.actualizarEnfermero(usuarioId, {
+                    'cedula': cedulaCtrl.text,
+                    'institucion': hospitalCtrl.text,
+                    'area': areaCtrl.text,
+                  });
+                }
+
                 setState(() {
                   _nombreEnfermeroLocal = nombreCtrl.text;
                   correoEnfermero = correoCtrl.text;
@@ -209,7 +282,8 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                   hospitalEnfermero = hospitalCtrl.text;
                   areaEnfermero = areaCtrl.text;
                 });
-                Navigator.pop(context);
+
+                if (mounted) Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008CCF)),
               child: const Text('Guardar', style: TextStyle(color: Colors.white)),
@@ -575,15 +649,14 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
               ),
               ElevatedButton.icon(
                 onPressed: () async {
+                  if (_enfermeroId == null) return;
                   final nuevoPaciente = await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const PantallaAgregarPaciente()),
+                    MaterialPageRoute(builder: (context) => PantallaAgregarPaciente(enfermeroId: _enfermeroId!)),
                   );
 
-                  if (nuevoPaciente != null) {
-                    setState(() {
-                      _listaPacientes.add(nuevoPaciente);
-                    });
+                  if (nuevoPaciente == true) {
+                    await _cargarDatosBD();
                   }
                 },
                 icon: const Icon(Icons.add, size: 20, color: Colors.white),
@@ -654,11 +727,11 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                   onTap: () async {
                     final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaDetallePaciente(paciente: paciente, nombreEnfermero: _nombreEnfermeroLocal)));
                     if (res == 'eliminar') {
-                      setState(() {
-                        _listaPacientes.remove(paciente);
-                      });
+                      final db = DatabaseHelper();
+                      await db.eliminarPacienteEnfermero(paciente['id']);
+                      await _cargarDatosBD();
                     } else {
-                      setState(() {});
+                      await _cargarDatosBD();
                     }
                   },
                 ),
@@ -724,11 +797,11 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                   onTap: () async {
                     final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaDetallePaciente(paciente: paciente, nombreEnfermero: _nombreEnfermeroLocal)));
                     if (res == 'eliminar') {
-                      setState(() {
-                        _listaPacientes.remove(paciente);
-                      });
+                      final db = DatabaseHelper();
+                      await db.eliminarPacienteEnfermero(paciente['id']);
+                      await _cargarDatosBD();
                     } else {
-                      setState(() {});
+                      await _cargarDatosBD();
                     }
                   },
                 ),
@@ -796,26 +869,41 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                           hospital: hospitalEnfermero,
                         );
 
+                        final db = DatabaseHelper();
+                        List<Map<String, dynamic>> pacientesParaReporte = [];
+                        for (var p in _listaPacientes) {
+                          final int id = p['id'];
+                          final glucosa = await db.obtenerGlucosaEnfermero(id);
+                          final medicamentos = await db.obtenerMedicamentosEnfermero(id);
+                          final insulina = await db.obtenerInsulinaEnfermero(id);
+                          final observaciones = await db.obtenerObservacionesEnfermero(id);
+
+                          pacientesParaReporte.add({
+                            ...p,
+                            'historialGlucosa': glucosa.map((e) => {'valor': e['valor'], 'fecha': DateTime.parse(e['fecha'])}).toList(),
+                            'historialInsulina': insulina.map((e) => {'unidades': e['unidades'], 'fecha': DateTime.parse(e['fecha'])}).toList(),
+                            'medicamentos': medicamentos,
+                            'observacionesTurno': observaciones.map((e) => e['nota'].toString()).toList(),
+                          });
+                        }
+
                         final bytes = await ReportePdfService.generarReporteTurno(
-                          pacientes: _listaPacientes,
+                          pacientes: pacientesParaReporte,
                           enfermero: enfermero,
                           turno: turno,
                         );
 
                         final String idUnico = DateTime.now().millisecondsSinceEpoch.toString();
-
-                        setState(() {
-                          _reportesGenerados = [
-                            {
-                              'id': idUnico,
-                              'fecha': DateTime.now(),
-                              'turno': turno,
-                              'pacientes': _listaPacientes.length,
-                              'bytes': bytes,
-                            },
-                            ..._reportesGenerados
-                          ];
+                        await db.insertarReporte({
+                          'id': idUnico,
+                          'enfermero_id': _enfermeroId,
+                          'turno': turno,
+                          'fecha': DateTime.now().toIso8601String(),
+                          'cantidad_pacientes': _listaPacientes.length,
+                          'archivo_bytes': bytes,
                         });
+
+                        await _cargarDatosBD();
 
                         if (!mounted) return;
                         Navigator.pop(context);
@@ -980,8 +1068,16 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
+              onPressed: () async {
+                final db = DatabaseHelper();
+                await db.cerrarSesion();
+                if (mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PantallaLogin()),
+                        (Route<dynamic> route) => false,
+                  );
+                }
               },
               icon: const Icon(Icons.logout, color: Colors.white),
               label: const Text('Cerrar Sesión', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),

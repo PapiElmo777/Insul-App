@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../database/database_helper.dart';
 
 class PantallaAgregarPaciente extends StatefulWidget {
-  const PantallaAgregarPaciente({super.key});
+  final int enfermeroId;
+
+  const PantallaAgregarPaciente({super.key, required this.enfermeroId});
 
   @override
   State<PantallaAgregarPaciente> createState() => _PantallaAgregarPacienteState();
@@ -155,6 +158,7 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
       Navigator.pop(context);
     }
   }
+
   void _mostrarDialogoExito() {
     showDialog(
       context: context,
@@ -181,56 +185,51 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      String dosisProxima = 'Pendiente';
-                      if (_tipoDiabetes != 'Tipo 2' && _tipoInsulina != null && _tipoInsulina != 'No usa insulina' && _insulinaDosisCtrl.text.isNotEmpty) {
-                        dosisProxima = 'Pendiente: ${_insulinaDosisCtrl.text} UI';
-                      } else if (_medicamentosOrales.isNotEmpty) {
-                        dosisProxima = 'Pendiente: Med. Oral';
-                      }
+                    onPressed: () async {
+                      final db = DatabaseHelper();
 
-                      Map<String, dynamic> nuevoPaciente = {
+                      final pacienteId = await db.insertarPacienteEnfermero({
+                        'enfermero_id': widget.enfermeroId,
                         'nombre': '${_nombreCtrl.text} ${_apellidosCtrl.text}'.trim(),
                         'edad': _edadCtrl.text,
                         'expediente': _expedienteCtrl.text,
                         'ubicacion': _ubicacionCtrl.text.isNotEmpty ? _ubicacionCtrl.text : 'Ubicación sin asignar',
-                        'tipoDiabetes': _tipoDiabetes ?? 'No especificado',
+                        'tipo_diabetes': _tipoDiabetes ?? 'No especificado',
                         'alergias': _alergiasCtrl.text.isNotEmpty ? _alergiasCtrl.text : 'Ninguna',
                         'dieta': _dietaCtrl.text.isNotEmpty ? _dietaCtrl.text : 'Dieta normal',
-                        'estadoGeneral': _estadoGeneralCtrl.text,
-                        'hipoLimit': int.tryParse(_hipoCtrl.text) ?? 70,
-                        'hiperLimit': int.tryParse(_hiperCtrl.text) ?? 180,
-                        'rangoMin': int.tryParse(_rangoMinCtrl.text) ?? 80,
-                        'rangoMax': int.tryParse(_rangoMaxCtrl.text) ?? 130,
+                        'estado_general': _estadoGeneralCtrl.text,
+                        'hipo_limit': int.tryParse(_hipoCtrl.text) ?? 70,
+                        'hiper_limit': int.tryParse(_hiperCtrl.text) ?? 180,
+                        'rango_min': int.tryParse(_rangoMinCtrl.text) ?? 80,
+                        'rango_max': int.tryParse(_rangoMaxCtrl.text) ?? 130,
+                      });
 
-                        'glucosa': 0,
-                        'estadoGlucosa': 'normal',
-                        'proximaDosis': dosisProxima,
-                        'historialGlucosa': <Map<String, dynamic>>[],
-                        'observacionesTurno': <String>[],
-                      };
-
-                      List<Map<String, dynamic>> listaMedicamentos = [];
+                      // Guardar Insulina (si aplica)
                       if (_tipoDiabetes != 'Tipo 2' && _tipoInsulina != null && _tipoInsulina != 'No usa insulina') {
-                        listaMedicamentos.add({
+                        await db.insertarMedicamentoEnfermero({
+                          'paciente_id': pacienteId,
                           'nombre': 'Insulina $_tipoInsulina - ${_insulinaMarcaCtrl.text}',
                           'dosis': '${_insulinaDosisCtrl.text} UI',
                           'frecuencia': 'Según esquema',
-                          'suministrado': false,
+                          'suministrado': 0, // 0 = false
                         });
                       }
+
+                      // Guardar Medicamentos Orales
                       for (var med in _medicamentosOrales) {
-                        listaMedicamentos.add({
+                        await db.insertarMedicamentoEnfermero({
+                          'paciente_id': pacienteId,
                           'nombre': med['nombre'],
                           'dosis': med['gramaje'],
                           'frecuencia': med['frecuencia'],
-                          'suministrado': false,
+                          'suministrado': 0,
                         });
                       }
-                      nuevoPaciente['medicamentos'] = listaMedicamentos;
 
-                      Navigator.pop(context);
-                      Navigator.pop(context, nuevoPaciente);
+                      if (mounted) {
+                        Navigator.pop(context);
+                        Navigator.pop(context, true);
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00D1FF),
@@ -794,10 +793,6 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
         )
       ],
     );
-  }
-
-  Widget _construirFasePlaceholder(String texto) {
-    return Center(child: Text(texto, style: const TextStyle(color: Colors.white, fontSize: 20), textAlign: TextAlign.center));
   }
 
   Widget _crearTarjetaGlass({required Widget hijo}) {

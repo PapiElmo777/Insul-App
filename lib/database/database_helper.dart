@@ -117,6 +117,83 @@ class DatabaseHelper {
         FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
       )
     ''');
+
+    // ────────────────────────────────────────────────────────────────────────
+    // TABLAS EXCLUSIVAS PARA EL ENFERMERO Y SUS PACIENTES LOCALES
+    // ────────────────────────────────────────────────────────────────────────
+    await db.execute('''
+      CREATE TABLE pacientes_enfermero (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        enfermero_id INTEGER NOT NULL,
+        nombre TEXT NOT NULL,
+        edad TEXT,
+        expediente TEXT,
+        ubicacion TEXT,
+        tipo_diabetes TEXT,
+        alergias TEXT,
+        dieta TEXT,
+        estado_general TEXT,
+        hipo_limit INTEGER DEFAULT 70,
+        hiper_limit INTEGER DEFAULT 180,
+        rango_min INTEGER DEFAULT 80,
+        rango_max INTEGER DEFAULT 130,
+        FOREIGN KEY (enfermero_id) REFERENCES enfermeros(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE medicamentos_enfermero (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        paciente_id INTEGER NOT NULL,
+        nombre TEXT,
+        dosis TEXT,
+        frecuencia TEXT,
+        suministrado INTEGER DEFAULT 0,
+        FOREIGN KEY (paciente_id) REFERENCES pacientes_enfermero(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE insulina_enfermero (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        paciente_id INTEGER NOT NULL,
+        unidades INTEGER,
+        fecha TEXT,
+        FOREIGN KEY (paciente_id) REFERENCES pacientes_enfermero(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE glucosa_enfermero (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        paciente_id INTEGER NOT NULL,
+        valor INTEGER,
+        fecha TEXT,
+        FOREIGN KEY (paciente_id) REFERENCES pacientes_enfermero(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE observaciones_enfermero (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        paciente_id INTEGER NOT NULL,
+        nota TEXT,
+        fecha TEXT,
+        FOREIGN KEY (paciente_id) REFERENCES pacientes_enfermero(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE reportes_enfermero (
+        id TEXT PRIMARY KEY,
+        enfermero_id INTEGER NOT NULL,
+        turno TEXT,
+        fecha TEXT,
+        cantidad_pacientes INTEGER,
+        archivo_bytes BLOB,
+        FOREIGN KEY (enfermero_id) REFERENCES enfermeros(id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   // ── USUARIOS ──────────────────────────────────────────────────────────────
@@ -188,7 +265,7 @@ class DatabaseHelper {
     );
   }
 
-  // ── PACIENTES ─────────────────────────────────────────────────────────────
+  // ── PACIENTES APP (CUENTAS REGISTRADAS) ───────────────────────────────────
 
   Future<int> insertarPaciente(Map<String, dynamic> datos) async {
     final baseDatos = await db;
@@ -217,8 +294,6 @@ class DatabaseHelper {
     );
   }
 
-  // ── OTROS MEDICAMENTOS ────────────────────────────────────────────────────
-
   Future<int> insertarOtroMedicamento(Map<String, dynamic> datos) async {
     final baseDatos = await db;
     return await baseDatos.insert('otros_medicamentos', datos);
@@ -233,17 +308,6 @@ class DatabaseHelper {
     );
   }
 
-  Future<void> eliminarMedicamentosDePaciente(int pacienteId) async {
-    final baseDatos = await db;
-    await baseDatos.delete(
-      'otros_medicamentos',
-      where: 'paciente_id = ?',
-      whereArgs: [pacienteId],
-    );
-  }
-
-  // ── GLUCOSA ───────────────────────────────────────────────────────────────
-
   Future<int> insertarRegistroGlucosa(Map<String, dynamic> datos) async {
     final baseDatos = await db;
     return await baseDatos.insert('registros_glucosa', datos);
@@ -256,18 +320,6 @@ class DatabaseHelper {
       where: 'paciente_id = ?',
       whereArgs: [pacienteId],
       orderBy: 'fecha DESC',
-    );
-  }
-
-  Future<List<Map<String, dynamic>>> obtenerUltimosRegistrosGlucosa(
-      int pacienteId, int limite) async {
-    final baseDatos = await db;
-    return await baseDatos.query(
-      'registros_glucosa',
-      where: 'paciente_id = ?',
-      whereArgs: [pacienteId],
-      orderBy: 'fecha DESC',
-      limit: limite,
     );
   }
 
@@ -294,5 +346,89 @@ class DatabaseHelper {
   Future<void> cerrarSesion() async {
     final baseDatos = await db;
     await baseDatos.delete('sesion', where: 'id = 1');
+  }
+
+  // ───────────────────────────────────────────────
+  // MÉTODOS PARA EL ROL DE ENFERMERO
+  // ───────────────────────────────────────────────
+
+  Future<int> insertarPacienteEnfermero(Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    return await baseDatos.insert('pacientes_enfermero', datos);
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerPacientesDeEnfermero(int enfermeroId) async {
+    final baseDatos = await db;
+    return await baseDatos.query('pacientes_enfermero', where: 'enfermero_id = ?', whereArgs: [enfermeroId]);
+  }
+
+  Future<int> actualizarPacienteEnfermero(int id, Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    return await baseDatos.update('pacientes_enfermero', datos, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> eliminarPacienteEnfermero(int id) async {
+    final baseDatos = await db;
+    await baseDatos.delete('pacientes_enfermero', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Medicamentos del Enfermero
+  Future<int> insertarMedicamentoEnfermero(Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    return await baseDatos.insert('medicamentos_enfermero', datos);
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerMedicamentosEnfermero(int pacienteId) async {
+    final baseDatos = await db;
+    return await baseDatos.query('medicamentos_enfermero', where: 'paciente_id = ?', whereArgs: [pacienteId]);
+  }
+
+  Future<void> actualizarEstadoMedicamentoEnfermero(int id, int suministrado) async {
+    final baseDatos = await db;
+    await baseDatos.update('medicamentos_enfermero', {'suministrado': suministrado}, where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Glucosa del Enfermero
+  Future<int> insertarGlucosaEnfermero(Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    return await baseDatos.insert('glucosa_enfermero', datos);
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerGlucosaEnfermero(int pacienteId) async {
+    final baseDatos = await db;
+    return await baseDatos.query('glucosa_enfermero', where: 'paciente_id = ?', whereArgs: [pacienteId], orderBy: 'fecha DESC');
+  }
+
+  // Insulina del Enfermero
+  Future<int> insertarInsulinaEnfermero(Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    return await baseDatos.insert('insulina_enfermero', datos);
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerInsulinaEnfermero(int pacienteId) async {
+    final baseDatos = await db;
+    return await baseDatos.query('insulina_enfermero', where: 'paciente_id = ?', whereArgs: [pacienteId], orderBy: 'fecha DESC');
+  }
+
+  // Observaciones del Enfermero
+  Future<int> insertarObservacionEnfermero(Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    return await baseDatos.insert('observaciones_enfermero', datos);
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerObservacionesEnfermero(int pacienteId) async {
+    final baseDatos = await db;
+    return await baseDatos.query('observaciones_enfermero', where: 'paciente_id = ?', whereArgs: [pacienteId], orderBy: 'fecha DESC');
+  }
+
+  // Reportes PDF
+  Future<void> insertarReporte(Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    await baseDatos.insert('reportes_enfermero', datos);
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerReportesDeEnfermero(int enfermeroId) async {
+    final baseDatos = await db;
+    return await baseDatos.query('reportes_enfermero', where: 'enfermero_id = ?', whereArgs: [enfermeroId], orderBy: 'fecha DESC');
   }
 }
