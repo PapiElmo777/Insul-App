@@ -39,8 +39,8 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
     if (estado == 'Hipoglucemia') return const Color(0xFFD32F2F);
     if (estado == 'Bajo') return const Color(0xFFE65100);
     if (estado == 'Normal') return const Color(0xFF2E7D32);
-    if (estado == 'Elevado') return const Color(0xFFAB47BC);
-    return const Color(0xFF6A1B9A);
+    if (estado == 'Elevado') return const Color(0xFFE65100);
+    return const Color(0xFFD32F2F);
   }
 
   List<Map<String, dynamic>> _obtenerRegistrosFiltrados() {
@@ -280,255 +280,272 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
   @override
   Widget build(BuildContext context) {
     List<Map<String, dynamic>> registrosGrafica = _obtenerRegistrosFiltrados();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(25.0, 30.0, 25.0, 30.0),
-          decoration: const BoxDecoration(
-            color: Color(0xFF1C63BB),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(30),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      body: NestedScrollView(
+        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+          return <Widget>[
+            SliverAppBar(
+              backgroundColor: const Color(0xFF1C63BB),
+              expandedHeight: 110.0,
+              floating: true,
+              snap: true,
+              pinned: false,
+              automaticallyImplyLeading: false,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(30),
+                ),
+              ),
+              flexibleSpace: FlexibleSpaceBar(
+                background: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(25.0, 20.0, 25.0, 20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: const [
+                        Text(
+                          'Registro de Glucosa',
+                          style: TextStyle(
+                            fontFamily: 'Montserrat',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 28,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
+          ];
+        },
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Registro de Glucosa',
-                style: TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 28,
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton.icon(
+                  onPressed: _mostrarFormularioNuevaMedida,
+                  icon: const Icon(Icons.add_circle, color: Colors.white, size: 22),
+                  label: const Text(
+                    'Añadir Nueva Lectura',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0C80EB),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    elevation: 4,
+                    shadowColor: const Color(0xFF0C80EB).withOpacity(0.5),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 25),
+
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
                   color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFD2D2D2), width: 2),
                 ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: _mostrarFormularioNuevaMedida,
-                icon: const Icon(Icons.add, size: 18, color: Color(0xFF1C63BB)),
-                label: const Text(
-                  'Nueva Lectura',
-                  style: TextStyle(color: Color(0xFF1C63BB), fontWeight: FontWeight.bold),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFD2D2D2), width: 2),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 15.0),
+                      child: Text(
+                        'Historial de Lecturas',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 18,
+                          color: Color(0xFF1E1E1E),
+                        ),
+                      ),
+                    ),
+                    if (widget.registros.isEmpty)
                       const Padding(
-                        padding: EdgeInsets.only(bottom: 15.0),
-                        child: Text(
-                          'Historial de Lecturas',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 18,
-                            color: Color(0xFF1E1E1E),
+                        padding: EdgeInsets.symmetric(vertical: 30),
+                        child: Center(
+                          child: Text(
+                            'Aún no hay lecturas registradas.',
+                            style: TextStyle(color: Colors.grey),
                           ),
                         ),
-                      ),
-                      if (widget.registros.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 30),
-                          child: Center(
-                            child: Text(
-                              'Aún no hay lecturas registradas.',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          ),
-                        )
-                      else
-                        ...widget.registros.take(10).map((registro) => _crearTarjetaRegistro(registro)).toList(),
-                      if (widget.registros.length > 10)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.only(top: 10),
-                            child: Text('Mostrando los 10 registros más recientes...', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                          ),
-                        )
-                    ],
-                  ),
+                      )
+                    else
+                      ...widget.registros.take(10).map((registro) => _crearTarjetaRegistro(registro)).toList(),
+                    if (widget.registros.length > 10)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 10),
+                          child: Text('Mostrando los 10 registros más recientes...', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        ),
+                      )
+                  ],
                 ),
-                const SizedBox(height: 25),
+              ),
+              const SizedBox(height: 25),
 
-                // Grafica
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFD2D2D2), width: 2),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Análisis Gráfico',
-                            style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 18, color: Color(0xFF1E1E1E)),
-                          ),
-                          Icon(Icons.show_chart, color: Colors.grey.shade400),
-                        ],
-                      ),
-                      const SizedBox(height: 15),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: ['7', '14', '30', '90', 'Todos'].map((opcion) {
-                            bool seleccionado = _filtroDias == opcion;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: ChoiceChip(
-                                label: Text(opcion == 'Todos' ? opcion : '$opcion Días'),
-                                selected: seleccionado,
-                                selectedColor: const Color(0xFF1C63BB),
-                                labelStyle: TextStyle(color: seleccionado ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),
-                                onSelected: (bool selected) {
-                                  setState(() {
-                                    _filtroDias = opcion;
-                                    _indiceSeleccionadoGrafica = null;
-                                  });
-                                },
-                              ),
-                            );
-                          }).toList(),
+              // Grafica
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFD2D2D2), width: 2),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Análisis Gráfico',
+                          style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 18, color: Color(0xFF1E1E1E)),
                         ),
+                        Icon(Icons.show_chart, color: Colors.grey.shade400),
+                      ],
+                    ),
+                    const SizedBox(height: 15),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: ['7', '14', '30', '90', 'Todos'].map((opcion) {
+                          bool seleccionado = _filtroDias == opcion;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: ChoiceChip(
+                              label: Text(opcion == 'Todos' ? opcion : '$opcion Días'),
+                              selected: seleccionado,
+                              selectedColor: const Color(0xFF1C63BB),
+                              labelStyle: TextStyle(color: seleccionado ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),
+                              onSelected: (bool selected) {
+                                setState(() {
+                                  _filtroDias = opcion;
+                                  _indiceSeleccionadoGrafica = null;
+                                });
+                              },
+                            ),
+                          );
+                        }).toList(),
                       ),
-                      const SizedBox(height: 20),
+                    ),
+                    const SizedBox(height: 20),
 
-                      Container(
-                        height: 250,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF9F9F9),
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: const Color(0xFFE8E8E8)),
-                        ),
-                        child: registrosGrafica.isEmpty
-                            ? const Center(child: Text('No hay datos en este periodo', style: TextStyle(color: Colors.grey)))
-                            : ClipRRect(
-                          borderRadius: BorderRadius.circular(15),
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Container(
-                              padding: const EdgeInsets.only(left: 10, right: 30, top: 10, bottom: 5),
-                              width: registrosGrafica.length > 5 ? registrosGrafica.length * 50.0 : MediaQuery.of(context).size.width - 80,
-                              child: GestureDetector(
-                                onTapUp: (details) {
-                                  double offsetX = 40.0;
-                                  double paddingX = 20.0;
-                                  double startX = offsetX + paddingX;
+                    Container(
+                      height: 250,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF9F9F9),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: const Color(0xFFE8E8E8)),
+                      ),
+                      child: registrosGrafica.isEmpty
+                          ? const Center(child: Text('No hay datos en este periodo', style: TextStyle(color: Colors.grey)))
+                          : ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Container(
+                            padding: const EdgeInsets.only(left: 10, right: 30, top: 10, bottom: 5),
+                            width: registrosGrafica.length > 5 ? registrosGrafica.length * 50.0 : MediaQuery.of(context).size.width - 80,
+                            child: GestureDetector(
+                              onTapUp: (details) {
+                                double offsetX = 40.0;
+                                double paddingX = 20.0;
+                                double startX = offsetX + paddingX;
 
-                                  double customPaintWidth = (registrosGrafica.length > 5 ? registrosGrafica.length * 50.0 : MediaQuery.of(context).size.width - 80) - 40.0;
-                                  double graphWidth = customPaintWidth - offsetX;
-                                  double activeWidth = graphWidth - (paddingX * 2);
+                                double customPaintWidth = (registrosGrafica.length > 5 ? registrosGrafica.length * 50.0 : MediaQuery.of(context).size.width - 80) - 40.0;
+                                double graphWidth = customPaintWidth - offsetX;
+                                double activeWidth = graphWidth - (paddingX * 2);
 
-                                  double stepX = registrosGrafica.length > 1 ? activeWidth / (registrosGrafica.length - 1) : activeWidth / 2;
-                                  double dx = details.localPosition.dx;
+                                double stepX = registrosGrafica.length > 1 ? activeWidth / (registrosGrafica.length - 1) : activeWidth / 2;
+                                double dx = details.localPosition.dx;
 
-                                  int index = ((dx - startX) / stepX).round();
+                                int index = ((dx - startX) / stepX).round();
 
-                                  if (index >= 0 && index < registrosGrafica.length) {
-                                    double pointX = registrosGrafica.length == 1 ? startX + (activeWidth / 2) : startX + (index * stepX);
-                                    if ((dx - pointX).abs() < 30.0) {
-                                      setState(() { _indiceSeleccionadoGrafica = index; });
-                                      int indiceReal = (registrosGrafica.length - 1) - index;
-                                      _mostrarDetallesPunto(registrosGrafica[indiceReal]);
-                                    }
+                                if (index >= 0 && index < registrosGrafica.length) {
+                                  double pointX = registrosGrafica.length == 1 ? startX + (activeWidth / 2) : startX + (index * stepX);
+                                  if ((dx - pointX).abs() < 30.0) {
+                                    setState(() { _indiceSeleccionadoGrafica = index; });
+                                    int indiceReal = (registrosGrafica.length - 1) - index;
+                                    _mostrarDetallesPunto(registrosGrafica[indiceReal]);
                                   }
-                                },
-                                child: CustomPaint(
-                                  painter: _GraficaPacientePainter(
-                                    historial: registrosGrafica.reversed.toList(),
-                                    limiteHipo: widget.limiteHipo,
-                                    limiteHiper: widget.limiteHiper,
-                                    rangoMin: widget.rangoMin,
-                                    rangoMax: widget.rangoMax,
-                                    indiceSeleccionado: _indiceSeleccionadoGrafica,
-                                  ),
+                                }
+                              },
+                              child: CustomPaint(
+                                painter: _GraficaPacientePainter(
+                                  historial: registrosGrafica.reversed.toList(),
+                                  limiteHipo: widget.limiteHipo,
+                                  limiteHiper: widget.limiteHiper,
+                                  rangoMin: widget.rangoMin,
+                                  rangoMax: widget.rangoMax,
+                                  indiceSeleccionado: _indiceSeleccionadoGrafica,
                                 ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 25),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F4F8),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFF1C63BB), width: 1.5),
-                  ),
-                  child: Column(
-                    children: [
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.info_outline, color: Color(0xFF1C63BB), size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            'Tus Valores de Referencia',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                              color: Color(0xFF1C63BB),
-                            ),
+              ),
+              const SizedBox(height: 25),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F4F8),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF1C63BB), width: 1.5),
+                ),
+                child: Column(
+                  children: [
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.info_outline, color: Color(0xFF1C63BB), size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Tus Valores de Referencia',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            color: Color(0xFF1C63BB),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 15),
-                      _filaReferencia('Hipoglucemia', '< ${widget.limiteHipo} mg/dL', const Color(0xFFD32F2F)),
-                      const Divider(color: Colors.white, thickness: 1),
-                      _filaReferencia('Bajo / Alerta', '${widget.limiteHipo} - ${widget.rangoMin - 1} mg/dL', const Color(0xFFE65100)),
-                      const Divider(color: Colors.white, thickness: 1),
-                      _filaReferencia('Normal / Meta', '${widget.rangoMin} - ${widget.rangoMax} mg/dL', const Color(0xFF2E7D32)),
-                      const Divider(color: Colors.white, thickness: 1),
-                      _filaReferencia('Elevado / Alerta', '${widget.rangoMax + 1} - ${widget.limiteHiper} mg/dL', const Color(0xFFAB47BC)),
-                      const Divider(color: Colors.white, thickness: 1),
-                      _filaReferencia('Hiperglucemia', '> ${widget.limiteHiper} mg/dL', const Color(0xFF6A1B9A)),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 15),
+                    _filaReferencia('Hipoglucemia', '< ${widget.limiteHipo} mg/dL', const Color(0xFFD32F2F)),
+                    const Divider(color: Colors.white, thickness: 1),
+                    _filaReferencia('Bajo / Alerta', '${widget.limiteHipo} - ${widget.rangoMin - 1} mg/dL', const Color(0xFFE65100)),
+                    const Divider(color: Colors.white, thickness: 1),
+                    _filaReferencia('Normal / Meta', '${widget.rangoMin} - ${widget.rangoMax} mg/dL', const Color(0xFF2E7D32)),
+                    const Divider(color: Colors.white, thickness: 1),
+                    _filaReferencia('Elevado / Alerta', '${widget.rangoMax + 1} - ${widget.limiteHiper} mg/dL', const Color(0xFFE65100)),
+                    const Divider(color: Colors.white, thickness: 1),
+                    _filaReferencia('Hiperglucemia', '> ${widget.limiteHiper} mg/dL', const Color(0xFFD32F2F)),
+                  ],
                 ),
-                const SizedBox(height: 20),
-              ],
-            ),
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -562,31 +579,21 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
     String estado = _obtenerEstadoGlucosa(val);
     Color colorFondo, colorBorde, colorTexto, colorIcono;
 
-    if (estado == 'Hipoglucemia') {
+    if (estado == 'Hipoglucemia' || estado == 'Hiperglucemia') {
       colorFondo = const Color(0xFFFFEBEE);
       colorBorde = const Color(0xFFD32F2F);
       colorTexto = const Color(0xFFD32F2F);
       colorIcono = const Color(0xFFFFCDD2);
-    } else if (estado == 'Bajo') {
+    } else if (estado == 'Bajo' || estado == 'Elevado') {
       colorFondo = const Color(0xFFFFF3E0);
       colorBorde = const Color(0xFFE65100);
       colorTexto = const Color(0xFFE65100);
       colorIcono = const Color(0xFFFFE0B2);
-    } else if (estado == 'Normal') {
+    } else { // Normal (Verde)
       colorFondo = const Color(0xFFE8F5E9);
       colorBorde = const Color(0xFF2E7D32);
       colorTexto = const Color(0xFF2E7D32);
       colorIcono = const Color(0xFFC8E6C9);
-    } else if (estado == 'Elevado') {
-      colorFondo = const Color(0xFFF3E5F5);
-      colorBorde = const Color(0xFFAB47BC);
-      colorTexto = const Color(0xFFAB47BC);
-      colorIcono = const Color(0xFFE1BEE7);
-    } else {
-      colorFondo = const Color(0xFFEDE7F6);
-      colorBorde = const Color(0xFF6A1B9A);
-      colorTexto = const Color(0xFF6A1B9A);
-      colorIcono = const Color(0xFFD1C4E9);
     }
 
     return Container(
@@ -732,19 +739,20 @@ class _GraficaPacientePainter extends CustomPainter {
 
     Paint bgPaint = Paint();
 
-    bgPaint.color = const Color(0xFFD32F2F).withOpacity(0.1);
+    // MODIFICACIÓN 1: Colores Unificados en el Fondo de Gráfica
+    bgPaint.color = const Color(0xFFD32F2F).withOpacity(0.1); // Rojo
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(limiteHipo.toDouble()), size.width, graphHeight + 10), bgPaint);
 
-    bgPaint.color = const Color(0xFFE65100).withOpacity(0.1);
+    bgPaint.color = const Color(0xFFE65100).withOpacity(0.1); // Naranja
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(rangoMin.toDouble()), size.width, valToY(limiteHipo.toDouble())), bgPaint);
 
-    bgPaint.color = const Color(0xFF2E7D32).withOpacity(0.15);
+    bgPaint.color = const Color(0xFF2E7D32).withOpacity(0.15); // Verde
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(rangoMax.toDouble()), size.width, valToY(rangoMin.toDouble())), bgPaint);
 
-    bgPaint.color = const Color(0xFFAB47BC).withOpacity(0.1);
+    bgPaint.color = const Color(0xFFE65100).withOpacity(0.1); // Naranja
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(limiteHiper.toDouble()), size.width, valToY(rangoMax.toDouble())), bgPaint);
 
-    bgPaint.color = const Color(0xFF6A1B9A).withOpacity(0.1);
+    bgPaint.color = const Color(0xFFD32F2F).withOpacity(0.1); // Rojo
     canvas.drawRect(Rect.fromLTRB(offsetX, 10, size.width, valToY(limiteHiper.toDouble())), bgPaint);
 
     Paint lineRef = Paint()..color = Colors.grey.withOpacity(0.3)..strokeWidth = 1;
@@ -790,11 +798,12 @@ class _GraficaPacientePainter extends CustomPainter {
     for (int i = 0; i < points.length; i++) {
       int val = historial[i]['valor'];
       Color c;
+
       if (val < limiteHipo) c = const Color(0xFFD32F2F);
-      else if (val > limiteHiper) c = const Color(0xFF6A1B9A);
+      else if (val > limiteHiper) c = const Color(0xFFD32F2F);
       else if (val >= rangoMin && val <= rangoMax) c = const Color(0xFF2E7D32);
       else if (val < rangoMin) c = const Color(0xFFE65100);
-      else c = const Color(0xFFAB47BC);
+      else c = const Color(0xFFE65100);
 
       if (indiceSeleccionado == i) {
         canvas.drawCircle(points[i], 14.0, Paint()..color = c.withOpacity(0.4)..style = PaintingStyle.fill);
