@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'dart:io';
 import 'pantalla_registros_paciente.dart';
 import '../../database/database_helper.dart';
+import 'pantalla_perfil_paciente.dart';
 
 class PantallaInicioPaciente extends StatefulWidget {
   final String nombrePaciente;
@@ -22,8 +24,8 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
 
   int? _pacienteId;
   bool _cargandoDatos = true;
+  File? _imagenPerfil;
 
-  // Variables de control (Se sobreescribirán con la BD)
   int limiteHipo = 70;
   int limiteHiper = 180;
   int rangoMin = 80;
@@ -43,9 +45,17 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
     final usuarioId = await db.obtenerSesionActiva();
 
     if (usuarioId != null) {
+      final usuario = await db.obtenerUsuarioPorId(usuarioId);
       final paciente = await db.obtenerPacientePorUsuario(usuarioId);
-      if (paciente != null) {
+
+      if (usuario != null && paciente != null) {
         _pacienteId = paciente['id'];
+
+        if (usuario['foto_perfil'] != null && usuario['foto_perfil'].toString().isNotEmpty) {
+          _imagenPerfil = File(usuario['foto_perfil']);
+        } else {
+          _imagenPerfil = null;
+        }
 
         limiteHipo = (paciente['limite_hipo'] as num?)?.toInt() ?? 70;
         limiteHiper = (paciente['limite_hiper'] as num?)?.toInt() ?? 180;
@@ -489,6 +499,11 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
             }
           },
         )
+            : _indiceNavegacionActual == 3
+            ? TabPerfilPaciente(
+          nombrePaciente: widget.nombrePaciente,
+          onActualizarDashboard: _cargarDatosBD,
+        )
             : _construirPlaceholderTabs(),
       ),
       bottomNavigationBar: _construirBottomNavigation(),
@@ -568,15 +583,25 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                   ],
                 ),
               ),
-              Container(
-                width: 55,
-                height: 55,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.2),
-                  border: Border.all(color: Colors.white, width: 2),
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _indiceNavegacionActual = 3;
+                  });
+                },
+                child: Container(
+                  width: 55,
+                  height: 55,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.2),
+                    border: Border.all(color: Colors.white, width: 2),
+                    image: _imagenPerfil != null
+                        ? DecorationImage(image: FileImage(_imagenPerfil!), fit: BoxFit.cover)
+                        : null,
+                  ),
+                  child: _imagenPerfil == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
                 ),
-                child: const Icon(Icons.person, color: Colors.white, size: 30),
               ),
             ],
           ),
