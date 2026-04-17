@@ -366,7 +366,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                           children: [
                             Padding(
                               padding: const EdgeInsets.only(top: 15),
-                              child: _etiquetaTir('Hiperglucemia', '$pctHiper%', const Color(0xFF6A1B9A)),
+                              child: _etiquetaTir('Hiperglucemia', '$pctHiper%', const Color(0xFFD32F2F)),
                             ),
                             _etiquetaTir('En Rango', '$pctNormal%', const Color(0xFF2E7D32), esMeta: true),
                             Padding(
@@ -388,7 +388,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                               Container(
                                 height: 85,
                                 width: double.infinity,
-                                color: const Color(0xFF6A1B9A),
+                                color: const Color(0xFFD32F2F),
                                 alignment: Alignment.bottomCenter,
                                 padding: const EdgeInsets.only(bottom: 5),
                                 child: Text('>$limiteHiper\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white, height: 1.2)),
@@ -461,7 +461,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                     children: [
                       Row(
                         children: const [
-                          Icon(Icons.check_circle, color: Color(0xFF06CA23), size: 20),
+                          Icon(Icons.check_circle, color: Color(0xFF2E7D32), size: 20),
                           SizedBox(width: 10),
                           Expanded(child: Text('Menor al 36% indica niveles estables (buen control).', style: TextStyle(fontSize: 13))),
                         ],
@@ -469,7 +469,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                       const SizedBox(height: 10),
                       Row(
                         children: const [
-                          Icon(Icons.warning, color: Color(0xFFFFB347), size: 20),
+                          Icon(Icons.warning, color: Color(0xFFE65100), size: 20),
                           SizedBox(width: 10),
                           Expanded(child: Text('Mayor al 36% significa picos altos y bajos frecuentes, lo que puede causar daño a largo plazo.', style: TextStyle(fontSize: 13))),
                         ],
@@ -535,9 +535,9 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
             const SizedBox(width: 15),
             _itemLeyenda(const Color(0xFF2E7D32), 'Normal'),
             const SizedBox(width: 15),
-            _itemLeyenda(const Color(0xFFAB47BC), 'Elevado'),
+            _itemLeyenda(const Color(0xFFE65100), 'Elevado'),
             const SizedBox(width: 15),
-            _itemLeyenda(const Color(0xFF6A1B9A), 'Hiper'),
+            _itemLeyenda(const Color(0xFFD32F2F), 'Hiper'),
           ],
         ),
       ),
@@ -549,22 +549,11 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          width: 10, height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 5),
-        Text(
-          texto,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        Text(texto, style: const TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w600)),
       ],
     );
   }
@@ -580,11 +569,11 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      body: SafeArea(
-        child: _indiceNavegacionActual == 0
-            ? _construirDashboard()
-            : _indiceNavegacionActual == 1
-            ? PantallaRegistrosPaciente(
+      body: _indiceNavegacionActual == 0
+          ? _construirDashboard()
+          : _indiceNavegacionActual == 1
+          ? SafeArea(
+        child: PantallaRegistrosPaciente(
           registros: _registrosGlucosa,
           limiteHipo: limiteHipo,
           limiteHiper: limiteHiper,
@@ -603,18 +592,20 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
               await _cargarDatosBD();
             }
           },
-        )
-            : _indiceNavegacionActual == 2
-            ? _construirTabHistorial()
-            : _indiceNavegacionActual == 3
-            ? const PantallaMedicamentosPaciente()
-            : _indiceNavegacionActual == 4
-            ? TabPerfilPaciente(
+        ),
+      )
+          : _indiceNavegacionActual == 2
+          ? _construirTabHistorial()
+          : _indiceNavegacionActual == 3
+          ? const SafeArea(child: PantallaMedicamentosPaciente())
+          : _indiceNavegacionActual == 4
+          ? SafeArea(
+        child: TabPerfilPaciente(
           nombrePaciente: widget.nombrePaciente,
           onActualizarDashboard: _cargarDatosBD,
-        )
-            : const Center(child: Text("Pestaña no encontrada")),
-      ),
+        ),
+      )
+          : const Center(child: Text("Pestaña no encontrada")),
       bottomNavigationBar: _construirBottomNavigation(),
     );
   }
@@ -631,227 +622,231 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
       cv = (desvStd / prom) * 100;
     }
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(25.0, 30.0, 25.0, 30.0),
-            decoration: const BoxDecoration(
-              color: Color(0xFF1C63BB),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
-              ),
+    return NestedScrollView(
+      headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+        return <Widget>[
+          SliverAppBar(
+            backgroundColor: const Color(0xFF1C63BB),
+            expandedHeight: 140.0,
+            floating: true,
+            snap: true,
+            pinned: false,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text('Historial Clínico', style: TextStyle(fontFamily: 'Montserrat', fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white)),
-                SizedBox(height: 5),
-                Text('Análisis y exportación de Perfil Ambulatorio de Glucosa (AGP).', style: TextStyle(color: Color(0xFFE8E8E8), fontSize: 14)),
-              ],
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.all(25.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(25),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFD2D2D2), width: 1.5),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-                  ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(25.0, 20.0, 25.0, 20.0),
                   child: Column(
-                    children: [
-                      const Icon(Icons.picture_as_pdf, size: 60, color: Color(0xFF1C63BB)),
-                      const SizedBox(height: 15),
-                      const Text('Informe AGP del Paciente', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
-                      const SizedBox(height: 5),
-                      const Text(
-                        'Genera un reporte clínico detallado para tu médico tratante con gráficas, promedios y variabilidad.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 13, color: Colors.black54),
-                      ),
-                      const SizedBox(height: 25),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            if (_registrosGlucosa.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Necesitas registrar lecturas de glucosa primero.')));
-                              return;
-                            }
-
-                            showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.white)),
-                            );
-
-                            try {
-                              final bytes = await ReportePacienteService.generarReporteAGP(
-                                paciente: _datosPacienteComp,
-                                registros: _registrosGlucosa,
-                              );
-
-                              final db = DatabaseHelper();
-                              final String idUnico = DateTime.now().millisecondsSinceEpoch.toString();
-
-                              await db.insertarReportePaciente({
-                                'id': idUnico,
-                                'paciente_id': _pacienteId,
-                                'periodo': 'Histórico Completo',
-                                'fecha': DateTime.now().toIso8601String(),
-                                'archivo_bytes': bytes,
-                              });
-
-                              await _cargarDatosBD();
-
-                              if (!mounted) return;
-                              Navigator.pop(context);
-
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => VisorAGPPantalla(bytes: bytes),
-                                ),
-                              );
-                            } catch(e) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                            }
-                          },
-                          icon: const Icon(Icons.download, color: Colors.white),
-                          label: const Text('Generar PDF para Médico', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF008CCF),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                          ),
-                        ),
-                      )
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text('Historial Clínico', style: TextStyle(fontFamily: 'Montserrat', fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white)),
+                      SizedBox(height: 5),
+                      Text('Análisis y exportación de Perfil Ambulatorio de Glucosa (AGP).', style: TextStyle(color: Color(0xFFE8E8E8), fontSize: 14)),
                     ],
                   ),
                 ),
-                const SizedBox(height: 25),
+              ),
+            ),
+          ),
+        ];
+      },
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(25.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(25),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFD2D2D2), width: 1.5),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.picture_as_pdf, size: 60, color: Color(0xFF1C63BB)),
+                  const SizedBox(height: 15),
+                  const Text('Informe AGP del Paciente', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  const SizedBox(height: 5),
+                  const Text(
+                    'Genera un reporte clínico detallado para tu médico tratante con gráficas, promedios y variabilidad.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 25),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        if (_registrosGlucosa.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Necesitas registrar lecturas de glucosa primero.')));
+                          return;
+                        }
 
-                const Text('Resumen del Periodo', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
-                const SizedBox(height: 15),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: _mostrarDialogoVariabilidad,
-                        borderRadius: BorderRadius.circular(15),
-                        child: Container(
-                          padding: const EdgeInsets.all(15),
-                          decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(15),
-                              border: Border.all(color: const Color(0xFF0C80EB), width: 1.5) // Borde azul para que parezca tocable
-                          ),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Text('Variabilidad (CV)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
-                                  SizedBox(width: 4),
-                                  Icon(Icons.info_outline, size: 14, color: Color(0xFF1C63BB)), // Icono de info
-                                ],
-                              ),
-                              const SizedBox(height: 5),
-                              Text('${cv.toStringAsFixed(1)}%', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: cv > 36 ? const Color(0xFFFFB347) : const Color(0xFF06CA23))),
-                              Text('Toca para saber más', style: TextStyle(fontSize: 9, color: Colors.grey)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(15),
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFD2D2D2))),
-                        child: Column(
-                          children: [
-                            const Text('Lecturas', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                            const SizedBox(height: 5),
-                            Text('${_registrosGlucosa.length}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
-                            const Text('Registros totales', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 40),
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.white)),
+                        );
 
-                const Divider(thickness: 1, color: Color(0xFFD2D2D2)),
-                const SizedBox(height: 20),
+                        try {
+                          final bytes = await ReportePacienteService.generarReporteAGP(
+                            paciente: _datosPacienteComp,
+                            registros: _registrosGlucosa,
+                          );
 
-                const Text('Historial de Archivos', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
-                const SizedBox(height: 15),
+                          final db = DatabaseHelper();
+                          final String idUnico = DateTime.now().millisecondsSinceEpoch.toString();
 
-                if (_reportesGenerados.isEmpty)
-                  const Text('Aún no has generado ningún informe para tu médico.', style: TextStyle(color: Colors.grey, fontSize: 14))
-                else
-                  ...List.generate(_reportesGenerados.length, (index) {
-                    final reporte = _reportesGenerados[index];
+                          await db.insertarReportePaciente({
+                            'id': idUnico,
+                            'paciente_id': _pacienteId,
+                            'periodo': 'Histórico Completo',
+                            'fecha': DateTime.now().toIso8601String(),
+                            'archivo_bytes': bytes,
+                          });
 
-                    // FORMATO EXACTO: "Historial periodo (y la fecha)"
-                    final String fechaF = DateFormat('dd/MM/yyyy').format(reporte['fecha']);
-                    final titulo = 'Historial periodo ($fechaF)';
+                          await _cargarDatosBD();
 
-                    return Card(
-                      key: Key(reporte['id']),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        side: const BorderSide(color: Color(0xFFD2D2D2)),
-                      ),
-                      elevation: 0,
-                      color: Colors.white,
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        leading: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: const BoxDecoration(color: Color(0xFFE8F4F8), shape: BoxShape.circle),
-                          child: const Icon(Icons.description, color: Color(0xFF1C63BB)),
-                        ),
-                        title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                        subtitle: Text('Generado a las: ${DateFormat('HH:mm').format(reporte['fecha'])}', style: const TextStyle(fontSize: 12)),
-                        trailing: const Icon(Icons.visibility, color: Color(0xFF0C80EB)),
-                        onTap: () {
+                          if (!mounted) return;
+                          Navigator.pop(context);
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => VisorAGPPantalla(
-                                bytes: reporte['bytes'],
-                              ),
+                              builder: (context) => VisorAGPPantalla(bytes: bytes),
                             ),
                           );
-                        },
+                        } catch(e) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                        }
+                      },
+                      icon: const Icon(Icons.download, color: Colors.white),
+                      label: const Text('Generar PDF para Médico', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF008CCF),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       ),
-                    );
-                  }),
-                const SizedBox(height: 40),
+                    ),
+                  )
+                ],
+              ),
+            ),
+            const SizedBox(height: 25),
+
+            const Text('Resumen del Periodo', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+            const SizedBox(height: 15),
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: _mostrarDialogoVariabilidad,
+                    borderRadius: BorderRadius.circular(15),
+                    child: Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(color: const Color(0xFF0C80EB), width: 1.5)
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Text('Variabilidad (CV)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
+                              SizedBox(width: 4),
+                              Icon(Icons.info_outline, size: 14, color: Color(0xFF1C63BB)),
+                            ],
+                          ),
+                          const SizedBox(height: 5),
+                          Text('${cv.toStringAsFixed(1)}%', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: cv > 36 ? const Color(0xFFE65100) : const Color(0xFF2E7D32))),
+                          Text('Toca para saber más', style: TextStyle(fontSize: 9, color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFD2D2D2))),
+                    child: Column(
+                      children: [
+                        const Text('Lecturas', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        const SizedBox(height: 5),
+                        Text('${_registrosGlucosa.length}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
+                        const Text('Registros totales', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
-          )
-        ],
+            const SizedBox(height: 40),
+
+            const Divider(thickness: 1, color: Color(0xFFD2D2D2)),
+            const SizedBox(height: 20),
+
+            const Text('Historial de Archivos', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+            const SizedBox(height: 15),
+
+            if (_reportesGenerados.isEmpty)
+              const Text('Aún no has generado ningún informe para tu médico.', style: TextStyle(color: Colors.grey, fontSize: 14))
+            else
+              ...List.generate(_reportesGenerados.length, (index) {
+                final reporte = _reportesGenerados[index];
+                final String fechaF = DateFormat('dd/MM/yyyy').format(reporte['fecha']);
+                final titulo = 'Historial periodo ($fechaF)';
+
+                return Card(
+                  key: Key(reporte['id']),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    side: const BorderSide(color: Color(0xFFD2D2D2)),
+                  ),
+                  elevation: 0,
+                  color: Colors.white,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(color: Color(0xFFE8F4F8), shape: BoxShape.circle),
+                      child: const Icon(Icons.description, color: Color(0xFF1C63BB)),
+                    ),
+                    title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    subtitle: Text('Generado a las: ${DateFormat('HH:mm').format(reporte['fecha'])}', style: const TextStyle(fontSize: 12)),
+                    trailing: const Icon(Icons.visibility, color: Color(0xFF0C80EB)),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => VisorAGPPantalla(
+                            bytes: reporte['bytes'],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              }),
+            const SizedBox(height: 40),
+          ],
+        ),
       ),
     );
   }
 
+  // PESTAÑA INICIO DASHBOARD CON NESTED SCROLL VIEW
   Widget _construirDashboard() {
     final ultimaG = _obtenerUltimaGlucosa();
     final estadoG = _obtenerEstadoGlucosa(ultimaG);
@@ -860,389 +855,236 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
     Color colorTexto = Colors.white;
     Color colorBorde;
 
-    if (estadoG == 'Hipoglucemia') {
+    if (estadoG == 'Hipoglucemia' || estadoG == 'Hiperglucemia') {
       colorFondo = const Color(0xFFFFEBEE);
       colorTexto = const Color(0xFFD32F2F);
       colorBorde = const Color(0xFFD32F2F);
-    } else if (estadoG == 'Bajo') {
+    } else if (estadoG == 'Bajo' || estadoG == 'Elevado') {
       colorFondo = const Color(0xFFFFF3E0);
       colorTexto = const Color(0xFFE65100);
       colorBorde = const Color(0xFFE65100);
-    } else if (estadoG == 'Normal') {
+    } else { // Normal
       colorFondo = const Color(0xFFE8F5E9);
       colorTexto = const Color(0xFF2E7D32);
       colorBorde = const Color(0xFF2E7D32);
-    } else if (estadoG == 'Elevado') {
-      colorFondo = const Color(0xFFF3E5F5);
-      colorTexto = const Color(0xFFAB47BC);
-      colorBorde = const Color(0xFFAB47BC);
-    } else {
-      colorFondo = const Color(0xFFEDE7F6);
-      colorTexto = const Color(0xFF6A1B9A);
-      colorBorde = const Color(0xFF6A1B9A);
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(25.0, 30.0, 25.0, 30.0),
-          decoration: const BoxDecoration(
-            color: Color(0xFF1C63BB),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(30),
+    return NestedScrollView(
+      headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+        return <Widget>[
+          SliverAppBar(
+            backgroundColor: const Color(0xFF1C63BB),
+            expandedHeight: 140.0,
+            floating: true,
+            snap: true,
+            pinned: false,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(25.0, 15.0, 25.0, 15.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${_obtenerSaludo()},\n${widget.nombrePaciente}',
+                              style: const TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w600, fontSize: 26, color: Colors.white, height: 1.2),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(_fechaFormateada, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 14, color: Color(0xFFE8E8E8))),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        width: 55, height: 55,
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2), border: Border.all(color: Colors.white, width: 2)),
+                        child: const Icon(Icons.person, color: Colors.white, size: 30),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${_obtenerSaludo()},\n${widget.nombrePaciente}',
-                      style: const TextStyle(
-                        fontFamily: 'Montserrat',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 26,
-                        color: Colors.white,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _fechaFormateada,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                        color: Color(0xFFE8E8E8),
-                      ),
-                    ),
-                  ],
-                ),
+        ];
+      },
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 25.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFD2D2D2), width: 2),
+                borderRadius: BorderRadius.circular(20),
               ),
-              Container(
-                width: 55,
-                height: 55,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.2),
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: const Icon(Icons.person, color: Colors.white, size: 30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Última Lectura',
+                        style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w600, fontSize: 18, color: Color(0xFF3F3F3F)),
+                      ),
+                      Icon(Icons.show_chart_rounded, color: Colors.grey.shade500, size: 24),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        _registrosGlucosa.isEmpty ? '--' : ultimaG.toString(),
+                        style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, fontSize: 52, height: 1.0, color: Color(0xFF01689C)),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text('mg/dL', style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w500, fontSize: 20, color: Color(0xFF848282))),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (_registrosGlucosa.isNotEmpty)
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(color: colorFondo, border: Border.all(color: colorBorde, width: 1.5), borderRadius: BorderRadius.circular(20)),
+                          child: Text(estadoG, style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w600, fontSize: 11, color: colorTexto)),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFF888888), width: 1.5), borderRadius: BorderRadius.circular(20)),
+                          child: Text(_obtenerMomentoUltimaLectura(), style: const TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w600, fontSize: 11, color: Color(0xFF888888))),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(_obtenerTiempoUltimaLectura(), style: const TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w500, fontSize: 13, color: Color(0xFFC5C5C5))),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() { _indiceNavegacionActual = 1; });
+                        },
+                        child: const Text('Ver todos registros', style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF888888), decoration: TextDecoration.underline)),
+                      ),
+                    ],
+                  )
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+            _construirLeyendaColores(),
+            const SizedBox(height: 5),
 
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 25.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
               children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: const Color(0xFFD2D2D2), width: 2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Última Lectura',
-                            style: TextStyle(
-                              fontFamily: 'Roboto',
-                              fontWeight: FontWeight.w600,
-                              fontSize: 18,
-                              color: Color(0xFF3F3F3F),
-                            ),
-                          ),
-                          Icon(Icons.show_chart_rounded, color: Colors.grey.shade500, size: 24),
-                        ],
-                      ),
-                      const SizedBox(height: 5),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            _registrosGlucosa.isEmpty ? '--' : ultimaG.toString(),
-                            style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 52,
-                              height: 1.0,
-                              color: Color(0xFF01689C),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'mg/dL',
-                            style: TextStyle(
-                              fontFamily: 'Roboto',
-                              fontWeight: FontWeight.w500,
-                              fontSize: 20,
-                              color: Color(0xFF848282),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      if (_registrosGlucosa.isNotEmpty)
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: colorFondo,
-                                border: Border.all(color: colorBorde, width: 1.5),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                estadoG,
-                                style: TextStyle(
-                                  fontFamily: 'Roboto',
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 11,
-                                  color: colorTexto,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                border: Border.all(color: const Color(0xFF888888), width: 1.5),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                _obtenerMomentoUltimaLectura(),
-                                style: const TextStyle(
-                                  fontFamily: 'Roboto',
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 11,
-                                  color: Color(0xFF888888),
-                                ),
-                              ),
-                            ),
-                          ],
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 12),
+                    decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFD2D2D2), width: 2), borderRadius: BorderRadius.circular(20)),
+                    child: Column(
+                      children: [
+                        const Text('Tiempo en nivel normal (TIR)', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF2F2F2F))),
+                        const SizedBox(height: 2),
+                        Text(
+                          _registrosGlucosa.isEmpty ? '--%' : '${_calcularTIR()}%',
+                          style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, fontSize: 38, height: 1.2, color: Color(0xFF01689C)),
                         ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            _obtenerTiempoUltimaLectura(),
-                            style: const TextStyle(
-                              fontFamily: 'Roboto',
-                              fontWeight: FontWeight.w500,
-                              fontSize: 13,
-                              color: Color(0xFFC5C5C5),
-                            ),
+                        GestureDetector(
+                          onTap: _registrosGlucosa.isEmpty ? null : _mostrarDialogoTIR,
+                          child: Text(
+                            'Ver mas',
+                            style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w600, fontSize: 12, color: _registrosGlucosa.isEmpty ? Colors.transparent : const Color(0xFF888888), decoration: TextDecoration.underline),
                           ),
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _indiceNavegacionActual = 1;
-                              });
-                            },
-                            child: const Text(
-                              'Ver todos registros',
-                              style: TextStyle(
-                                fontFamily: 'Roboto',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                                color: Color(0xFF888888),
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    ],
-                  ),
-                ),
-                _construirLeyendaColores(),
-                const SizedBox(height: 5),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: const Color(0xFFD2D2D2), width: 2),
-                          borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'Tiempo en nivel normal (TIR)',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: Color(0xFF2F2F2F),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _registrosGlucosa.isEmpty ? '--%' : '${_calcularTIR()}%',
-                              style: const TextStyle(
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w700,
-                                fontSize: 38,
-                                height: 1.2,
-                                color: Color(0xFF01689C),
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: _registrosGlucosa.isEmpty ? null : _mostrarDialogoTIR,
-                              child: Text(
-                                'Ver mas',
-                                style: TextStyle(
-                                  fontFamily: 'Roboto',
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 12,
-                                  color: _registrosGlucosa.isEmpty ? Colors.transparent : const Color(0xFF888888),
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: const Color(0xFFD2D2D2), width: 2),
-                          borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 12),
+                    decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFD2D2D2), width: 2), borderRadius: BorderRadius.circular(20)),
+                    child: Column(
+                      children: [
+                        const Text('Promedio', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF2F2F2F))),
+                        const SizedBox(height: 2),
+                        Text(
+                          _registrosGlucosa.isEmpty ? '--' : _calcularPromedioGlucosa().toString(),
+                          style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, fontSize: 38, height: 1.2, color: Color(0xFF01689C)),
                         ),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'Promedio',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: Color(0xFF2F2F2F),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _registrosGlucosa.isEmpty ? '--' : _calcularPromedioGlucosa().toString(),
-                              style: const TextStyle(
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w700,
-                                fontSize: 38,
-                                height: 1.2,
-                                color: Color(0xFF01689C),
-                              ),
-                            ),
-                            const Text(
-                              'Histórico total',
-                              style: TextStyle(
-                                fontFamily: 'Roboto',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                                color: Color(0xFF888888),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                        const Text('Histórico total', style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF888888))),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 25),
-
-                // Acciones Rápidas
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFD2D2D2), width: 1.5),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Acciones Rápidas',
-                        style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w700, fontSize: 24, color: Color(0xFF2F2F2F)),
-                      ),
-                      const SizedBox(height: 15),
-                      const Divider(color: Color(0xFFE8E8E8), thickness: 1.5, height: 1),
-                      _crearAccionRapida(Icons.edit_document, 'Registrar Lectura de Glucosa', () {
-                        _mostrarFormularioNuevaMedida();
-                      }),
-                      _crearAccionRapida(Icons.medication, 'Registrar Medicamento', () {
-                        setState(() {
-                          _indiceNavegacionActual = 3;
-                        });
-                      }),
-                      const Divider(color: Color(0xFFE8E8E8), thickness: 1.5, height: 1),
-                      _crearAccionRapida(Icons.timeline, 'Ver Historial Completo', () {
-                        setState(() {
-                          _indiceNavegacionActual = 1;
-                        });
-                      }),
-                    ],
                   ),
                 ),
-                const SizedBox(height: 25),
-
-                // Informacion Importante
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF2F2F2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Información importante',
-                        style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2F2F2F)),
-                      ),
-                      const SizedBox(height: 15),
-                      _crearVinietaInfo('Esta aplicación es una herramienta de apoyo, no reemplaza la consulta médica'),
-                      const SizedBox(height: 10),
-                      _crearVinietaInfo('Consulta con tu médico para establecer tu rango objetivo personalizado'),
-                      const SizedBox(height: 10),
-                      _crearVinietaInfo('Mantén tu información actualizada para obtener mejores resultados.'),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
               ],
             ),
-          ),
+            const SizedBox(height: 25),
+
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFD2D2D2), width: 1.5), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Acciones Rápidas', style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w700, fontSize: 24, color: Color(0xFF2F2F2F))),
+                  const SizedBox(height: 15),
+                  const Divider(color: Color(0xFFE8E8E8), thickness: 1.5, height: 1),
+                  _crearAccionRapida(Icons.edit_document, 'Registrar Lectura de Glucosa', () {
+                    _mostrarFormularioNuevaMedida();
+                  }),
+                  _crearAccionRapida(Icons.medication, 'Registrar Medicamento', () {
+                    setState(() { _indiceNavegacionActual = 3; });
+                  }),
+                  const Divider(color: Color(0xFFE8E8E8), thickness: 1.5, height: 1),
+                  _crearAccionRapida(Icons.timeline, 'Ver Historial Completo', () {
+                    setState(() { _indiceNavegacionActual = 1; });
+                  }),
+                ],
+              ),
+            ),
+            const SizedBox(height: 25),
+
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(color: const Color(0xFFF2F2F2), borderRadius: BorderRadius.circular(20)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Información importante', style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2F2F2F))),
+                  const SizedBox(height: 15),
+                  _crearVinietaInfo('Esta aplicación es una herramienta de apoyo, no reemplaza la consulta médica'),
+                  const SizedBox(height: 10),
+                  _crearVinietaInfo('Consulta con tu médico para establecer tu rango objetivo personalizado'),
+                  const SizedBox(height: 10),
+                  _crearVinietaInfo('Mantén tu información actualizada para obtener mejores resultados.'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -1255,12 +1097,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
           children: [
             Icon(icono, color: const Color(0xFF1C63BB), size: 26),
             const SizedBox(width: 15),
-            Expanded(
-              child: Text(
-                texto,
-                style: const TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w500, color: Color(0xFF2F2F2F)),
-              ),
-            ),
+            Expanded(child: Text(texto, style: const TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w500, color: Color(0xFF2F2F2F)))),
           ],
         ),
       ),
@@ -1275,12 +1112,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
           padding: EdgeInsets.only(top: 6.0, right: 8.0),
           child: Icon(Icons.circle, size: 6, color: Color(0xFF2F2F2F)),
         ),
-        Expanded(
-          child: Text(
-            texto,
-            style: const TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF2F2F2F), height: 1.4),
-          ),
-        ),
+        Expanded(child: Text(texto, style: const TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF2F2F2F), height: 1.4))),
       ],
     );
   }
@@ -1288,29 +1120,15 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
   Widget _construirBottomNavigation() {
     return Container(
       decoration: const BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, -5),
-          ),
-        ],
+        borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -5))],
       ),
       child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
+        borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
         child: BottomNavigationBar(
           currentIndex: _indiceNavegacionActual,
           onTap: (index) {
-            setState(() {
-              _indiceNavegacionActual = index;
-            });
+            setState(() { _indiceNavegacionActual = index; });
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
@@ -1376,15 +1194,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
   }
 
   Widget _puntoRojo() {
-    return Container(
-      margin: const EdgeInsets.only(top: 4),
-      width: 5,
-      height: 5,
-      decoration: const BoxDecoration(
-        color: Color(0xFFFF4A4A),
-        shape: BoxShape.circle,
-      ),
-    );
+    return Container(margin: const EdgeInsets.only(top: 4), width: 5, height: 5, decoration: const BoxDecoration(color: Color(0xFFFF4A4A), shape: BoxShape.circle));
   }
 }
 
@@ -1428,11 +1238,7 @@ class _DropClipper extends CustomClipper<Path> {
     double cy = h - r;
     path.moveTo(w / 2, 0);
     path.quadraticBezierTo(w, cy - (r * 1.2), w, cy);
-    path.arcToPoint(
-      Offset(0, cy),
-      radius: Radius.circular(r),
-      clockwise: true,
-    );
+    path.arcToPoint(Offset(0, cy), radius: Radius.circular(r), clockwise: true);
     path.quadraticBezierTo(0, cy - (r * 1.2), w / 2, 0);
 
     path.close();
