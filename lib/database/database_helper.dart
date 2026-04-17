@@ -113,6 +113,17 @@ class DatabaseHelper {
     ''');
 
     await db.execute('''
+      CREATE TABLE reportes_paciente (
+        id TEXT PRIMARY KEY,
+        paciente_id INTEGER NOT NULL,
+        periodo TEXT,
+        fecha TEXT,
+        archivo_bytes BLOB,
+        FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
       CREATE TABLE sesion (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         usuario_id INTEGER,
@@ -321,6 +332,22 @@ class DatabaseHelper {
     final baseDatos = await db;
     return await baseDatos.query(
       'registros_glucosa',
+      where: 'paciente_id = ?',
+      whereArgs: [pacienteId],
+      orderBy: 'fecha DESC',
+    );
+  }
+
+  // Reportes PDF del Paciente
+  Future<void> insertarReportePaciente(Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    await baseDatos.insert('reportes_paciente', datos);
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerReportesDePaciente(int pacienteId) async {
+    final baseDatos = await db;
+    return await baseDatos.query(
+      'reportes_paciente',
       where: 'paciente_id = ?',
       whereArgs: [pacienteId],
       orderBy: 'fecha DESC',

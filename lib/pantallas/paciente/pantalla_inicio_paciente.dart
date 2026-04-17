@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:typed_data';
+import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
+import '../../servicios/servicios/reporte_paciente_service.dart';
 import 'pantalla_registros_paciente.dart';
 import '../../database/database_helper.dart';
 import 'pantalla_perfil_paciente.dart';
@@ -26,6 +31,10 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
   int? _pacienteId;
   bool _cargandoDatos = true;
   File? _imagenPerfil;
+
+  // Variables de paciente completas
+  Map<String, dynamic> _datosPacienteComp = {};
+  List<Map<String, dynamic>> _reportesGenerados = [];
 
   // Variables de control
   int limiteHipo = 70;
@@ -52,16 +61,30 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
       if (paciente != null) {
         _pacienteId = paciente['id'];
 
+        _datosPacienteComp = {
+          'nombre': usuario?['nombre'] ?? widget.nombrePaciente,
+          'edad': paciente['edad'],
+          'peso': paciente['peso'],
+          'altura': paciente['altura'],
+          'imc': paciente['imc'],
+          'tipoDiabetes': paciente['tipo_diabetes'],
+          'medico': paciente['medico_nombre'],
+          'limiteHipo': (paciente['limite_hipo'] as num?)?.toInt() ?? 70,
+          'hiperLimit': (paciente['limite_hiper'] as num?)?.toInt() ?? 180,
+          'rangoMin': (paciente['rango_min'] as num?)?.toInt() ?? 80,
+          'rangoMax': (paciente['rango_max'] as num?)?.toInt() ?? 130,
+        };
+
         if (usuario?['foto_perfil'] != null && usuario!['foto_perfil'].toString().isNotEmpty) {
           _imagenPerfil = File(usuario?['foto_perfil']);
         } else {
           _imagenPerfil = null;
         }
 
-        limiteHipo = (paciente['limite_hipo'] as num?)?.toInt() ?? 70;
-        limiteHiper = (paciente['limite_hiper'] as num?)?.toInt() ?? 180;
-        rangoMin = (paciente['rango_min'] as num?)?.toInt() ?? 80;
-        rangoMax = (paciente['rango_max'] as num?)?.toInt() ?? 130;
+        limiteHipo = _datosPacienteComp['limiteHipo'];
+        limiteHiper = _datosPacienteComp['hiperLimit'];
+        rangoMin = _datosPacienteComp['rangoMin'];
+        rangoMax = _datosPacienteComp['rangoMax'];
 
         final registrosBD = await db.obtenerRegistrosGlucosa(_pacienteId!);
         _registrosGlucosa = registrosBD.map((r) => {
@@ -69,6 +92,14 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
           'momento': r['momento'],
           'fecha': DateTime.parse(r['fecha']),
           'notas': r['notas'] ?? '',
+        }).toList();
+
+        final reportesBD = await db.obtenerReportesDePaciente(_pacienteId!);
+        _reportesGenerados = reportesBD.map((r) => {
+          'id': r['id'],
+          'periodo': r['periodo'],
+          'fecha': DateTime.parse(r['fecha']),
+          'bytes': r['archivo_bytes'] as Uint8List,
         }).toList();
       }
     }
@@ -393,6 +424,79 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
     );
   }
 
+  void _mostrarDialogoVariabilidad() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(25.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.waves, size: 50, color: Color(0xFF1C63BB)),
+                const SizedBox(height: 15),
+                const Text(
+                  'Variabilidad Glucémica (CV)',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black87),
+                ),
+                const SizedBox(height: 15),
+                const Text(
+                  'El Coeficiente de Variación (CV) mide qué tanto "brincan" tus niveles de azúcar respecto a tu promedio diario.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.black54),
+                ),
+                const SizedBox(height: 15),
+                Container(
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F7FA),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: const Color(0xFFD2D2D2)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.check_circle, color: Color(0xFF06CA23), size: 20),
+                          SizedBox(width: 10),
+                          Expanded(child: Text('Menor al 36% indica niveles estables (buen control).', style: TextStyle(fontSize: 13))),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: const [
+                          Icon(Icons.warning, color: Color(0xFFFFB347), size: 20),
+                          SizedBox(width: 10),
+                          Expanded(child: Text('Mayor al 36% significa picos altos y bajos frecuentes, lo que puede causar daño a largo plazo.', style: TextStyle(fontSize: 13))),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF008CCF),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    ),
+                    child: const Text('Entendido', style: TextStyle(color: Colors.white)),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _etiquetaTir(String titulo, String porcentaje, Color color, {bool esMeta = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -501,7 +605,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
           },
         )
             : _indiceNavegacionActual == 2
-            ? const Center(child: Text("Historial Clínico (Próximamente)", style: TextStyle(color: Colors.grey)))
+            ? _construirTabHistorial()
             : _indiceNavegacionActual == 3
             ? const PantallaMedicamentosPaciente()
             : _indiceNavegacionActual == 4
@@ -512,6 +616,239 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
             : const Center(child: Text("Pestaña no encontrada")),
       ),
       bottomNavigationBar: _construirBottomNavigation(),
+    );
+  }
+
+  Widget _construirTabHistorial() {
+    double cv = 0.0;
+    if (_registrosGlucosa.isNotEmpty) {
+      double prom = _calcularPromedioGlucosa().toDouble();
+      double sumaCuadrados = 0;
+      for (var r in _registrosGlucosa) {
+        sumaCuadrados += math.pow((r['valor'] - prom), 2);
+      }
+      double desvStd = math.sqrt(sumaCuadrados / _registrosGlucosa.length);
+      cv = (desvStd / prom) * 100;
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(25.0, 30.0, 25.0, 30.0),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1C63BB),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('Historial Clínico', style: TextStyle(fontFamily: 'Montserrat', fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white)),
+                SizedBox(height: 5),
+                Text('Análisis y exportación de Perfil Ambulatorio de Glucosa (AGP).', style: TextStyle(color: Color(0xFFE8E8E8), fontSize: 14)),
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(25.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(25),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFD2D2D2), width: 1.5),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.picture_as_pdf, size: 60, color: Color(0xFF1C63BB)),
+                      const SizedBox(height: 15),
+                      const Text('Informe AGP del Paciente', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+                      const SizedBox(height: 5),
+                      const Text(
+                        'Genera un reporte clínico detallado para tu médico tratante con gráficas, promedios y variabilidad.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 13, color: Colors.black54),
+                      ),
+                      const SizedBox(height: 25),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            if (_registrosGlucosa.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Necesitas registrar lecturas de glucosa primero.')));
+                              return;
+                            }
+
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.white)),
+                            );
+
+                            try {
+                              final bytes = await ReportePacienteService.generarReporteAGP(
+                                paciente: _datosPacienteComp,
+                                registros: _registrosGlucosa,
+                              );
+
+                              final db = DatabaseHelper();
+                              final String idUnico = DateTime.now().millisecondsSinceEpoch.toString();
+
+                              await db.insertarReportePaciente({
+                                'id': idUnico,
+                                'paciente_id': _pacienteId,
+                                'periodo': 'Histórico Completo',
+                                'fecha': DateTime.now().toIso8601String(),
+                                'archivo_bytes': bytes,
+                              });
+
+                              await _cargarDatosBD();
+
+                              if (!mounted) return;
+                              Navigator.pop(context);
+
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => VisorAGPPantalla(bytes: bytes),
+                                ),
+                              );
+                            } catch(e) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                            }
+                          },
+                          icon: const Icon(Icons.download, color: Colors.white),
+                          label: const Text('Generar PDF para Médico', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF008CCF),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 25),
+
+                const Text('Resumen del Periodo', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+                const SizedBox(height: 15),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: _mostrarDialogoVariabilidad,
+                        borderRadius: BorderRadius.circular(15),
+                        child: Container(
+                          padding: const EdgeInsets.all(15),
+                          decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(color: const Color(0xFF0C80EB), width: 1.5) // Borde azul para que parezca tocable
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Text('Variabilidad (CV)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
+                                  SizedBox(width: 4),
+                                  Icon(Icons.info_outline, size: 14, color: Color(0xFF1C63BB)), // Icono de info
+                                ],
+                              ),
+                              const SizedBox(height: 5),
+                              Text('${cv.toStringAsFixed(1)}%', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: cv > 36 ? const Color(0xFFFFB347) : const Color(0xFF06CA23))),
+                              Text('Toca para saber más', style: TextStyle(fontSize: 9, color: Colors.grey)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFD2D2D2))),
+                        child: Column(
+                          children: [
+                            const Text('Lecturas', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                            const SizedBox(height: 5),
+                            Text('${_registrosGlucosa.length}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
+                            const Text('Registros totales', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 40),
+
+                const Divider(thickness: 1, color: Color(0xFFD2D2D2)),
+                const SizedBox(height: 20),
+
+                const Text('Historial de Archivos', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+                const SizedBox(height: 15),
+
+                if (_reportesGenerados.isEmpty)
+                  const Text('Aún no has generado ningún informe para tu médico.', style: TextStyle(color: Colors.grey, fontSize: 14))
+                else
+                  ...List.generate(_reportesGenerados.length, (index) {
+                    final reporte = _reportesGenerados[index];
+
+                    // FORMATO EXACTO: "Historial periodo (y la fecha)"
+                    final String fechaF = DateFormat('dd/MM/yyyy').format(reporte['fecha']);
+                    final titulo = 'Historial periodo ($fechaF)';
+
+                    return Card(
+                      key: Key(reporte['id']),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        side: const BorderSide(color: Color(0xFFD2D2D2)),
+                      ),
+                      elevation: 0,
+                      color: Colors.white,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: const BoxDecoration(color: Color(0xFFE8F4F8), shape: BoxShape.circle),
+                          child: const Icon(Icons.description, color: Color(0xFF1C63BB)),
+                        ),
+                        title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        subtitle: Text('Generado a las: ${DateFormat('HH:mm').format(reporte['fecha'])}', style: const TextStyle(fontSize: 12)),
+                        trailing: const Icon(Icons.visibility, color: Color(0xFF0C80EB)),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => VisorAGPPantalla(
+                                bytes: reporte['bytes'],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  }),
+                const SizedBox(height: 40),
+              ],
+            ),
+          )
+        ],
+      ),
     );
   }
 
@@ -1006,7 +1343,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
               icon: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.access_time_filled, size: 28, color: _indiceNavegacionActual == 2 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
+                  Icon(Icons.picture_as_pdf_sharp, size: 28, color: _indiceNavegacionActual == 2 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
                   if (_indiceNavegacionActual == 2) _puntoRojo(),
                 ],
               ),
@@ -1046,6 +1383,35 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
       decoration: const BoxDecoration(
         color: Color(0xFFFF4A4A),
         shape: BoxShape.circle,
+      ),
+    );
+  }
+}
+
+class VisorAGPPantalla extends StatelessWidget {
+  final Uint8List bytes;
+
+  const VisorAGPPantalla({
+    super.key,
+    required this.bytes,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1C63BB),
+        title: const Text('Informe AGP Generado', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: PdfPreview(
+        build: (format) async => bytes,
+        allowPrinting: true,
+        allowSharing: true,
+        canChangeOrientation: false,
+        canChangePageFormat: false,
+        initialPageFormat: PdfPageFormat.a4,
+        pdfFileName: 'Reporte_AGP_InsulApp.pdf',
       ),
     );
   }
