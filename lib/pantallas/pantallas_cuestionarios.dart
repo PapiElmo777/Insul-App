@@ -344,6 +344,8 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
   final TextEditingController _ricCtrl = TextEditingController();
 
   String? _metodoInsulina;
+  String? _tipoInsulinaInyeccion;
+
   final TextEditingController _insulinaBasalMarcaCtrl = TextEditingController();
   final TextEditingController _insulinaBasalDosisCtrl = TextEditingController();
   final TextEditingController _insulinaRapidaMarcaCtrl = TextEditingController();
@@ -532,6 +534,26 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     final db = DatabaseHelper();
     final usuarioId = await db.obtenerSesionActiva();
     String nombreUsuario = 'Paciente';
+
+    if (_metodoInsulina != 'Inyecciones') {
+      _insulinaBasalMarcaCtrl.clear();
+      _insulinaBasalDosisCtrl.clear();
+      _insulinaRapidaMarcaCtrl.clear();
+      _insulinaRapidaPatronCtrl.clear();
+    } else {
+      if (_tipoInsulinaInyeccion == 'Basal') {
+        _insulinaRapidaMarcaCtrl.clear();
+        _insulinaRapidaPatronCtrl.clear();
+      } else if (_tipoInsulinaInyeccion == 'Bolo') {
+        _insulinaBasalMarcaCtrl.clear();
+        _insulinaBasalDosisCtrl.clear();
+      }
+    }
+
+    if (_metodoInsulina != 'Bomba') {
+      _bombaUnidadesCtrl.clear();
+      _bombaFrecuenciaCtrl.clear();
+    }
 
     if (usuarioId != null) {
       final pacienteData = {
@@ -1033,36 +1055,54 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
             const SizedBox(height: 20),
 
             if (_metodoInsulina == 'Inyecciones') ...[
-              _crearTarjetaGlass(
-                hijo: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Insulina Basal (Larga duración)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                    const SizedBox(height: 5),
-                    const Text('Mantiene tu glucosa estable en ayunas.', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    const SizedBox(height: 15),
-                    _crearCampoTexto(titulo: 'Marca (Ej. Lantus, Tresiba)', hint: 'Escribe la marca', controlador: _insulinaBasalMarcaCtrl, esNumero: false),
-                    const SizedBox(height: 15),
-                    _crearCampoTexto(titulo: 'Dosis Fija Diaria (Unidades)', hint: 'Ej. 20', controlador: _insulinaBasalDosisCtrl, esNumero: true),
-                  ],
-                ),
+              const Text('Tipo de Insulina', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(child: _crearChipSeleccion('Basal', _tipoInsulinaInyeccion == 'Basal', () => setState(() => _tipoInsulinaInyeccion = 'Basal'))),
+                  const SizedBox(width: 10),
+                  Expanded(child: _crearChipSeleccion('Bolo', _tipoInsulinaInyeccion == 'Bolo', () => setState(() => _tipoInsulinaInyeccion = 'Bolo'))),
+                  const SizedBox(width: 10),
+                  Expanded(child: _crearChipSeleccion('Ambas', _tipoInsulinaInyeccion == 'Ambas', () => setState(() => _tipoInsulinaInyeccion = 'Ambas'))),
+                ],
               ),
               const SizedBox(height: 20),
 
-              _crearTarjetaGlass(
-                hijo: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Insulina de Bolo (Acción rápida)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                    const SizedBox(height: 5),
-                    const Text('Para cubrir comidas o corregir niveles altos.', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    const SizedBox(height: 15),
-                    _crearCampoTexto(titulo: 'Marca (Ej. Humalog, Novolog)', hint: 'Escribe la marca', controlador: _insulinaRapidaMarcaCtrl, esNumero: false),
-                    const SizedBox(height: 15),
-                    _crearCampoTexto(titulo: 'Patrón de uso', hint: 'Ej. 5 U por comida...', controlador: _insulinaRapidaPatronCtrl, esNumero: false),
-                  ],
+              if (_tipoInsulinaInyeccion == 'Basal' || _tipoInsulinaInyeccion == 'Ambas') ...[
+                _crearTarjetaGlass(
+                  hijo: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Insulina Basal (Larga duración)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                      const SizedBox(height: 5),
+                      const Text('Mantiene tu glucosa estable en ayunas.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      const SizedBox(height: 15),
+                      _crearCampoTexto(titulo: 'Marca (Ej. Lantus, Tresiba)', hint: 'Escribe la marca', controlador: _insulinaBasalMarcaCtrl, esNumero: false),
+                      const SizedBox(height: 15),
+                      _crearCampoTexto(titulo: 'Dosis Fija Diaria (Unidades)', hint: 'Ej. 20', controlador: _insulinaBasalDosisCtrl, esNumero: true),
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(height: 20),
+              ],
+
+              if (_tipoInsulinaInyeccion == 'Bolo' || _tipoInsulinaInyeccion == 'Ambas') ...[
+                _crearTarjetaGlass(
+                  hijo: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Insulina de Bolo (Acción rápida)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                      const SizedBox(height: 5),
+                      const Text('Para cubrir comidas o corregir niveles altos.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      const SizedBox(height: 15),
+                      _crearCampoTexto(titulo: 'Marca (Ej. Humalog, Novolog)', hint: 'Escribe la marca', controlador: _insulinaRapidaMarcaCtrl, esNumero: false),
+                      const SizedBox(height: 15),
+                      _crearCampoTexto(titulo: 'Patrón de uso', hint: 'Ej. 5 U por comida...', controlador: _insulinaRapidaPatronCtrl, esNumero: false),
+                    ],
+                  ),
+                ),
+              ],
+
             ] else if (_metodoInsulina == 'Bomba') ...[
               _crearCampoTexto(titulo: 'Unidades Base', hint: 'Ej. 0.5 U/hr', controlador: _bombaUnidadesCtrl, esNumero: false),
               const SizedBox(height: 20),
@@ -1523,6 +1563,8 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
   final TextEditingController _ricCtrl = TextEditingController();
 
   String? _metodoInsulinaPaciente;
+  String? _tipoInsulinaInyeccionPaciente;
+
   final TextEditingController _insulinaBasalMarcaCtrl = TextEditingController();
   final TextEditingController _insulinaBasalDosisCtrl = TextEditingController();
   final TextEditingController _insulinaRapidaMarcaCtrl = TextEditingController();
@@ -2159,36 +2201,53 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
             const SizedBox(height: 20),
 
             if (_metodoInsulinaPaciente == 'Inyecciones') ...[
-              _crearTarjetaGlass(
-                hijo: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Insulina Basal (Larga duración)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                    const SizedBox(height: 5),
-                    const Text('Mantiene la glucosa del paciente estable en ayunas.', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    const SizedBox(height: 15),
-                    _crearCampoTexto(titulo: 'Marca (Ej. Lantus, Tresiba)', hint: 'Escribe la marca', controlador: _insulinaBasalMarcaCtrl, esNumero: false),
-                    const SizedBox(height: 15),
-                    _crearCampoTexto(titulo: 'Dosis Fija Diaria (Unidades)', hint: 'Ej. 20', controlador: _insulinaBasalDosisCtrl, esNumero: true),
-                  ],
-                ),
+              const Text('Tipo de Insulina', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(child: _crearChipSeleccion('Basal', _tipoInsulinaInyeccionPaciente == 'Basal', () => setState(() => _tipoInsulinaInyeccionPaciente = 'Basal'))),
+                  const SizedBox(width: 10),
+                  Expanded(child: _crearChipSeleccion('Bolo', _tipoInsulinaInyeccionPaciente == 'Bolo', () => setState(() => _tipoInsulinaInyeccionPaciente = 'Bolo'))),
+                  const SizedBox(width: 10),
+                  Expanded(child: _crearChipSeleccion('Ambas', _tipoInsulinaInyeccionPaciente == 'Ambas', () => setState(() => _tipoInsulinaInyeccionPaciente = 'Ambas'))),
+                ],
               ),
               const SizedBox(height: 20),
 
-              _crearTarjetaGlass(
-                hijo: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Insulina de Bolo (Acción rápida)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                    const SizedBox(height: 5),
-                    const Text('Para cubrir comidas o corregir niveles altos.', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    const SizedBox(height: 15),
-                    _crearCampoTexto(titulo: 'Marca (Ej. Humalog, Novolog)', hint: 'Escribe la marca', controlador: _insulinaRapidaMarcaCtrl, esNumero: false),
-                    const SizedBox(height: 15),
-                    _crearCampoTexto(titulo: 'Patrón de uso', hint: 'Ej. 5 U por comida...', controlador: _insulinaRapidaPatronCtrl, esNumero: false),
-                  ],
+              if (_tipoInsulinaInyeccionPaciente == 'Basal' || _tipoInsulinaInyeccionPaciente == 'Ambas') ...[
+                _crearTarjetaGlass(
+                  hijo: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Insulina Basal (Larga duración)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                      const SizedBox(height: 5),
+                      const Text('Mantiene la glucosa del paciente estable en ayunas.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      const SizedBox(height: 15),
+                      _crearCampoTexto(titulo: 'Marca (Ej. Lantus, Tresiba)', hint: 'Escribe la marca', controlador: _insulinaBasalMarcaCtrl, esNumero: false),
+                      const SizedBox(height: 15),
+                      _crearCampoTexto(titulo: 'Dosis Fija Diaria (Unidades)', hint: 'Ej. 20', controlador: _insulinaBasalDosisCtrl, esNumero: true),
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(height: 20),
+              ],
+
+              if (_tipoInsulinaInyeccionPaciente == 'Bolo' || _tipoInsulinaInyeccionPaciente == 'Ambas') ...[
+                _crearTarjetaGlass(
+                  hijo: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Insulina de Bolo (Acción rápida)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                      const SizedBox(height: 5),
+                      const Text('Para cubrir comidas o corregir niveles altos.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      const SizedBox(height: 15),
+                      _crearCampoTexto(titulo: 'Marca (Ej. Humalog, Novolog)', hint: 'Escribe la marca', controlador: _insulinaRapidaMarcaCtrl, esNumero: false),
+                      const SizedBox(height: 15),
+                      _crearCampoTexto(titulo: 'Patrón de uso', hint: 'Ej. 5 U por comida...', controlador: _insulinaRapidaPatronCtrl, esNumero: false),
+                    ],
+                  ),
+                ),
+              ],
             ] else if (_metodoInsulinaPaciente == 'Bomba') ...[
               _crearCampoTexto(titulo: 'Unidades Base', hint: 'Ej. 0.5 U/hr', controlador: _bombaUnidadesCtrl, esNumero: false),
               const SizedBox(height: 20),

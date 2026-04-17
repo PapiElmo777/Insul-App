@@ -5,6 +5,7 @@ import 'dart:io';
 import 'pantalla_registros_paciente.dart';
 import '../../database/database_helper.dart';
 import 'pantalla_perfil_paciente.dart';
+import 'pantalla_medicamentos_paciente.dart';
 
 class PantallaInicioPaciente extends StatefulWidget {
   final String nombrePaciente;
@@ -26,6 +27,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
   bool _cargandoDatos = true;
   File? _imagenPerfil;
 
+  // Variables de control
   int limiteHipo = 70;
   int limiteHiper = 180;
   int rangoMin = 80;
@@ -47,12 +49,11 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
     if (usuarioId != null) {
       final usuario = await db.obtenerUsuarioPorId(usuarioId);
       final paciente = await db.obtenerPacientePorUsuario(usuarioId);
-
-      if (usuario != null && paciente != null) {
+      if (paciente != null) {
         _pacienteId = paciente['id'];
 
-        if (usuario['foto_perfil'] != null && usuario['foto_perfil'].toString().isNotEmpty) {
-          _imagenPerfil = File(usuario['foto_perfil']);
+        if (usuario?['foto_perfil'] != null && usuario!['foto_perfil'].toString().isNotEmpty) {
+          _imagenPerfil = File(usuario?['foto_perfil']);
         } else {
           _imagenPerfil = null;
         }
@@ -499,12 +500,16 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
             }
           },
         )
+            : _indiceNavegacionActual == 2
+            ? const Center(child: Text("Historial Clínico (Próximamente)", style: TextStyle(color: Colors.grey)))
             : _indiceNavegacionActual == 3
+            ? const PantallaMedicamentosPaciente()
+            : _indiceNavegacionActual == 4
             ? TabPerfilPaciente(
           nombrePaciente: widget.nombrePaciente,
           onActualizarDashboard: _cargarDatosBD,
         )
-            : _construirPlaceholderTabs(),
+            : const Center(child: Text("Pestaña no encontrada")),
       ),
       bottomNavigationBar: _construirBottomNavigation(),
     );
@@ -583,25 +588,15 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                   ],
                 ),
               ),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _indiceNavegacionActual = 3;
-                  });
-                },
-                child: Container(
-                  width: 55,
-                  height: 55,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.2),
-                    border: Border.all(color: Colors.white, width: 2),
-                    image: _imagenPerfil != null
-                        ? DecorationImage(image: FileImage(_imagenPerfil!), fit: BoxFit.cover)
-                        : null,
-                  ),
-                  child: _imagenPerfil == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
+              Container(
+                width: 55,
+                height: 55,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.2),
+                  border: Border.all(color: Colors.white, width: 2),
                 ),
+                child: const Icon(Icons.person, color: Colors.white, size: 30),
               ),
             ],
           ),
@@ -865,7 +860,10 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                       _crearAccionRapida(Icons.edit_document, 'Registrar Lectura de Glucosa', () {
                         _mostrarFormularioNuevaMedida();
                       }),
-                      _crearAccionRapida(Icons.edit_document, 'Registrar Medicamento', () {
+                      _crearAccionRapida(Icons.medication, 'Registrar Medicamento', () {
+                        setState(() {
+                          _indiceNavegacionActual = 3;
+                        });
                       }),
                       const Divider(color: Color(0xFFE8E8E8), thickness: 1.5, height: 1),
                       _crearAccionRapida(Icons.timeline, 'Ver Historial Completo', () {
@@ -950,15 +948,6 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
     );
   }
 
-  Widget _construirPlaceholderTabs() {
-    return Center(
-      child: Text(
-        'Pestaña en construcción',
-        style: TextStyle(color: Colors.grey.shade400, fontSize: 18),
-      ),
-    );
-  }
-
   Widget _construirBottomNavigation() {
     return Container(
       decoration: const BoxDecoration(
@@ -1027,8 +1016,18 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
               icon: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.person, size: 28, color: _indiceNavegacionActual == 3 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
+                  Icon(Icons.medication, size: 28, color: _indiceNavegacionActual == 3 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
                   if (_indiceNavegacionActual == 3) _puntoRojo(),
+                ],
+              ),
+              label: 'Medicamentos',
+            ),
+            BottomNavigationBarItem(
+              icon: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.person, size: 28, color: _indiceNavegacionActual == 4 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
+                  if (_indiceNavegacionActual == 4) _puntoRojo(),
                 ],
               ),
               label: 'Perfil',
