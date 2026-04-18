@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../database/database_helper.dart';
 
 class PantallaMedicamentosPaciente extends StatefulWidget {
@@ -28,6 +29,9 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
 
   // Medicamentos
   List<Map<String, dynamic>> _medicamentos = [];
+
+  // Historial de dosis
+  List<Map<String, dynamic>> _historialInsulina = [];
 
   // Alertas locales
   bool _alertasInsulinaActivadas = true;
@@ -84,6 +88,25 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
             });
           }
         }
+
+        final registrosDB = await db.obtenerRegistrosGlucosa(_pacienteId!);
+        _historialInsulina = registrosDB.where((r) {
+          final nota = (r['notas'] ?? '').toString();
+          return nota.contains('Dosis ADA Calculada:') || nota.contains('Dosis Manual:');
+        }).map((r) {
+          final nota = r['notas'].toString();
+          final regex = RegExp(r'Dosis (?:ADA Calculada|Manual):\s*([0-9.]+)\s*UI');
+          final match = regex.firstMatch(nota);
+          String dosis = '0';
+          if(match != null && match.groupCount >= 1) {
+            dosis = match.group(1)!;
+          }
+          return {
+            'dosis': dosis,
+            'fecha': DateTime.parse(r['fecha']),
+            'momento': r['momento']
+          };
+        }).toList();
       }
     }
 
@@ -206,6 +229,81 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
     );
   }
 
+  void _mostrarDialogoAgregarDosisInsulina() {
+    final dosisCtrl = TextEditingController();
+    final notasCtrl = TextEditingController();
+    String momentoSeleccionado = 'Almuerzo';
+    DateTime fechaSeleccionada = DateTime.now();
+
+    showDialog(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+              builder: (context, setStateDialog) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  title: const Text('Registrar Aplicación', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _crearCampo('Unidades aplicadas (UI)', dosisCtrl, esNumero: true),
+                        const SizedBox(height: 15),
+                        const Align(alignment: Alignment.centerLeft, child: Text('Momento:', style: TextStyle(fontSize: 13, color: Colors.grey))),
+                        const SizedBox(height: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(10)),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: momentoSeleccionado,
+                              isExpanded: true,
+                              items: ['Desayuno', 'Almuerzo', 'Cena', 'Merienda', 'Madrugada', 'Otro'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                              onChanged: (val) => setStateDialog(() => momentoSeleccionado = val!),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        _crearCampo('Notas / Insulina utilizada', notasCtrl),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (dosisCtrl.text.isEmpty || _pacienteId == null) return;
+                        final dosis = double.tryParse(dosisCtrl.text) ?? 0.0;
+                        if(dosis <= 0) return;
+
+                        final db = DatabaseHelper();
+                        String notasFinales = "Dosis Manual: $dosis UI.";
+                        if(notasCtrl.text.isNotEmpty) notasFinales += " Notas: ${notasCtrl.text}";
+                        await db.insertarRegistroGlucosa({
+                          'paciente_id': _pacienteId,
+                          'valor': 0,
+                          'momento': momentoSeleccionado,
+                          'notas': notasFinales,
+                          'fecha': fechaSeleccionada.toIso8601String(),
+                        });
+
+                        await _cargarDatos();
+                        if (mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aplicación de insulina registrada con éxito.'), backgroundColor: Color(0xFF2E7D32)));
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+                      child: const Text('Guardar Dosis', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                );
+              }
+          );
+        }
+    );
+  }
+
   void _mostrarDialogoEditarMonitoreo() {
     String tempFrecuencia = _frecuenciaMonitoreo;
     showDialog(
@@ -323,9 +421,10 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
     );
   }
 
-  Widget _crearCampo(String label, TextEditingController controlador) {
+  Widget _crearCampo(String label, TextEditingController controlador, {bool esNumero = false}) {
     return TextField(
       controller: controlador,
+      keyboardType: esNumero ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.grey, fontSize: 13),
@@ -557,6 +656,72 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
                           ]
                         ]
                     )
+                ),
+                const SizedBox(height: 20),
+              ],
+
+              if (_metodoInsulina != 'No usa' && _metodoInsulina != 'No especificado') ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFD2D2D2), width: 1.5),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.history, color: Color(0xFF2E7D32)),
+                          const SizedBox(width: 10),
+                          const Expanded(child: Text('Historial de Aplicaciones', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87))),
+                          ElevatedButton.icon(
+                            onPressed: _mostrarDialogoAgregarDosisInsulina,
+                            icon: const Icon(Icons.add, size: 16, color: Colors.white),
+                            label: const Text('Dosis', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2E7D32),
+                              minimumSize: const Size(0, 36),
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 15),
+                      if (_historialInsulina.isEmpty)
+                        const Text('No hay aplicaciones de insulina registradas.', style: TextStyle(color: Colors.grey, fontSize: 14))
+                      else
+                        ..._historialInsulina.take(5).map((registro) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  margin: const EdgeInsets.only(top: 3),
+                                  width: 10, height: 10,
+                                  decoration: const BoxDecoration(color: Color(0xFF2E7D32), shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('${registro['dosis']} UI', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2E7D32))),
+                                      Text(DateFormat("d 'de' MMM, HH:mm", 'es_ES').format(registro['fecha'] as DateTime), style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                                      Text('Momento: ${registro['momento']}', style: const TextStyle(color: Colors.black87, fontSize: 13)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 20),
               ],

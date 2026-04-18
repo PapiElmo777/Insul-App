@@ -88,7 +88,9 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
         rangoMax = _datosPacienteComp['rangoMax'];
 
         final registrosBD = await db.obtenerRegistrosGlucosa(_pacienteId!);
-        _registrosGlucosa = registrosBD.map((r) => {
+        _registrosGlucosa = registrosBD
+            .where((r) => (r['valor'] as num) > 0)
+            .map((r) => {
           'valor': (r['valor'] as num).toInt(),
           'momento': r['momento'],
           'fecha': DateTime.parse(r['fecha']),
@@ -339,27 +341,12 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Tiempo en Rango (TIR)',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Color(0xFF2F2F2F),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.grey),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                    const Text('Tiempo en Rango (TIR)', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2F2F2F))),
+                    IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () => Navigator.pop(context)),
                   ],
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'El TIR es el porcentaje del tiempo que tu glucosa está en cada nivel (dentro y fuera de rango).',
-                  style: TextStyle(fontFamily: 'Roboto', fontSize: 13, color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
+                const Text('El TIR es el porcentaje del tiempo que tu glucosa está en cada nivel (dentro y fuera de rango).', style: TextStyle(fontFamily: 'Roboto', fontSize: 13, color: Colors.grey), textAlign: TextAlign.center),
                 const SizedBox(height: 25),
                 SizedBox(
                   height: 320,
@@ -371,17 +358,11 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: _etiquetaTir('Hiperglucemia', '$pctHiper%', const Color(0xFFD32F2F)),
-                            ),
+                            Padding(padding: const EdgeInsets.only(top: 8), child: _etiquetaTir('Hiperglucemia', '$pctHiper%', const Color(0xFFD32F2F))),
                             _etiquetaTir('Elevado', '$pctElevado%', const Color(0xFFE65100)),
                             _etiquetaTir('En Rango', '$pctNormal%', const Color(0xFF2E7D32), esMeta: true),
                             _etiquetaTir('Bajo', '$pctBajo%', const Color(0xFFE65100)),
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: _etiquetaTir('Hipoglucemia', '$pctHipo%', const Color(0xFFD32F2F)),
-                            ),
+                            Padding(padding: const EdgeInsets.only(bottom: 8), child: _etiquetaTir('Hipoglucemia', '$pctHipo%', const Color(0xFFD32F2F))),
                           ],
                         ),
                       ),
@@ -389,48 +370,14 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                       ClipPath(
                         clipper: _DropClipper(),
                         child: Container(
-                          width: 145,
-                          height: 320,
-                          color: Colors.white,
+                          width: 145, height: 320, color: Colors.white,
                           child: Column(
                             children: [
-                              Container(
-                                height: 50,
-                                width: double.infinity,
-                                color: const Color(0xFFD32F2F),
-                                alignment: Alignment.bottomCenter,
-                                padding: const EdgeInsets.only(bottom: 2),
-                                child: Text('>$limiteHiper\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white, height: 1.1)),
-                              ),
-                              Container(
-                                height: 55,
-                                width: double.infinity,
-                                color: const Color(0xFFE65100),
-                                alignment: Alignment.center,
-                                child: Text('${rangoMax + 1}-$limiteHiper\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white, height: 1.1)),
-                              ),
-                              Container(
-                                height: 110,
-                                width: double.infinity,
-                                color: const Color(0xFF2E7D32),
-                                alignment: Alignment.center,
-                                child: Text('Objetivo\n$rangoMin-$rangoMax\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white, height: 1.2)),
-                              ),
-                              Container(
-                                height: 55,
-                                width: double.infinity,
-                                color: const Color(0xFFE65100),
-                                alignment: Alignment.center,
-                                child: Text('$limiteHipo-${rangoMin - 1}\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white, height: 1.1)),
-                              ),
-                              Container(
-                                height: 50,
-                                width: double.infinity,
-                                color: const Color(0xFFD32F2F),
-                                alignment: Alignment.topCenter,
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text('<$limiteHipo mg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 11)),
-                              ),
+                              Container(height: 50, width: double.infinity, color: const Color(0xFFD32F2F), alignment: Alignment.bottomCenter, padding: const EdgeInsets.only(bottom: 2), child: Text('>$limiteHiper\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white, height: 1.1))),
+                              Container(height: 55, width: double.infinity, color: const Color(0xFFE65100), alignment: Alignment.center, child: Text('${rangoMax + 1}-$limiteHiper\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white, height: 1.1))),
+                              Container(height: 110, width: double.infinity, color: const Color(0xFF2E7D32), alignment: Alignment.center, child: Text('Objetivo\n$rangoMin-$rangoMax\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white, height: 1.2))),
+                              Container(height: 55, width: double.infinity, color: const Color(0xFFE65100), alignment: Alignment.center, child: Text('$limiteHipo-${rangoMin - 1}\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white, height: 1.1))),
+                              Container(height: 50, width: double.infinity, color: const Color(0xFFD32F2F), alignment: Alignment.topCenter, padding: const EdgeInsets.only(top: 4), child: Text('<$limiteHipo mg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 11))),
                             ],
                           ),
                         ),
@@ -461,42 +408,18 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
               children: [
                 const Icon(Icons.waves, size: 50, color: Color(0xFF1C63BB)),
                 const SizedBox(height: 15),
-                const Text(
-                  'Variabilidad Glucémica (CV)',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black87),
-                ),
+                const Text('Variabilidad Glucémica (CV)', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black87)),
                 const SizedBox(height: 15),
-                const Text(
-                  'El Coeficiente de Variación (CV) mide qué tanto "brincan" tus niveles de azúcar respecto a tu promedio diario.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.black54),
-                ),
+                const Text('El Coeficiente de Variación (CV) mide qué tanto "brincan" tus niveles de azúcar respecto a tu promedio diario.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.black54)),
                 const SizedBox(height: 15),
                 Container(
                   padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F7FA),
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: const Color(0xFFD2D2D2)),
-                  ),
+                  decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFD2D2D2))),
                   child: Column(
                     children: [
-                      Row(
-                        children: const [
-                          Icon(Icons.check_circle, color: Color(0xFF2E7D32), size: 20),
-                          SizedBox(width: 10),
-                          Expanded(child: Text('Menor al 36% indica niveles estables (buen control).', style: TextStyle(fontSize: 13))),
-                        ],
-                      ),
+                      Row(children: const [Icon(Icons.check_circle, color: Color(0xFF2E7D32), size: 20), SizedBox(width: 10), Expanded(child: Text('Menor al 36% indica niveles estables (buen control).', style: TextStyle(fontSize: 13)))]),
                       const SizedBox(height: 10),
-                      Row(
-                        children: const [
-                          Icon(Icons.warning, color: Color(0xFFE65100), size: 20),
-                          SizedBox(width: 10),
-                          Expanded(child: Text('Mayor al 36% significa picos altos y bajos frecuentes, lo que puede causar daño a largo plazo.', style: TextStyle(fontSize: 13))),
-                        ],
-                      ),
+                      Row(children: const [Icon(Icons.warning, color: Color(0xFFE65100), size: 20), SizedBox(width: 10), Expanded(child: Text('Mayor al 36% significa picos altos y bajos frecuentes, lo que puede causar daño a largo plazo.', style: TextStyle(fontSize: 13)))]),
                     ],
                   ),
                 ),
@@ -505,10 +428,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF008CCF),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008CCF), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
                     child: const Text('Entendido', style: TextStyle(color: Colors.white)),
                   ),
                 )
@@ -552,14 +472,10 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _itemLeyenda(const Color(0xFFD32F2F), 'Hipo'),
-            const SizedBox(width: 15),
-            _itemLeyenda(const Color(0xFFE65100), 'Bajo'),
-            const SizedBox(width: 15),
-            _itemLeyenda(const Color(0xFF2E7D32), 'Normal'),
-            const SizedBox(width: 15),
-            _itemLeyenda(const Color(0xFFE65100), 'Elevado'),
-            const SizedBox(width: 15),
+            _itemLeyenda(const Color(0xFFD32F2F), 'Hipo'), const SizedBox(width: 15),
+            _itemLeyenda(const Color(0xFFE65100), 'Bajo'), const SizedBox(width: 15),
+            _itemLeyenda(const Color(0xFF2E7D32), 'Normal'), const SizedBox(width: 15),
+            _itemLeyenda(const Color(0xFFE65100), 'Elevado'), const SizedBox(width: 15),
             _itemLeyenda(const Color(0xFFD32F2F), 'Hiper'),
           ],
         ),
@@ -571,10 +487,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 10, height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 5),
         Text(texto, style: const TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w600)),
       ],
@@ -868,7 +781,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                   ),
                 );
               }),
-            const SizedBox(height: 20),
+            const SizedBox(height: 40),
           ],
         ),
       ),
