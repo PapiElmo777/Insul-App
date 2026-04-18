@@ -99,6 +99,17 @@ class DatabaseHelper {
         FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE
       )
     ''');
+    // TABLA PARA EL ALIMENTOS
+    await db.execute('''
+      CREATE TABLE alimentos_frecuentes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        paciente_id INTEGER NOT NULL,
+        nombre TEXT NOT NULL,
+        carbos_por_100g REAL NOT NULL,
+        veces_usado INTEGER DEFAULT 1,
+        FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE
+      )
+    ''');
 
     await db.execute('''
       CREATE TABLE registros_glucosa (
@@ -461,5 +472,33 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> obtenerReportesDeEnfermero(int enfermeroId) async {
     final baseDatos = await db;
     return await baseDatos.query('reportes_enfermero', where: 'enfermero_id = ?', whereArgs: [enfermeroId], orderBy: 'fecha DESC');
+  }
+  //Alimentos frecuentes
+  Future<void> guardarAlimentoFrecuente(int pacienteId, String nombre, double carbosPor100g) async {
+    final baseDatos = await db;
+    final existe = await baseDatos.query('alimentos_frecuentes', where: 'paciente_id = ? AND nombre = ?', whereArgs: [pacienteId, nombre]);
+
+    if (existe.isNotEmpty) {
+      int usoActual = existe.first['veces_usado'] as int;
+      await baseDatos.update('alimentos_frecuentes', {'veces_usado': usoActual + 1}, where: 'id = ?', whereArgs: [existe.first['id']]);
+    } else {
+      await baseDatos.insert('alimentos_frecuentes', {
+        'paciente_id': pacienteId,
+        'nombre': nombre,
+        'carbos_por_100g': carbosPor100g,
+        'veces_usado': 1
+      });
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerAlimentosFrecuentes(int pacienteId) async {
+    final baseDatos = await db;
+    return await baseDatos.query(
+      'alimentos_frecuentes',
+      where: 'paciente_id = ?',
+      whereArgs: [pacienteId],
+      orderBy: 'veces_usado DESC',
+      limit: 10,
+    );
   }
 }
