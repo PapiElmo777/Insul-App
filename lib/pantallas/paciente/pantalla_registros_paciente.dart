@@ -65,6 +65,7 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
@@ -113,11 +114,32 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
               const Divider(height: 20),
               _filaDetalle(Icons.restaurant_menu, 'Periodo', registro['momento']),
               const Divider(height: 20),
-              _filaDetalle(
-                  Icons.note_alt_outlined,
-                  'Notas',
-                  notas.isNotEmpty ? '"$notas"' : 'Sin notas registradas',
-                  esNota: notas.isNotEmpty
+              // PUNTO 5: Aquí arreglamos el problema del overflow envolviéndolo en una fila flexible
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.note_alt_outlined, color: Color(0xFF1C63BB), size: 20),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Notas', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 2),
+                        Text(
+                          notas.isNotEmpty ? '"$notas"' : 'Sin notas registradas',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: notas.isNotEmpty ? Colors.black54 : Colors.black87,
+                            fontWeight: notas.isNotEmpty ? FontWeight.normal : FontWeight.w600,
+                            fontStyle: notas.isNotEmpty ? FontStyle.italic : FontStyle.normal,
+                          ),
+                          softWrap: true, // Permite múltiples líneas
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
             ],
