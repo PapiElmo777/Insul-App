@@ -11,6 +11,7 @@ import 'pantalla_registros_paciente.dart';
 import '../../database/database_helper.dart';
 import 'pantalla_perfil_paciente.dart';
 import 'pantalla_medicamentos_paciente.dart';
+import 'pantalla_calculadora_dosis.dart';
 
 class PantallaInicioPaciente extends StatefulWidget {
   final String nombrePaciente;
@@ -591,43 +592,49 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      body: _indiceNavegacionActual == 0
-          ? _construirDashboard()
-          : _indiceNavegacionActual == 1
-          ? SafeArea(
-        child: PantallaRegistrosPaciente(
-          registros: _registrosGlucosa,
-          limiteHipo: limiteHipo,
-          limiteHiper: limiteHiper,
-          rangoMin: rangoMin,
-          rangoMax: rangoMax,
-          onAgregarRegistro: (nuevoRegistro) async {
-            if (_pacienteId != null) {
-              final db = DatabaseHelper();
-              await db.insertarRegistroGlucosa({
-                'paciente_id': _pacienteId,
-                'valor': nuevoRegistro['valor'],
-                'momento': nuevoRegistro['momento'],
-                'notas': nuevoRegistro['notas'],
-                'fecha': (nuevoRegistro['fecha'] as DateTime).toIso8601String(),
-              });
-              await _cargarDatosBD();
-            }
-          },
-        ),
-      )
-          : _indiceNavegacionActual == 2
-          ? _construirTabHistorial()
-          : _indiceNavegacionActual == 3
-          ? const SafeArea(child: PantallaMedicamentosPaciente())
-          : _indiceNavegacionActual == 4
-          ? SafeArea(
-        child: TabPerfilPaciente(
-          nombrePaciente: widget.nombrePaciente,
-          onActualizarDashboard: _cargarDatosBD,
-        ),
-      )
-          : const Center(child: Text("Pestaña no encontrada")),
+      body: IndexedStack(
+        index: _indiceNavegacionActual,
+        children: [
+          _construirDashboard(),
+          SafeArea(
+            child: PantallaRegistrosPaciente(
+              registros: _registrosGlucosa,
+              limiteHipo: limiteHipo,
+              limiteHiper: limiteHiper,
+              rangoMin: rangoMin,
+              rangoMax: rangoMax,
+              onAgregarRegistro: (nuevoRegistro) async {
+                if (_pacienteId != null) {
+                  final db = DatabaseHelper();
+                  await db.insertarRegistroGlucosa({
+                    'paciente_id': _pacienteId,
+                    'valor': nuevoRegistro['valor'],
+                    'momento': nuevoRegistro['momento'],
+                    'notas': nuevoRegistro['notas'],
+                    'fecha': (nuevoRegistro['fecha'] as DateTime).toIso8601String(),
+                  });
+                  await _cargarDatosBD();
+                }
+              },
+            ),
+          ),
+
+          PantallaCalculadoraDosis(
+            onRegistroGuardado: _cargarDatosBD,
+          ),
+
+          _construirTabHistorial(),
+
+          const SafeArea(child: PantallaMedicamentosPaciente()),
+
+          SafeArea(
+            child: TabPerfilPaciente(
+              nombrePaciente: widget.nombrePaciente,
+              onActualizarDashboard: _cargarDatosBD,
+            ),
+          ),
+        ],
+      ),
       bottomNavigationBar: _construirBottomNavigation(),
     );
   }
@@ -790,7 +797,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                           ),
                           const SizedBox(height: 5),
                           Text('${cv.toStringAsFixed(1)}%', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: cv > 36 ? const Color(0xFFE65100) : const Color(0xFF2E7D32))),
-                          Text('Toca para saber más', style: TextStyle(fontSize: 9, color: Colors.grey)),
+                          const Text('Toca para saber más', style: TextStyle(fontSize: 9, color: Colors.grey)),
                         ],
                       ),
                     ),
@@ -861,7 +868,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                   ),
                 );
               }),
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -926,7 +933,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          setState(() { _indiceNavegacionActual = 4; });
+                          setState(() { _indiceNavegacionActual = 5; });
                         },
                         child: Container(
                           width: 55, height: 55,
@@ -1081,7 +1088,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                     _mostrarFormularioNuevaMedida();
                   }),
                   _crearAccionRapida(Icons.medication, 'Registrar Medicamento', () {
-                    setState(() { _indiceNavegacionActual = 3; });
+                    setState(() { _indiceNavegacionActual = 4; });
                   }),
                   const Divider(color: Color(0xFFE8E8E8), thickness: 1.5, height: 1),
                   _crearAccionRapida(Icons.timeline, 'Ver Historial Completo', () {
@@ -1189,8 +1196,18 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
               icon: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.picture_as_pdf_sharp, size: 28, color: _indiceNavegacionActual == 2 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
+                  Icon(Icons.calculate, size: 28, color: _indiceNavegacionActual == 2 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
                   if (_indiceNavegacionActual == 2) _puntoRojo(),
+                ],
+              ),
+              label: 'Cálculo',
+            ),
+            BottomNavigationBarItem(
+              icon: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.picture_as_pdf_sharp, size: 28, color: _indiceNavegacionActual == 3 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
+                  if (_indiceNavegacionActual == 3) _puntoRojo(),
                 ],
               ),
               label: 'Historial',
@@ -1199,8 +1216,8 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
               icon: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.medication, size: 28, color: _indiceNavegacionActual == 3 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
-                  if (_indiceNavegacionActual == 3) _puntoRojo(),
+                  Icon(Icons.medication, size: 28, color: _indiceNavegacionActual == 4 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
+                  if (_indiceNavegacionActual == 4) _puntoRojo(),
                 ],
               ),
               label: 'Medicamentos',
@@ -1209,8 +1226,8 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
               icon: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.person, size: 28, color: _indiceNavegacionActual == 4 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
-                  if (_indiceNavegacionActual == 4) _puntoRojo(),
+                  Icon(Icons.person, size: 28, color: _indiceNavegacionActual == 5 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
+                  if (_indiceNavegacionActual == 5) _puntoRojo(),
                 ],
               ),
               label: 'Perfil',
