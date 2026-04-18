@@ -138,8 +138,8 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
     final fsi       = double.tryParse(_fsiCtrl.text)       ?? _fsiBD;
     final objetivo  = double.tryParse(_objetivoCtrl.text)  ?? _objetivoBD;
 
-    if (carbs <= 0 && glucosa <= 0) {
-      _mostrarError('Ingresa al menos los gramos de carbohidratos o tu glucosa actual.');
+    if (_glucosaCtrl.text.trim().isEmpty || glucosa <= 0) {
+      _mostrarError('Es obligatorio ingresar tu nivel de glucosa actual para realizar el cálculo de forma segura.');
       return;
     }
 
