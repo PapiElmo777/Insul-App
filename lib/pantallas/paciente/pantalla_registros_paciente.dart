@@ -44,12 +44,13 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
   }
 
   List<Map<String, dynamic>> _obtenerRegistrosFiltrados() {
-    if (_filtroDias == 'Todos') return widget.registros;
+    final registrosValidos = widget.registros.where((r) => r['valor'] > 0).toList();
+    if (_filtroDias == 'Todos') return registrosValidos;
 
     int dias = int.parse(_filtroDias);
     DateTime limite = DateTime.now().subtract(Duration(days: dias));
 
-    return widget.registros.where((r) {
+    return registrosValidos.where((r) {
       DateTime fechaRegistro = r['fecha'];
       return fechaRegistro.isAfter(limite);
     }).toList();
@@ -280,6 +281,8 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
   @override
   Widget build(BuildContext context) {
     List<Map<String, dynamic>> registrosGrafica = _obtenerRegistrosFiltrados();
+    List<Map<String, dynamic>> registrosLecturas = widget.registros.where((r) => r['valor'] > 0).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       body: NestedScrollView(
@@ -287,7 +290,7 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
           return <Widget>[
             SliverAppBar(
               backgroundColor: const Color(0xFF1C63BB),
-              expandedHeight: 110.0,
+              expandedHeight: 140.0,
               floating: true,
               snap: true,
               pinned: false,
@@ -313,6 +316,11 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                             fontSize: 28,
                             color: Colors.white,
                           ),
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          'Registra, visualiza y analiza el historial de tus niveles de glucosa en sangre.',
+                          style: TextStyle(color: Color(0xFFE8E8E8), fontSize: 14),
                         ),
                       ],
                     ),
@@ -370,7 +378,7 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                         ),
                       ),
                     ),
-                    if (widget.registros.isEmpty)
+                    if (registrosLecturas.isEmpty)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 30),
                         child: Center(
@@ -381,8 +389,8 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                         ),
                       )
                     else
-                      ...widget.registros.take(10).map((registro) => _crearTarjetaRegistro(registro)).toList(),
-                    if (widget.registros.length > 10)
+                      ...registrosLecturas.take(10).map((registro) => _crearTarjetaRegistro(registro)).toList(),
+                    if (registrosLecturas.length > 10)
                       const Center(
                         child: Padding(
                           padding: EdgeInsets.only(top: 10),
