@@ -180,16 +180,6 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
     return ((enRango / _registrosGlucosa.length) * 100).round();
   }
 
-  int _calcularPorcentaje(bool Function(int) condicion) {
-    if (_registrosGlucosa.isEmpty) return 0;
-    int count = 0;
-    for (var r in _registrosGlucosa) {
-      if (condicion(r['valor'] as int)) count++;
-    }
-    return ((count / _registrosGlucosa.length) * 100).round();
-  }
-
-  // Acciones Rápidas
   void _mostrarFormularioNuevaMedida() {
     final TextEditingController valorCtrl = TextEditingController();
     final TextEditingController notasCtrl = TextEditingController();
@@ -313,9 +303,25 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
   }
 
   void _mostrarDialogoTIR() {
-    final int pctNormal = _calcularTIR();
-    final int pctHipo = _calcularPorcentaje((val) => val < limiteHipo);
-    final int pctHiper = _registrosGlucosa.isEmpty ? 0 : 100 - pctNormal - pctHipo;
+    int total = _registrosGlucosa.length;
+    int cHipo = 0, cBajo = 0, cNormal = 0, cElevado = 0, cHiper = 0;
+
+    if (total > 0) {
+      for (var r in _registrosGlucosa) {
+        int val = r['valor'] as int;
+        if (val < limiteHipo) cHipo++;
+        else if (val < rangoMin) cBajo++;
+        else if (val <= rangoMax) cNormal++;
+        else if (val <= limiteHiper) cElevado++;
+        else cHiper++;
+      }
+    }
+
+    int pctHipo = total > 0 ? ((cHipo / total) * 100).round() : 0;
+    int pctBajo = total > 0 ? ((cBajo / total) * 100).round() : 0;
+    int pctNormal = total > 0 ? ((cNormal / total) * 100).round() : 0;
+    int pctElevado = total > 0 ? ((cElevado / total) * 100).round() : 0;
+    int pctHiper = total > 0 ? ((cHiper / total) * 100).round() : 0;
 
     showDialog(
       context: context,
@@ -349,13 +355,13 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  'El TIR es el porcentaje del tiempo que tu glucosa está en niveles normales (dentro del rango objetivo).',
+                  'El TIR es el porcentaje del tiempo que tu glucosa está en cada nivel (dentro y fuera de rango).',
                   style: TextStyle(fontFamily: 'Roboto', fontSize: 13, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 35),
+                const SizedBox(height: 25),
                 SizedBox(
-                  height: 280,
+                  height: 320,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -365,12 +371,14 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Padding(
-                              padding: const EdgeInsets.only(top: 15),
+                              padding: const EdgeInsets.only(top: 8),
                               child: _etiquetaTir('Hiperglucemia', '$pctHiper%', const Color(0xFFD32F2F)),
                             ),
+                            _etiquetaTir('Elevado', '$pctElevado%', const Color(0xFFE65100)),
                             _etiquetaTir('En Rango', '$pctNormal%', const Color(0xFF2E7D32), esMeta: true),
+                            _etiquetaTir('Bajo', '$pctBajo%', const Color(0xFFE65100)),
                             Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.only(bottom: 8),
                               child: _etiquetaTir('Hipoglucemia', '$pctHipo%', const Color(0xFFD32F2F)),
                             ),
                           ],
@@ -380,33 +388,47 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                       ClipPath(
                         clipper: _DropClipper(),
                         child: Container(
-                          width: 155,
-                          height: 280,
+                          width: 145,
+                          height: 320,
                           color: Colors.white,
                           child: Column(
                             children: [
                               Container(
-                                height: 85,
+                                height: 50,
                                 width: double.infinity,
                                 color: const Color(0xFFD32F2F),
                                 alignment: Alignment.bottomCenter,
-                                padding: const EdgeInsets.only(bottom: 5),
-                                child: Text('>$limiteHiper\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white, height: 1.2)),
+                                padding: const EdgeInsets.only(bottom: 2),
+                                child: Text('>$limiteHiper\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white, height: 1.1)),
                               ),
                               Container(
-                                height: 145,
+                                height: 55,
+                                width: double.infinity,
+                                color: const Color(0xFFE65100),
+                                alignment: Alignment.center,
+                                child: Text('${rangoMax + 1}-$limiteHiper\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white, height: 1.1)),
+                              ),
+                              Container(
+                                height: 110,
                                 width: double.infinity,
                                 color: const Color(0xFF2E7D32),
                                 alignment: Alignment.center,
-                                child: Text('Rango Objetivo\n$rangoMin-$rangoMax\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white, height: 1.2)),
+                                child: Text('Objetivo\n$rangoMin-$rangoMax\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white, height: 1.2)),
+                              ),
+                              Container(
+                                height: 55,
+                                width: double.infinity,
+                                color: const Color(0xFFE65100),
+                                alignment: Alignment.center,
+                                child: Text('$limiteHipo-${rangoMin - 1}\nmg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white, height: 1.1)),
                               ),
                               Container(
                                 height: 50,
                                 width: double.infinity,
                                 color: const Color(0xFFD32F2F),
                                 alignment: Alignment.topCenter,
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Text('<$limiteHipo mg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13)),
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text('<$limiteHipo mg/dL', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 11)),
                               ),
                             ],
                           ),
@@ -502,19 +524,19 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(titulo, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
-        Text(porcentaje, style: TextStyle(fontSize: 26, color: color, fontWeight: FontWeight.bold)),
+        Text(titulo, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
+        Text(porcentaje, style: TextStyle(fontSize: 22, color: color, fontWeight: FontWeight.bold)),
         if (esMeta)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            margin: const EdgeInsets.only(top: 2),
             decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: const [
-                Text('META', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+                Text('META', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
                 SizedBox(width: 4),
-                Icon(Icons.arrow_forward_ios, color: Colors.white, size: 10),
+                Icon(Icons.arrow_forward_ios, color: Colors.white, size: 9),
               ],
             ),
           ),
@@ -846,7 +868,6 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
     );
   }
 
-  // PESTAÑA INICIO DASHBOARD CON NESTED SCROLL VIEW
   Widget _construirDashboard() {
     final ultimaG = _obtenerUltimaGlucosa();
     final estadoG = _obtenerEstadoGlucosa(ultimaG);
@@ -863,7 +884,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
       colorFondo = const Color(0xFFFFF3E0);
       colorTexto = const Color(0xFFE65100);
       colorBorde = const Color(0xFFE65100);
-    } else { // Normal
+    } else {
       colorFondo = const Color(0xFFE8F5E9);
       colorTexto = const Color(0xFF2E7D32);
       colorBorde = const Color(0xFF2E7D32);
@@ -903,10 +924,17 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                           ],
                         ),
                       ),
-                      Container(
-                        width: 55, height: 55,
-                        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2), border: Border.all(color: Colors.white, width: 2)),
-                        child: const Icon(Icons.person, color: Colors.white, size: 30),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() { _indiceNavegacionActual = 4; });
+                        },
+                        child: Container(
+                          width: 55, height: 55,
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2), border: Border.all(color: Colors.white, width: 2)),
+                          child: _imagenPerfil != null
+                              ? ClipOval(child: Image.file(_imagenPerfil!, fit: BoxFit.cover, width: 55, height: 55))
+                              : const Icon(Icons.person, color: Colors.white, size: 30),
+                        ),
                       ),
                     ],
                   ),
