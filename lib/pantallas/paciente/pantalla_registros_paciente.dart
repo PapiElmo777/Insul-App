@@ -56,6 +56,35 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
     }).toList();
   }
 
+  Widget _construirMedidaCorrectivaADA(String estado) {
+    if (estado != 'Hipoglucemia' && estado != 'Hiperglucemia') return const SizedBox.shrink();
+
+    Color color = estado == 'Hipoglucemia' ? const Color(0xFFD32F2F) : const Color(0xFFE65100);
+    String titulo = estado == 'Hipoglucemia' ? '⚠️ Medida Correctiva (ADA): Hipoglucemia' : '⚠️ Medida Correctiva (ADA): Hiperglucemia';
+    String texto = estado == 'Hipoglucemia'
+        ? 'Aplica la regla 15-15:\n\n1. Consume 15g de carbohidratos de acción rápida (ej. ½ vaso de jugo, 1 cda. de miel o azúcar, 3-4 pastillas de glucosa).\n2. Espera 15 min y vuelve a medir tu glucosa.\n3. Si sigue menor a 70 mg/dL, repite.\n4. Al normalizarse, come un snack o tu comida.'
+        : 'Sigue estas recomendaciones:\n\n1. Bebe abundante agua para ayudar a eliminar el exceso de azúcar a través de la orina.\n2. Aplica tu dosis de corrección de insulina según lo indicado por tu médico.\n3. Si tu glucosa es mayor a 240 mg/dL, verifica si hay cetonas en tu orina. NO hagas ejercicio si están presentes.';
+
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: color, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(titulo, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 13)),
+          const SizedBox(height: 8),
+          Text(texto, style: const TextStyle(fontSize: 12, color: Colors.black87, height: 1.4)),
+          const SizedBox(height: 12),
+          const Text('Fuente: American Diabetes Association (ADA)', style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic)),
+        ],
+      ),
+    );
+  }
+
   void _mostrarDetallesPunto(Map<String, dynamic> registro) {
     String estado = _obtenerEstadoGlucosa(registro['valor']);
     Color colorEstado = _obtenerColorEstado(estado);
@@ -114,7 +143,6 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
               const Divider(height: 20),
               _filaDetalle(Icons.restaurant_menu, 'Periodo', registro['momento']),
               const Divider(height: 20),
-              // PUNTO 5: Aquí arreglamos el problema del overflow envolviéndolo en una fila flexible
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -134,13 +162,18 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                             fontWeight: notas.isNotEmpty ? FontWeight.normal : FontWeight.w600,
                             fontStyle: notas.isNotEmpty ? FontStyle.italic : FontStyle.normal,
                           ),
-                          softWrap: true, // Permite múltiples líneas
+                          softWrap: true,
                         ),
                       ],
                     ),
                   ),
                 ],
               ),
+              if (estado == 'Hipoglucemia' || estado == 'Hiperglucemia') ...[
+                const SizedBox(height: 20),
+                _construirMedidaCorrectivaADA(estado),
+              ],
+
               const SizedBox(height: 20),
             ],
           ),
@@ -376,6 +409,14 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                 ),
               ),
               const SizedBox(height: 25),
+
+              if (registrosLecturas.isNotEmpty &&
+                  DateTime.now().difference(registrosLecturas.first['fecha']).inHours < 6 &&
+                  (_obtenerEstadoGlucosa(registrosLecturas.first['valor']) == 'Hipoglucemia' ||
+                      _obtenerEstadoGlucosa(registrosLecturas.first['valor']) == 'Hiperglucemia')) ...[
+                _construirMedidaCorrectivaADA(_obtenerEstadoGlucosa(registrosLecturas.first['valor'])),
+                const SizedBox(height: 25),
+              ],
 
               Container(
                 width: double.infinity,
@@ -626,103 +667,108 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
       colorIcono = const Color(0xFFC8E6C9);
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorFondo,
-        border: Border.all(color: colorBorde, width: 2),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 45, height: 45,
-            decoration: BoxDecoration(
-              color: colorIcono,
-              border: Border.all(color: colorFondo, width: 2),
-              shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: () => _mostrarDetallesPunto(registro),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: colorFondo,
+          border: Border.all(color: colorBorde, width: 2),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 45, height: 45,
+              decoration: BoxDecoration(
+                color: colorIcono,
+                border: Border.all(color: colorFondo, width: 2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.water_drop_outlined, color: colorBorde, size: 24),
             ),
-            child: Icon(Icons.water_drop_outlined, color: colorBorde, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          val.toString(),
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 28,
-                            color: colorTexto,
-                            height: 1.0,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            val.toString(),
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 28,
+                              color: colorTexto,
+                              height: 1.0,
+                            ),
                           ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'mg/dL',
+                            style: TextStyle(
+                              fontFamily: 'Roboto',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
+                              color: Color(0xFF848282),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: colorIcono,
+                          border: Border.all(color: colorTexto, width: 1),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        const SizedBox(width: 4),
-                        const Text(
-                          'mg/dL',
+                        child: Text(
+                          estado,
                           style: TextStyle(
                             fontFamily: 'Roboto',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12,
-                            color: Color(0xFF848282),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 10,
+                            color: colorTexto,
                           ),
                         ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: colorIcono,
-                        border: Border.all(color: colorTexto, width: 1),
-                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Text(
-                        estado,
-                        style: TextStyle(
-                          fontFamily: 'Roboto',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 10,
-                          color: colorTexto,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_today, size: 12, color: Colors.black87),
-                    const SizedBox(width: 4),
-                    Text(
-                      DateFormat("d 'de' MMMM yyyy · HH:mm", 'es_ES').format(fecha),
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.black87),
-                    ),
-                  ],
-                ),
-                Text(
-                  momento,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.black87),
-                ),
-                if (notas.isNotEmpty)
-                  Text(
-                    '"$notas"',
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Color(0xFF626060), fontStyle: FontStyle.italic),
+                    ],
                   ),
-              ],
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 12, color: Colors.black87),
+                      const SizedBox(width: 4),
+                      Text(
+                        DateFormat("d 'de' MMMM yyyy · HH:mm", 'es_ES').format(fecha),
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.black87),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    momento,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.black87),
+                  ),
+                  if (notas.isNotEmpty)
+                    Text(
+                      '"$notas"',
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Color(0xFF626060), fontStyle: FontStyle.italic),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -769,20 +815,19 @@ class _GraficaPacientePainter extends CustomPainter {
 
     Paint bgPaint = Paint();
 
-    // MODIFICACIÓN 1: Colores Unificados en el Fondo de Gráfica
-    bgPaint.color = const Color(0xFFD32F2F).withOpacity(0.1); // Rojo
+    bgPaint.color = const Color(0xFFD32F2F).withOpacity(0.1);
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(limiteHipo.toDouble()), size.width, graphHeight + 10), bgPaint);
 
-    bgPaint.color = const Color(0xFFE65100).withOpacity(0.1); // Naranja
+    bgPaint.color = const Color(0xFFE65100).withOpacity(0.1);
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(rangoMin.toDouble()), size.width, valToY(limiteHipo.toDouble())), bgPaint);
 
-    bgPaint.color = const Color(0xFF2E7D32).withOpacity(0.15); // Verde
+    bgPaint.color = const Color(0xFF2E7D32).withOpacity(0.15);
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(rangoMax.toDouble()), size.width, valToY(rangoMin.toDouble())), bgPaint);
 
-    bgPaint.color = const Color(0xFFE65100).withOpacity(0.1); // Naranja
+    bgPaint.color = const Color(0xFFE65100).withOpacity(0.1);
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(limiteHiper.toDouble()), size.width, valToY(rangoMax.toDouble())), bgPaint);
 
-    bgPaint.color = const Color(0xFFD32F2F).withOpacity(0.1); // Rojo
+    bgPaint.color = const Color(0xFFD32F2F).withOpacity(0.1);
     canvas.drawRect(Rect.fromLTRB(offsetX, 10, size.width, valToY(limiteHiper.toDouble())), bgPaint);
 
     Paint lineRef = Paint()..color = Colors.grey.withOpacity(0.3)..strokeWidth = 1;
