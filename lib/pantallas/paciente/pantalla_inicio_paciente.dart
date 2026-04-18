@@ -1003,6 +1003,9 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                   _crearAccionRapida(Icons.medication, 'Registrar Medicamento', () {
                     setState(() { _indiceNavegacionActual = 4; });
                   }),
+                  _crearAccionRapida(Icons.calculate, 'Calcular Dosis de Insulina', () {
+                    setState(() { _indiceNavegacionActual = 2; });
+                  }),
                   const Divider(color: Color(0xFFE8E8E8), thickness: 1.5, height: 1),
                   _crearAccionRapida(Icons.timeline, 'Ver Historial Completo', () {
                     setState(() { _indiceNavegacionActual = 1; });

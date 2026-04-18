@@ -525,7 +525,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
           const SizedBox(height: 14),
           _campoTexto(
             controlador: _glucosaCtrl,
-            titulo: 'Glucosa actual (preprandial)',
+            titulo: 'Glucosa actual (antes de comer)',
             hint: 'ej. 130',
             sufijo: 'mg/dL',
             icono: Icons.water_drop_outlined,
@@ -673,7 +673,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
             const SizedBox(height: 14),
             _campoTexto(
               controlador: _objetivoCtrl,
-              titulo: 'Glucosa objetivo preprandial',
+              titulo: 'Glucosa objetivo (antes de comer)',
               hint: 'ej. 100', sufijo: 'mg/dL', icono: Icons.flag_outlined, color: const Color(0xFF2E7D32),
               ayuda: 'ADA recomienda 80–130 mg/dL antes de comer',
             ),
