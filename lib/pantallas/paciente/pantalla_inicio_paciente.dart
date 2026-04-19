@@ -12,6 +12,7 @@ import '../../database/database_helper.dart';
 import 'pantalla_perfil_paciente.dart';
 import 'pantalla_medicamentos_paciente.dart';
 import 'pantalla_calculadora_dosis.dart';
+import 'pantalla_identificacion_medica.dart';
 
 class PantallaInicioPaciente extends StatefulWidget {
   final String nombrePaciente;
@@ -508,7 +509,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
       body: IndexedStack(
         index: _indiceNavegacionActual,
         children: [
-          _construirDashboard(),
+          _construirDashboard(), // 0: Inicio
           SafeArea(
             child: PantallaRegistrosPaciente(
               registros: _registrosGlucosa,
@@ -532,13 +533,12 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
             ),
           ),
 
-          PantallaCalculadoraDosis(
-            onRegistroGuardado: _cargarDatosBD,
-          ),
+          PantallaCalculadoraDosis(onRegistroGuardado: _cargarDatosBD),
 
           _construirTabHistorial(),
 
           const SafeArea(child: PantallaMedicamentosPaciente()),
+          SafeArea(child: PantallaIdentificacionMedica(onActualizarDashboard: _cargarDatosBD)),
 
           SafeArea(
             child: TabPerfilPaciente(
@@ -846,7 +846,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          setState(() { _indiceNavegacionActual = 5; });
+                          setState(() { _indiceNavegacionActual = 6; });
                         },
                         child: Container(
                           width: 55, height: 55,
@@ -1089,63 +1089,31 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
           showUnselectedLabels: false,
           items: [
             BottomNavigationBarItem(
-              icon: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.home_filled, size: 28, color: _indiceNavegacionActual == 0 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
-                  if (_indiceNavegacionActual == 0) _puntoRojo(),
-                ],
-              ),
+              icon: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.home_filled, size: 28, color: _indiceNavegacionActual == 0 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)), if (_indiceNavegacionActual == 0) _puntoRojo()]),
               label: 'Inicio',
             ),
             BottomNavigationBarItem(
-              icon: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.show_chart_rounded, size: 28, color: _indiceNavegacionActual == 1 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
-                  if (_indiceNavegacionActual == 1) _puntoRojo(),
-                ],
-              ),
+              icon: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.show_chart_rounded, size: 28, color: _indiceNavegacionActual == 1 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)), if (_indiceNavegacionActual == 1) _puntoRojo()]),
               label: 'Estadísticas',
             ),
             BottomNavigationBarItem(
-              icon: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.calculate, size: 28, color: _indiceNavegacionActual == 2 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
-                  if (_indiceNavegacionActual == 2) _puntoRojo(),
-                ],
-              ),
+              icon: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.calculate, size: 28, color: _indiceNavegacionActual == 2 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)), if (_indiceNavegacionActual == 2) _puntoRojo()]),
               label: 'Cálculo',
             ),
             BottomNavigationBarItem(
-              icon: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.picture_as_pdf_sharp, size: 28, color: _indiceNavegacionActual == 3 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
-                  if (_indiceNavegacionActual == 3) _puntoRojo(),
-                ],
-              ),
+              icon: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.picture_as_pdf_sharp, size: 28, color: _indiceNavegacionActual == 3 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)), if (_indiceNavegacionActual == 3) _puntoRojo()]),
               label: 'Historial',
             ),
             BottomNavigationBarItem(
-              icon: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.medication, size: 28, color: _indiceNavegacionActual == 4 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
-                  if (_indiceNavegacionActual == 4) _puntoRojo(),
-                ],
-              ),
+              icon: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.medication, size: 28, color: _indiceNavegacionActual == 4 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)), if (_indiceNavegacionActual == 4) _puntoRojo()]),
               label: 'Medicamentos',
             ),
             BottomNavigationBarItem(
-              icon: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.person, size: 28, color: _indiceNavegacionActual == 5 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)),
-                  if (_indiceNavegacionActual == 5) _puntoRojo(),
-                ],
-              ),
+              icon: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.badge, size: 28, color: _indiceNavegacionActual == 5 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)), if (_indiceNavegacionActual == 5) _puntoRojo()]),
+              label: 'ID Médica',
+            ),
+            BottomNavigationBarItem(
+              icon: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.person, size: 28, color: _indiceNavegacionActual == 6 ? const Color(0xFF2F2F2F) : const Color(0xFF888888)), if (_indiceNavegacionActual == 6) _puntoRojo()]),
               label: 'Perfil',
             ),
           ],

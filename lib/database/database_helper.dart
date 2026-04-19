@@ -59,6 +59,7 @@ class DatabaseHelper {
         edad INTEGER,
         tiempo_dx TEXT,
         tipo_diabetes TEXT,
+        tipo_sanguineo TEXT, 
         alergias TEXT,
         peso REAL,
         altura REAL,
@@ -84,6 +85,11 @@ class DatabaseHelper {
         emergencia_parentesco TEXT,
         emergencia_telefono TEXT,
         medico_nombre TEXT,
+        enfermedades_cronicas TEXT,
+        hospitalizaciones TEXT,
+        cirugias TEXT,
+        clinica TEXT,
+        identificacion_completada INTEGER DEFAULT 0,
         FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
       )
     ''');
@@ -99,7 +105,7 @@ class DatabaseHelper {
         FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE
       )
     ''');
-    // TABLA PARA EL ALIMENTOS
+
     await db.execute('''
       CREATE TABLE alimentos_frecuentes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
