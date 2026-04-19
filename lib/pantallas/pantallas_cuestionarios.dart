@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../database/database_helper.dart';
 import 'enfermeros/pantalla_inicio_enfermero.dart';
 import 'paciente/pantalla_inicio_paciente.dart';
+
 //------------------------------------------------------------------------------------------------
 class PantallaCuestionarioEnfermero extends StatefulWidget {
   const PantallaCuestionarioEnfermero({super.key});
@@ -308,6 +309,7 @@ class _PantallaCuestionarioEnfermeroState extends State<PantallaCuestionarioEnfe
     );
   }
 }
+
 //------------------------------------------------------------------------------------------------
 class PantallaCuestionarioPaciente extends StatefulWidget {
   const PantallaCuestionarioPaciente({super.key});
@@ -530,7 +532,8 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     }
   }
 
-  Future<void> _guardarDatosPacienteYFinalizar() async {
+  // PUNTO 4: Modificado para aceptar irAIdentificacion
+  Future<void> _guardarDatosPacienteYFinalizar({bool irAIdentificacion = false}) async {
     final db = DatabaseHelper();
     final usuarioId = await db.obtenerSesionActiva();
     String nombreUsuario = 'Paciente';
@@ -606,10 +609,10 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     }
 
     if (!mounted) return;
-    _mostrarDialogoFinalizacion(nombreUsuario);
+    _mostrarDialogoFinalizacion(nombreUsuario, irAIdentificacion: irAIdentificacion);
   }
 
-  void _mostrarDialogoFinalizacion(String nombrePaciente) {
+  void _mostrarDialogoFinalizacion(String nombrePaciente, {bool irAIdentificacion = false}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -639,7 +642,10 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => PantallaInicioPaciente(nombrePaciente: nombrePaciente),
+                          builder: (context) => PantallaInicioPaciente(
+                            nombrePaciente: nombrePaciente,
+                            indiceInicial: irAIdentificacion ? 5 : 0, // Salto automático
+                          ),
                         ),
                             (Route<dynamic> route) => false,
                       );
@@ -648,7 +654,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
                       backgroundColor: const Color(0xFF00D1FF),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     ),
-                    child: const Text('Ir al Inicio', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: Text(irAIdentificacion ? 'Continuar a ID Médica' : 'Ir al Inicio', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 )
               ],
@@ -1418,6 +1424,8 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
             width: double.infinity, height: 50,
             child: ElevatedButton(
               onPressed: () {
+                // PUNTO 4: Generar ID Médica
+                _guardarDatosPacienteYFinalizar(irAIdentificacion: true);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00D1FF),
@@ -1432,7 +1440,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
             width: double.infinity, height: 50,
             child: OutlinedButton(
               onPressed: () {
-                _guardarDatosPacienteYFinalizar();
+                _guardarDatosPacienteYFinalizar(irAIdentificacion: false);
               },
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.white, width: 2),
@@ -1738,6 +1746,59 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
     } else {
       Navigator.pop(context);
     }
+  }
+
+  void _mostrarDialogoFinalizacion({bool irAIdentificacion = false}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C63BB),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle_outline, color: Color(0xFF00D1FF), size: 60),
+                const SizedBox(height: 20),
+                const Text('¡Registro Finalizado!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 10),
+                const Text('Los datos del paciente han sido guardados exitosamente.\n\n¡Bienvenido a Insul App!', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Color(0xFFE8E8E8))),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PantallaInicioPaciente(
+                            nombrePaciente: 'Paciente',
+                            indiceInicial: irAIdentificacion ? 5 : 0, // Salto automático
+                          ),
+                        ),
+                            (Route<dynamic> route) => false,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00D1FF),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
+                    child: Text(irAIdentificacion ? 'Continuar a ID Médica' : 'Ir al Inicio', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -2601,6 +2662,8 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
             width: double.infinity, height: 50,
             child: ElevatedButton(
               onPressed: () {
+                // PUNTO 4: Generar ID Medica
+                _mostrarDialogoFinalizacion(irAIdentificacion: true);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00D1FF),
@@ -2615,7 +2678,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
             width: double.infinity, height: 50,
             child: OutlinedButton(
               onPressed: () {
-                _mostrarDialogoFinalizacion();
+                _mostrarDialogoFinalizacion(irAIdentificacion: false);
               },
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.white, width: 2),
@@ -2626,50 +2689,6 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
           ),
         ],
       ),
-    );
-  }
-
-  void _mostrarDialogoFinalizacion() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1C63BB),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.check_circle_outline, color: Color(0xFF00D1FF), size: 60),
-                const SizedBox(height: 20),
-                const Text('¡Registro Finalizado!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-                const SizedBox(height: 10),
-                const Text('Los datos del paciente han sido guardados exitosamente.\n\n¡Bienvenido a Insul App!', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Color(0xFFE8E8E8))),
-                const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00D1FF),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    ),
-                    child: const Text('Ir al Inicio', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
-                )
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 

@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
+import 'dart:typed_data';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../../database/database_helper.dart';
 
 class PantallaIdentificacionMedica extends StatefulWidget {
@@ -81,15 +86,17 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
           'insulina_rapida_marca': paciente['insulina_rapida_marca'] ?? '',
         };
 
-        if (!_identificacionCompletada) {
-          _alergiasCtrl.text = _datosCompletos['alergias'] == 'Ninguna' ? '' : _datosCompletos['alergias'];
-          _emergenciaNombreCtrl.text = _datosCompletos['emergencia_nombre'] == 'No asignado' ? '' : _datosCompletos['emergencia_nombre'];
-          _emergenciaTelCtrl.text = _datosCompletos['emergencia_telefono'] == '--' ? '' : _datosCompletos['emergencia_telefono'];
-          _medicoCtrl.text = _datosCompletos['medico_nombre'] == 'No asignado' ? '' : _datosCompletos['medico_nombre'];
+        _alergiasCtrl.text = _datosCompletos['alergias'] == 'Ninguna' ? '' : _datosCompletos['alergias'];
+        _enfCronicasCtrl.text = _datosCompletos['enfermedades_cronicas'] == 'Ninguna' ? '' : _datosCompletos['enfermedades_cronicas'];
+        _hospCtrl.text = _datosCompletos['hospitalizaciones'] == 'Ninguna' ? '' : _datosCompletos['hospitalizaciones'];
+        _cirugiasCtrl.text = _datosCompletos['cirugias'] == 'Ninguna' ? '' : _datosCompletos['cirugias'];
+        _emergenciaNombreCtrl.text = _datosCompletos['emergencia_nombre'] == 'No asignado' ? '' : _datosCompletos['emergencia_nombre'];
+        _emergenciaTelCtrl.text = _datosCompletos['emergencia_telefono'] == '--' ? '' : _datosCompletos['emergencia_telefono'];
+        _medicoCtrl.text = _datosCompletos['medico_nombre'] == 'No asignado' ? '' : _datosCompletos['medico_nombre'];
+        _clinicaCtrl.text = _datosCompletos['clinica'] == 'No especificada' ? '' : _datosCompletos['clinica'];
 
-          if (_tiposSanguineos.contains(_datosCompletos['tipo_sanguineo'])) {
-            _tipoSanguineoSeleccionado = _datosCompletos['tipo_sanguineo'];
-          }
+        if (_tiposSanguineos.contains(_datosCompletos['tipo_sanguineo'])) {
+          _tipoSanguineoSeleccionado = _datosCompletos['tipo_sanguineo'];
         }
 
         final medsBD = await db.obtenerMedicamentosDePaciente(_pacienteId!);
@@ -157,6 +164,355 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
 
     widget.onActualizarDashboard();
     await _cargarDatos();
+  }
+
+  Future<void> _generarPDFIdentificacion() async {
+    try {
+      final pdf = pw.Document();
+      String strInsulina = 'No usa insulina';
+      if (_datosCompletos['metodo_insulina'] != 'No usa' && _datosCompletos['metodo_insulina'] != 'No especificado' && _datosCompletos['metodo_insulina'] != null) {
+        String metodo = _datosCompletos['metodo_insulina'];
+        List<String> lineas = [];
+        if (_datosCompletos['insulina_basal_marca'].toString().isNotEmpty) {
+          String dosis = _datosCompletos['insulina_basal_dosis'].toString();
+          lineas.add('• Basal: ${_datosCompletos['insulina_basal_marca']} ${dosis.isNotEmpty ? '($dosis UI)' : ''}');
+        }
+        if (_datosCompletos['insulina_rapida_marca'].toString().isNotEmpty) {
+          lineas.add('• Rápida: ${_datosCompletos['insulina_rapida_marca']}');
+        }
+        strInsulina = '$metodo\n${lineas.join('\n')}';
+      }
+
+      String strMeds = 'Ningún medicamento registrado';
+      if (_medicamentos.isNotEmpty) {
+        strMeds = _medicamentos.map((m) => '• ${m['nombre']} (${m['gramaje']})').join('\n');
+      }
+      
+      final cAzul = PdfColor.fromInt(0xFF1C63BB);
+      final cAzulOscuro = PdfColor.fromInt(0xFF0D3F7A);
+      final cCian = PdfColor.fromInt(0xFF00D1FF);
+      final cBlanco = PdfColors.white;
+      final cGris100 = PdfColor.fromInt(0xFFF5F5F5);
+      final cGris300 = PdfColor.fromInt(0xFFE0E0E0);
+      final cGris500 = PdfColor.fromInt(0xFF9E9E9E);
+      final cGris700 = PdfColor.fromInt(0xFF616161);
+      final cRojo = PdfColor.fromInt(0xFFD32F2F);
+
+      // Logo
+      pw.Widget? logoWidget;
+      try {
+        String svgData = await rootBundle.loadString('assets/logo1.svg');
+        svgData = svgData.replaceAll(RegExp(r'fill="[^"]*"'), 'fill="#1C63BB"');
+        svgData = svgData.replaceAll(RegExp(r'stroke="[^"]*"'), 'stroke="#1C63BB"');
+        if (!svgData.contains('fill="#1C63BB"')) {
+          svgData = svgData.replaceFirst('<svg', '<svg fill="#1C63BB"');
+        }
+        logoWidget = pw.SvgImage(svg: svgData, width: 35, height: 35);
+      } catch (_) {}
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.fromLTRB(28, 28, 28, 34),
+          footer: (ctx) => pw.Container(
+            margin: const pw.EdgeInsets.only(top: 6),
+            padding: const pw.EdgeInsets.only(top: 5),
+            decoration: pw.BoxDecoration(border: pw.Border(top: pw.BorderSide(color: cGris300, width: 0.5))),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('InsulApp - Identificación Médica Oficial', style: pw.TextStyle(fontSize: 7, color: cGris500)),
+                pw.Text('Generado el ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}', style: pw.TextStyle(fontSize: 7, color: cGris500)),
+              ],
+            ),
+          ),
+          build: (pw.Context context) {
+            return [
+              pw.Container(
+                decoration: pw.BoxDecoration(
+                  color: cAzul,
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                ),
+                child: pw.Column(children: [
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.fromLTRB(16, 12, 16, 10),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: pw.CrossAxisAlignment.center,
+                      children: [
+                        pw.Row(children: [
+                          if (logoWidget != null)
+                            pw.Container(
+                              width: 38, height: 38,
+                              decoration: pw.BoxDecoration(color: cBlanco, shape: pw.BoxShape.circle),
+                              padding: const pw.EdgeInsets.all(5),
+                              child: logoWidget,
+                            ),
+                          pw.SizedBox(width: 10),
+                          pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text('Insul App', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: cBlanco)),
+                              pw.Text('Monitoreo, cuidado y salud en tus manos', style: pw.TextStyle(fontSize: 8, color: cCian)),
+                            ],
+                          ),
+                        ]),
+                        pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.end,
+                          children: [
+                            pw.Text('ID MÉDICA', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: cBlanco)),
+                            pw.Text('Información para Emergencias', style: pw.TextStyle(fontSize: 8, color: cCian)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  pw.Container(
+                    decoration: pw.BoxDecoration(
+                      color: cAzulOscuro,
+                      borderRadius: const pw.BorderRadius.only(bottomLeft: pw.Radius.circular(10), bottomRight: pw.Radius.circular(10)),
+                    ),
+                    padding: const pw.EdgeInsets.fromLTRB(16, 10, 16, 10),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text(_datosCompletos['nombre_completo'], style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: cBlanco)),
+                            pw.SizedBox(height: 3),
+                            pw.Text('Edad: ${_datosCompletos['edad']} años  |  Sexo: ${_datosCompletos['sexo']}  |  Sangre: ${_datosCompletos['tipo_sanguineo']}', style: pw.TextStyle(fontSize: 8, color: cGris300)),
+                            pw.SizedBox(height: 2),
+                            pw.Text('Expediente: #PAC-00${_pacienteId ?? 'X'}', style: pw.TextStyle(fontSize: 8, color: cGris300)),
+                          ],
+                        ),
+                        pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.end,
+                          children: [
+                            pw.Text('Avisar a:', style: pw.TextStyle(fontSize: 8, color: cGris500)),
+                            pw.Text('${_datosCompletos['emergencia_nombre']}', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: cCian)),
+                            pw.SizedBox(height: 2),
+                            pw.Text('Tel: ${_datosCompletos['emergencia_telefono']}', style: pw.TextStyle(fontSize: 9, color: cBlanco)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ]),
+              ),
+              pw.SizedBox(height: 15),
+
+              // INFO CRITICA
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: pw.BoxDecoration(color: cAzul, borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4))),
+                child: pw.Text('INFORMACIÓN CLÍNICA CRÍTICA', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: cBlanco, letterSpacing: 0.5)),
+              ),
+              pw.SizedBox(height: 8),
+              pw.Container(
+                  padding: const pw.EdgeInsets.all(10),
+                  decoration: pw.BoxDecoration(color: cGris100, borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)), border: pw.Border.all(color: cGris300, width: 0.5)),
+                  child: pw.Column(children: [
+                    pw.Padding(
+                        padding: const pw.EdgeInsets.only(bottom: 6),
+                        child: pw.Row(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Container(width: 100, child: pw.Text('Diagnóstico Principal:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cGris700))),
+                              pw.Expanded(child: pw.Text(_datosCompletos['tipo_diabetes'], style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cAzul))),
+                            ]
+                        )
+                    ),
+                    pw.Padding(
+                        padding: const pw.EdgeInsets.only(bottom: 6),
+                        child: pw.Row(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Container(width: 100, child: pw.Text('Alergias:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cGris700))),
+                              pw.Expanded(child: pw.Text(_datosCompletos['alergias'], style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cRojo))),
+                            ]
+                        )
+                    ),
+                    pw.Padding(
+                        padding: const pw.EdgeInsets.only(bottom: 6),
+                        child: pw.Row(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Container(width: 100, child: pw.Text('Enfermedades Crónicas:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cGris700))),
+                              pw.Expanded(child: pw.Text(_datosCompletos['enfermedades_cronicas'], style: const pw.TextStyle(fontSize: 9))),
+                            ]
+                        )
+                    ),
+                  ])
+              ),
+              pw.SizedBox(height: 15),
+
+              // TRATAMIENTO E HISTORIAL
+              pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Expanded(
+                        child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Container(
+                                width: double.infinity, padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: pw.BoxDecoration(color: cAzul, borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4))),
+                                child: pw.Text('ESQUEMA DE TRATAMIENTO', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: cBlanco, letterSpacing: 0.5)),
+                              ),
+                              pw.SizedBox(height: 8),
+                              pw.Text('Uso de Insulina:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cAzul)),
+                              pw.SizedBox(height: 4),
+                              pw.Text(strInsulina, style: const pw.TextStyle(fontSize: 8, lineSpacing: 1.5)),
+                              pw.SizedBox(height: 12),
+                              pw.Text('Medicamentos Orales:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cAzul)),
+                              pw.SizedBox(height: 4),
+                              pw.Text(strMeds, style: const pw.TextStyle(fontSize: 8, lineSpacing: 1.5)),
+                            ]
+                        )
+                    ),
+                    pw.SizedBox(width: 15),
+                    pw.Expanded(
+                        child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Container(
+                                width: double.infinity, padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: pw.BoxDecoration(color: cAzul, borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4))),
+                                child: pw.Text('EVENTOS CLÍNICOS', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: cBlanco, letterSpacing: 0.5)),
+                              ),
+                              pw.SizedBox(height: 8),
+                              pw.Text('Hospitalizaciones Recientes:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cAzul)),
+                              pw.SizedBox(height: 4),
+                              pw.Text(_datosCompletos['hospitalizaciones'], style: const pw.TextStyle(fontSize: 8)),
+                              pw.SizedBox(height: 12),
+                              pw.Text('Cirugías Previas:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cAzul)),
+                              pw.SizedBox(height: 4),
+                              pw.Text(_datosCompletos['cirugias'], style: const pw.TextStyle(fontSize: 8)),
+                            ]
+                        )
+                    )
+                  ]
+              ),
+              pw.SizedBox(height: 15),
+
+              // RESUMEN Y MEDICO
+              pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Expanded(
+                        child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Container(
+                                width: double.infinity, padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: pw.BoxDecoration(color: cAzul, borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4))),
+                                child: pw.Text('RESUMEN GLUCÉMICO HISTÓRICO', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: cBlanco, letterSpacing: 0.5)),
+                              ),
+                              pw.SizedBox(height: 8),
+                              pw.Container(
+                                  padding: const pw.EdgeInsets.all(10),
+                                  decoration: pw.BoxDecoration(borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)), border: pw.Border.all(color: cGris300, width: 0.5)),
+                                  child: pw.Column(
+                                      children: [
+                                        pw.Row(
+                                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                            children: [
+                                              pw.Container(width: 80, child: pw.Text('Promedio:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cGris700))),
+                                              pw.Expanded(child: pw.Text('$_promedio mg/dL', style: const pw.TextStyle(fontSize: 9))),
+                                            ]
+                                        ),
+                                        pw.SizedBox(height: 4),
+                                        pw.Row(
+                                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                            children: [
+                                              pw.Container(width: 80, child: pw.Text('Tiempo Rango:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cGris700))),
+                                              pw.Expanded(child: pw.Text('$_tir%', style: const pw.TextStyle(fontSize: 9))),
+                                            ]
+                                        ),
+                                        pw.SizedBox(height: 4),
+                                        pw.Row(
+                                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                            children: [
+                                              pw.Container(width: 80, child: pw.Text('Hipo/Hiper:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cGris700))),
+                                              pw.Expanded(child: pw.Text('$_pctHipo% / $_pctHiper%', style: const pw.TextStyle(fontSize: 9))),
+                                            ]
+                                        ),
+                                      ]
+                                  )
+                              )
+                            ]
+                        )
+                    ),
+                    pw.SizedBox(width: 15),
+                    pw.Expanded(
+                        child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Container(
+                                width: double.infinity, padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: pw.BoxDecoration(color: cAzul, borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4))),
+                                child: pw.Text('SEGUIMIENTO MÉDICO', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: cBlanco, letterSpacing: 0.5)),
+                              ),
+                              pw.SizedBox(height: 8),
+                              pw.Container(
+                                  padding: const pw.EdgeInsets.all(10),
+                                  decoration: pw.BoxDecoration(borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)), border: pw.Border.all(color: cGris300, width: 0.5)),
+                                  child: pw.Column(
+                                      children: [
+                                        pw.Row(
+                                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                            children: [
+                                              pw.Container(width: 50, child: pw.Text('Médico:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cGris700))),
+                                              pw.Expanded(child: pw.Text(_datosCompletos['medico_nombre'], style: const pw.TextStyle(fontSize: 9))),
+                                            ]
+                                        ),
+                                        pw.SizedBox(height: 4),
+                                        pw.Row(
+                                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                            children: [
+                                              pw.Container(width: 50, child: pw.Text('Clínica:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cGris700))),
+                                              pw.Expanded(child: pw.Text(_datosCompletos['clinica'], style: const pw.TextStyle(fontSize: 9))),
+                                            ]
+                                        ),
+                                      ]
+                                  )
+                              )
+                            ]
+                        )
+                    )
+                  ]
+              )
+            ];
+          },
+        ),
+      );
+
+      final bytes = await pdf.save();
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Scaffold(
+            appBar: AppBar(
+              backgroundColor: const Color(0xFF1C63BB),
+              title: const Text('Visor PDF', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              iconTheme: const IconThemeData(color: Colors.white),
+            ),
+            body: PdfPreview(
+              build: (format) async => bytes,
+              pdfFileName: 'ID_Medica_${_datosCompletos['nombre_completo'].toString().replaceAll(' ', '_')}.pdf',
+            ),
+          ),
+        ),
+      );
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al generar PDF: $e')));
+      }
+    }
   }
 
   @override
@@ -295,8 +651,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
 
   // TARJETA DE IDENTIFICACION MEDICA
   Widget _construirTarjetaIdentificacion() {
-
-    String strInsulina = 'No usa insulina / No configurado';
+    String strInsulina = 'No usa / No configurado';
     if (_datosCompletos['metodo_insulina'] != 'No usa' && _datosCompletos['metodo_insulina'] != 'No especificado' && _datosCompletos['metodo_insulina'] != null) {
       String metodo = _datosCompletos['metodo_insulina'];
       List<String> lineas = [];
@@ -305,17 +660,12 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
         lineas.add('• Basal: ${_datosCompletos['insulina_basal_marca']} ${dosis.isNotEmpty ? '($dosis UI)' : ''}');
       }
       if (_datosCompletos['insulina_rapida_marca'].toString().isNotEmpty) {
-        lineas.add('• Rápida: ${_datosCompletos['insulina_rapida_marca']} (Por corrección/comida)');
+        lineas.add('• Rápida: ${_datosCompletos['insulina_rapida_marca']}');
       }
-      if(lineas.isNotEmpty){
-        strInsulina = '$metodo:\n${lineas.join('\n')}';
-      } else {
-        strInsulina = metodo;
-      }
+      strInsulina = lineas.isNotEmpty ? '$metodo:\n${lineas.join('\n')}' : metodo;
     }
 
-    // ── FORMATEAMOS LOS MEDICAMENTOS ORALES ──
-    String strMeds = 'Ningún medicamento registrado';
+    String strMeds = 'Ninguno registrado';
     if (_medicamentos.isNotEmpty) {
       strMeds = _medicamentos.map((m) => '• ${m['nombre']} (${m['gramaje']})').join('\n');
     }
@@ -486,6 +836,34 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
                       _filaInfo(Icons.person_pin, 'Médico Responsable', _datosCompletos['medico_nombre']),
                       _filaInfo(Icons.local_hospital_rounded, 'Clínica / Institución', _datosCompletos['clinica']),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+
+                SizedBox(
+                  width: double.infinity, height: 55,
+                  child: ElevatedButton.icon(
+                    onPressed: _generarPDFIdentificacion,
+                    icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
+                    label: const Text('Descargar PDF de ID Médica', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008CCF), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                  ),
+                ),
+                const SizedBox(height: 15),
+                SizedBox(
+                  width: double.infinity, height: 55,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _identificacionCompletada = false;
+                      });
+                    },
+                    icon: const Icon(Icons.edit, color: Color(0xFF1C63BB)),
+                    label: const Text('Editar Información', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
+                    style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF1C63BB), width: 2),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+                    ),
                   ),
                 ),
                 const SizedBox(height: 40),
