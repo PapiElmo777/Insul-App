@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'pantalla_registro.dart';
 import '../database/database_helper.dart';
+import '../database/mock_data.dart'; // Archivo pruebas
 import 'enfermeros/pantalla_inicio_enfermero.dart';
 import 'paciente/pantalla_inicio_paciente.dart';
 
@@ -123,7 +124,7 @@ class _PantallaLoginState extends State<PantallaLogin> with SingleTickerProvider
                     opacity: _animacionOpacidadHeader,
                     child: Column(
                       children: [
-                        SvgPicture.asset('assets/logo1.svg', width: 120,colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),),
+                        SvgPicture.asset('assets/logo1.svg', width: 120,colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),),
                         const SizedBox(height: 10),
                         RichText(
                           text: const TextSpan(
@@ -228,6 +229,41 @@ class _PantallaLoginState extends State<PantallaLogin> with SingleTickerProvider
                             ),
                           ),
                         ),
+//boton de pruebas, eliminar
+                        const SizedBox(height: 40),
+                        TextButton.icon(
+                          onPressed: () async {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Generando datos de prueba...')),
+                            );
+
+                            try {
+                              await MockDataGenerator.poblarBaseDeDatos();
+
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('¡Datos generados! Usa a/a (Enfermero) o b/b (Paciente)'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error al generar: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.developer_mode, color: Colors.white70),
+                          label: const Text(
+                            'Cargar Datos Mock (Pruebas)',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        ),
+//Eliminar
                       ],
                     ),
                   ),
