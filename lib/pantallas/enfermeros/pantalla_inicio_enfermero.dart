@@ -35,6 +35,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
 
   bool _cargandoDatos = true;
   int? _enfermeroId;
+  bool _ordenarPorUrgencia = false;
 
   late String _nombreEnfermeroLocal;
   String cedulaEnfermero = '12345678';
@@ -78,8 +79,11 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
         for (var p in pacientesBD) {
           final glucosaBD = await db.obtenerGlucosaEnfermero(p['id']);
           int ultimaGlucosa = 0;
+          DateTime? fechaUltimaGlucosa;
+
           if (glucosaBD.isNotEmpty) {
             ultimaGlucosa = (glucosaBD.first['valor'] as num).toInt();
+            fechaUltimaGlucosa = DateTime.tryParse(glucosaBD.first['fecha'].toString());
           }
 
           pacientesTemp.add({
@@ -97,6 +101,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
             'rangoMin': (p['rango_min'] as num).toInt(),
             'rangoMax': (p['rango_max'] as num).toInt(),
             'glucosa': ultimaGlucosa,
+            'fechaUltimaGlucosa': fechaUltimaGlucosa,
           });
         }
         _listaPacientes = pacientesTemp;
@@ -165,9 +170,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
   void _mostrarOpcionesImagen() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (BuildContext context) {
         return Container(
           padding: const EdgeInsets.all(20),
@@ -179,18 +182,12 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
               ListTile(
                 leading: const Icon(Icons.photo_library, color: Color(0xFF1C63BB)),
                 title: const Text('Elegir de la Galería'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _seleccionarImagen(ImageSource.gallery);
-                },
+                onTap: () { Navigator.pop(context); _seleccionarImagen(ImageSource.gallery); },
               ),
               ListTile(
                 leading: const Icon(Icons.camera_alt, color: Color(0xFF1C63BB)),
                 title: const Text('Tomar una Foto'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _seleccionarImagen(ImageSource.camera);
-                },
+                onTap: () { Navigator.pop(context); _seleccionarImagen(ImageSource.camera); },
               ),
               if (_imagenPerfil != null)
                 ListTile(
@@ -347,6 +344,21 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
       ),
     );
   }
+  int _calcularNivelUrgencia(Map<String, dynamic> p) {
+    int val = p['glucosa'] ?? 0;
+    int hipo = p['hipoLimit'] ?? 70;
+    int hiper = p['hiperLimit'] ?? 180;
+    int rMin = p['rangoMin'] ?? 80;
+    int rMax = p['rangoMax'] ?? 130;
+    DateTime? fechaUltima = p['fechaUltimaGlucosa'];
+
+    if (val > 0 && (val < hipo || val > hiper)) return 4;
+    if (fechaUltima == null) return 3;
+    if (DateTime.now().difference(fechaUltima).inHours >= 4) return 3;
+    if (val > 0 && (val < rMin || val > rMax)) return 2;
+
+    return 1;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -386,9 +398,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
         borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
         child: BottomNavigationBar(
           currentIndex: _indiceNavegacionActual,
-          onTap: (index) {
-            setState(() { _indiceNavegacionActual = index; });
-          },
+          onTap: (index) { setState(() { _indiceNavegacionActual = index; }); },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
           selectedItemColor: Colors.black,
@@ -473,12 +483,25 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
       }
     }
 
-    List<Map<String, dynamic>> pacientesFiltrados = _listaPacientes.where((p) {
+    List<Map<String, dynamic>> pacientesFiltrados = List.from(_listaPacientes.where((p) {
       String termino = _busquedaCtrl.text.toLowerCase();
       String nombre = (p['nombre'] ?? '').toLowerCase();
       String ubicacion = (p['ubicacion'] ?? '').toLowerCase();
       return nombre.contains(termino) || ubicacion.contains(termino);
-    }).toList();
+    }));
+
+    if (_ordenarPorUrgencia) {
+      pacientesFiltrados.sort((a, b) {
+        int scoreA = _calcularNivelUrgencia(a);
+        int scoreB = _calcularNivelUrgencia(b);
+        if (scoreA == scoreB) {
+          return (a['ubicacion'] ?? '').compareTo(b['ubicacion'] ?? '');
+        }
+        return scoreB.compareTo(scoreA);
+      });
+    } else {
+      pacientesFiltrados.sort((a, b) => (a['ubicacion'] ?? '').compareTo(b['ubicacion'] ?? ''));
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -584,7 +607,32 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
             ),
           ),
         ),
-        const SizedBox(height: 15),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 5),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              const Text('Ordenar por:', style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.bold)),
+              const SizedBox(width: 10),
+              FilterChip(
+                label: Text('Nivel de Urgencia', style: TextStyle(color: _ordenarPorUrgencia ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 12)),
+                selected: _ordenarPorUrgencia,
+                onSelected: (val) {
+                  setState(() { _ordenarPorUrgencia = val; });
+                },
+                selectedColor: const Color(0xFFD32F2F),
+                checkmarkColor: Colors.white,
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(color: _ordenarPorUrgencia ? Colors.transparent : const Color(0xFFD2D2D2))
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 5),
 
         Expanded(
           child: pacientesFiltrados.isEmpty
@@ -625,11 +673,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
   Widget _crearTarjetaDashboard(String titulo, String valor, IconData icono, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
-      ),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(15), border: Border.all(color: color.withOpacity(0.3), width: 1)),
       child: Column(
         children: [
           Icon(icono, color: color, size: 28),
@@ -655,7 +699,6 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
         ),
 
         const SizedBox(height: 10),
-
         Expanded(
           child: _listaPacientes.isEmpty
               ? const Center(
@@ -1011,21 +1054,41 @@ class _TarjetaPaciente extends StatelessWidget {
     int hiper = paciente['hiperLimit'] ?? 180;
     int rMin = paciente['rangoMin'] ?? 80;
     int rMax = paciente['rangoMax'] ?? 130;
+    DateTime? fechaUltG = paciente['fechaUltimaGlucosa'];
 
     Color colorIndicador;
     bool esAlerta = false;
+    bool lecturaAtrasada = false;
+    String tiempoTranscurrido = '--';
+
+    if (fechaUltG != null) {
+      final diff = DateTime.now().difference(fechaUltG);
+      if (diff.inHours >= 4) {
+        lecturaAtrasada = true;
+      }
+      if (diff.inMinutes < 60) {
+        tiempoTranscurrido = 'Hace ${diff.inMinutes} min';
+      } else {
+        tiempoTranscurrido = 'Hace ${diff.inHours} hrs';
+      }
+    } else {
+      lecturaAtrasada = true;
+      tiempoTranscurrido = 'Sin registros';
+    }
 
     if (val == 0) {
       colorIndicador = Colors.grey;
-    } else if (val < hipo) {
-      colorIndicador = const Color(0xFFD32F2F);
-      esAlerta = true;
-    } else if (val > hiper) {
+    } else if (val < hipo || val > hiper) {
       colorIndicador = const Color(0xFFD32F2F);
       esAlerta = true;
     } else if (val >= rMin && val <= rMax) {
       colorIndicador = const Color(0xFF2E7D32);
     } else {
+      colorIndicador = const Color(0xFFE65100);
+    }
+
+    if (lecturaAtrasada && !esAlerta) {
+      esAlerta = true;
       colorIndicador = const Color(0xFFE65100);
     }
 
@@ -1053,7 +1116,8 @@ class _TarjetaPaciente extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      if (esAlerta) Padding(padding: const EdgeInsets.only(right: 5), child: Icon(Icons.warning_amber_rounded, color: colorIndicador, size: 20)),
+                      if (esAlerta && !lecturaAtrasada) Padding(padding: const EdgeInsets.only(right: 5), child: Icon(Icons.warning_amber_rounded, color: colorIndicador, size: 20)),
+                      if (lecturaAtrasada) Padding(padding: const EdgeInsets.only(right: 5), child: Icon(Icons.timer_off_outlined, color: colorIndicador, size: 20)),
                       Expanded(
                         child: Text(
                           paciente['nombre'],
@@ -1069,30 +1133,37 @@ class _TarjetaPaciente extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    'Cama/Ubicación: ${paciente['ubicacion']}',
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
+                  Text('Cama/Ubicación: ${paciente['ubicacion']}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Última glucosa',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
+
+                  Row(
+                    children: [
+                      Text(
+                        'Última glucosa',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: lecturaAtrasada ? colorIndicador : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                            color: lecturaAtrasada ? colorIndicador.withOpacity(0.1) : Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(8)
+                        ),
+                        child: Text(
+                            tiempoTranscurrido,
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: lecturaAtrasada ? colorIndicador : Colors.black54)
+                        ),
+                      )
+                    ],
                   ),
                   const SizedBox(height: 2),
                   Row(
                     children: [
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: colorIndicador,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
+                      Container(width: 12, height: 12, decoration: BoxDecoration(color: colorIndicador, shape: BoxShape.circle)),
                       const SizedBox(width: 6),
                       Text(
                         paciente['glucosa'] == 0 ? '-- mg/dL' : '${paciente['glucosa']} mg/dL',
@@ -1107,38 +1178,6 @@ class _TarjetaPaciente extends StatelessWidget {
                 ],
               ),
             ),
-
-            if (paciente['proximaDosis'] != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F7FA),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.colorize, color: Color(0xFF1C63BB), size: 20),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Próx. dosis',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black54,
-                      ),
-                    ),
-                    Text(
-                      paciente['proximaDosis'],
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1C63BB),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
           ],
         ),
       ),
@@ -1162,17 +1201,26 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
     int hiper = paciente['hiperLimit'] ?? 180;
     int rMin = paciente['rangoMin'] ?? 80;
     int rMax = paciente['rangoMax'] ?? 130;
+    DateTime? fechaUltG = paciente['fechaUltimaGlucosa'];
 
     Color colorIndicador;
+    bool lecturaAtrasada = false;
+
+    if (fechaUltG != null && DateTime.now().difference(fechaUltG).inHours >= 4) {
+      lecturaAtrasada = true;
+    }
+
     if (val == 0) {
       colorIndicador = Colors.grey;
-    } else if (val < hipo) {
-      colorIndicador = const Color(0xFFD32F2F);
-    } else if (val > hiper) {
+    } else if (val < hipo || val > hiper) {
       colorIndicador = const Color(0xFFD32F2F);
     } else if (val >= rMin && val <= rMax) {
       colorIndicador = const Color(0xFF2E7D32);
     } else {
+      colorIndicador = const Color(0xFFE65100);
+    }
+
+    if (lecturaAtrasada && colorIndicador == const Color(0xFF2E7D32)) {
       colorIndicador = const Color(0xFFE65100);
     }
 
@@ -1260,9 +1308,10 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
                   ),
                   Row(
                     children: [
-                      const Icon(Icons.colorize, size: 16, color: Colors.black54),
+                      if (lecturaAtrasada) const Icon(Icons.timer_off, size: 16, color: Color(0xFFE65100)),
+                      if (!lecturaAtrasada) const Icon(Icons.timer, size: 16, color: Colors.black54),
                       const SizedBox(width: 5),
-                      Text(paciente['proximaDosis'] ?? 'Pendiente', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black)),
+                      Text(lecturaAtrasada ? 'Registro desactualizado' : 'A tiempo', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: lecturaAtrasada ? const Color(0xFFE65100) : Colors.black54)),
                     ],
                   )
                 ],
