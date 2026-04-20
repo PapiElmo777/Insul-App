@@ -91,6 +91,7 @@ class ReportePdfService {
     );
 
     final fechaImpresion = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
+
     pw.Widget? logoWidget;
     try {
       String svgData = await rootBundle.loadString('assets/logo1.svg');
@@ -148,12 +149,17 @@ class ReportePdfService {
           pw.SizedBox(height: 16),
 
           _disclaimer(),
+          if (pacientes.isEmpty) ...[
+            pw.SizedBox(height: 40),
+            _seccionFirma(enfermero),
+          ]
         ],
       ),
     );
 
     for (int i = 0; i < pacientes.length; i += 2) {
       final grupo = pacientes.sublist(i, math.min(i + 2, pacientes.length));
+      final bool esUltimoGrupo = (i + 2 >= pacientes.length);
 
       pdf.addPage(
         pw.MultiPage(
@@ -164,6 +170,10 @@ class ReportePdfService {
             for (int j = 0; j < grupo.length; j++) ...[
               _bloquePacienteDetalle(grupo[j]),
               if (j < grupo.length - 1) pw.SizedBox(height: 16),
+            ],
+            if (esUltimoGrupo) ...[
+              pw.SizedBox(height: 35),
+              _seccionFirma(enfermero),
             ]
           ],
         ),
@@ -593,7 +603,7 @@ class ReportePdfService {
           if (item is Map && item.containsKey('empty')) {
             titulo = item['empty'];
             colorPunto = _C.gris300;
-          } else if (tipo == 1) { // Medicamentos
+          } else if (tipo == 1) {
             titulo = '${item['nombre'] ?? ''} ${item['dosis'] != null ? '- ${item['dosis']}' : ''}';
             subtitulo = item['frecuencia'] ?? '';
             final sum = (item['suministrado'] == 1 || item['suministrado'] == true);
@@ -601,14 +611,14 @@ class ReportePdfService {
               subtitulo += sum ? ' (Aplicado)' : ' (Pendiente)';
             }
             colorPunto = sum ? _C.verde : _C.naranja;
-          } else if (tipo == 2) { // Insulina
+          } else if (tipo == 2) {
             titulo = '${item['unidades']} UI';
             colorPunto = _C.azul;
             if (item['fecha'] != null) {
               final f = item['fecha'] is DateTime ? item['fecha'] : DateTime.tryParse(item['fecha'].toString());
               if (f != null) subtitulo = DateFormat('dd/MM HH:mm').format(f);
             }
-          } else if (tipo == 3) { // Notas
+          } else if (tipo == 3) {
             titulo = _limpiarTexto(item['nota'] ?? item['observacion']);
             colorPunto = _C.naranja;
             if (item['fecha'] != null) {
@@ -678,6 +688,38 @@ class ReportePdfService {
             pw.Text(valor, style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: colorTexto)),
           ],
         ),
+      ),
+    );
+  }
+
+  static pw.Widget _seccionFirma(DatosEnfermero enf) {
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(top: 40, bottom: 10),
+      alignment: pw.Alignment.center,
+      child: pw.Column(
+        mainAxisSize: pw.MainAxisSize.min,
+        children: [
+          pw.Container(
+            width: 250,
+            height: 1,
+            color: _C.gris900,
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            'Enf. ${_limpiarTexto(enf.nombre)}',
+            style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: _C.gris900),
+          ),
+          pw.SizedBox(height: 2),
+          pw.Text(
+            'Cédula: ${_limpiarTexto(enf.cedula)}',
+            style: const pw.TextStyle(fontSize: 9, color: _C.gris700),
+          ),
+          pw.SizedBox(height: 2),
+          pw.Text(
+            'Firma de Entrega de Turno',
+            style: const pw.TextStyle(fontSize: 9, color: _C.gris500),
+          ),
+        ],
       ),
     );
   }
