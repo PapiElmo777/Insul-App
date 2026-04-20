@@ -196,8 +196,8 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
               ),
               if (_imagenPerfil != null)
                 ListTile(
-                  leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text('Eliminar foto actual', style: TextStyle(color: Colors.red)),
+                  leading: const Icon(Icons.delete, color: Color(0xFFD32F2F)),
+                  title: const Text('Eliminar foto actual', style: TextStyle(color: Color(0xFFD32F2F))),
                   onTap: () async {
                     final db = DatabaseHelper();
                     final usuarioId = await db.obtenerSesionActiva();
@@ -466,7 +466,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
       width: 5,
       height: 5,
       decoration: const BoxDecoration(
-        color: Color(0xFFFF4A4A),
+        color: Color(0xFFD32F2F), // Homologado
         shape: BoxShape.circle,
       ),
     );
@@ -479,13 +479,15 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _itemLeyenda(const Color(0xFFFF6B6B), 'Hipo'),
+            _itemLeyenda(const Color(0xFFD32F2F), 'Hipo'),
             const SizedBox(width: 15),
-            _itemLeyenda(const Color(0xFF06CA23), 'Normal'),
+            _itemLeyenda(const Color(0xFFE65100), 'Bajo'),
             const SizedBox(width: 15),
-            _itemLeyenda(const Color(0xFFD9E00C), 'Precaución'),
+            _itemLeyenda(const Color(0xFF2E7D32), 'Normal'),
             const SizedBox(width: 15),
-            _itemLeyenda(const Color(0xFFFFB347), 'Hiper'),
+            _itemLeyenda(const Color(0xFFE65100), 'Elevado'),
+            const SizedBox(width: 15),
+            _itemLeyenda(const Color(0xFFD32F2F), 'Hiper'),
             const SizedBox(width: 15),
             _itemLeyenda(Colors.grey, 'Sin Dato'),
           ],
@@ -627,9 +629,9 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
             children: [
               Expanded(child: _crearTarjetaDashboard('Total', totalPacientes.toString(), Icons.people, const Color(0xFF1C63BB))),
               const SizedBox(width: 10),
-              Expanded(child: _crearTarjetaDashboard('Estables', pacientesEstables.toString(), Icons.check_circle, const Color(0xFF06CA23))),
+              Expanded(child: _crearTarjetaDashboard('Estables', pacientesEstables.toString(), Icons.check_circle, const Color(0xFF2E7D32))),
               const SizedBox(width: 10),
-              Expanded(child: _crearTarjetaDashboard('Atención', pacientesPrioridad.toString(), Icons.warning, const Color(0xFFFF4A4A))),
+              Expanded(child: _crearTarjetaDashboard('Atención', pacientesPrioridad.toString(), Icons.warning, const Color(0xFFD32F2F))),
             ],
           ),
         ),
@@ -1082,7 +1084,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
               icon: const Icon(Icons.logout, color: Colors.white),
               label: const Text('Cerrar Sesión', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF4A4A),
+                backgroundColor: const Color(0xFFD32F2F),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
             ),
@@ -1139,15 +1141,15 @@ class _TarjetaPaciente extends StatelessWidget {
     if (val == 0) {
       colorIndicador = Colors.grey;
     } else if (val < hipo) {
-      colorIndicador = const Color(0xFFFF6B6B);
+      colorIndicador = const Color(0xFFD32F2F);
       esAlerta = true;
     } else if (val > hiper) {
-      colorIndicador = const Color(0xFFFFB347);
+      colorIndicador = const Color(0xFFD32F2F);
       esAlerta = true;
     } else if (val >= rMin && val <= rMax) {
-      colorIndicador = const Color(0xFF06CA23);
+      colorIndicador = const Color(0xFF2E7D32);
     } else {
-      colorIndicador = const Color(0xFFD9E00C);
+      colorIndicador = const Color(0xFFE65100);
     }
 
     return GestureDetector(
@@ -1174,7 +1176,7 @@ class _TarjetaPaciente extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      if (esAlerta) const Padding(padding: EdgeInsets.only(right: 5), child: Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20)),
+                      if (esAlerta) Padding(padding: const EdgeInsets.only(right: 5), child: Icon(Icons.warning_amber_rounded, color: colorIndicador, size: 20)),
                       Expanded(
                         child: Text(
                           paciente['nombre'],
@@ -1217,10 +1219,10 @@ class _TarjetaPaciente extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         paciente['glucosa'] == 0 ? '-- mg/dL' : '${paciente['glucosa']} mg/dL',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: Colors.black,
+                          color: paciente['glucosa'] == 0 ? Colors.black : colorIndicador,
                         ),
                       ),
                     ],
@@ -1288,13 +1290,13 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
     if (val == 0) {
       colorIndicador = Colors.grey;
     } else if (val < hipo) {
-      colorIndicador = const Color(0xFFFF6B6B);
+      colorIndicador = const Color(0xFFD32F2F);
     } else if (val > hiper) {
-      colorIndicador = const Color(0xFFFFB347);
+      colorIndicador = const Color(0xFFD32F2F);
     } else if (val >= rMin && val <= rMax) {
-      colorIndicador = const Color(0xFF06CA23);
+      colorIndicador = const Color(0xFF2E7D32);
     } else {
-      colorIndicador = const Color(0xFFD9E00C);
+      colorIndicador = const Color(0xFFE65100);
     }
 
     return GestureDetector(
@@ -1367,7 +1369,14 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text('Último registro:', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text(paciente['glucosa'] == 0 ? '-- mg/dL' : '${paciente['glucosa']} mg/dL', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black)),
+                          Text(
+                            paciente['glucosa'] == 0 ? '-- mg/dL' : '${paciente['glucosa']} mg/dL',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: paciente['glucosa'] == 0 ? Colors.black : colorIndicador,
+                            ),
+                          ),
                         ],
                       )
                     ],
@@ -1387,9 +1396,9 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, color: Color(0xFFFF4A4A), size: 16),
+                  const Icon(Icons.warning_amber_rounded, color: Color(0xFFD32F2F), size: 16),
                   const SizedBox(width: 5),
-                  Expanded(child: Text('Alergias: ${paciente['alergias']}', style: const TextStyle(fontSize: 16, color: Color(0xFFFF4A4A), fontWeight: FontWeight.bold))),
+                  Expanded(child: Text('Alergias: ${paciente['alergias']}', style: const TextStyle(fontSize: 16, color: Color(0xFFD32F2F), fontWeight: FontWeight.bold))),
                 ],
               )
             ]
