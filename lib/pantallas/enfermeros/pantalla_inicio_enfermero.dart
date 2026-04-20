@@ -7,10 +7,11 @@ import 'dart:typed_data';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../servicios/reporte_enfermero_service.dart';
-import 'pantalla_agregar_paciente.dart';
-import 'pantalla_detalle_paciente.dart';
 import '../../database/database_helper.dart';
 import '../pantalla_login.dart';
+import 'pantalla_agregar_paciente.dart';
+import 'pantalla_detalle_paciente.dart';
+import 'pantalla_alarmas_enfermero.dart';
 
 class PantallaInicioEnfermero extends StatefulWidget {
   final String nombreEnfermero;
@@ -173,10 +174,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Seleccionar foto de perfil',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+              const Text('Seleccionar foto de perfil', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
               ListTile(
                 leading: const Icon(Icons.photo_library, color: Color(0xFF1C63BB)),
@@ -201,13 +199,9 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                   onTap: () async {
                     final db = DatabaseHelper();
                     final usuarioId = await db.obtenerSesionActiva();
-                    if (usuarioId != null) {
-                      await db.actualizarFotoPerfil(usuarioId, '');
-                    }
+                    if (usuarioId != null) await db.actualizarFotoPerfil(usuarioId, '');
                     Navigator.pop(context);
-                    setState(() {
-                      _imagenPerfil = null;
-                    });
+                    setState(() { _imagenPerfil = null; });
                   },
                 ),
             ],
@@ -312,7 +306,6 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
 
   Future<String?> preguntarTurno(BuildContext context) async {
     String? turnoSeleccionado = 'Matutino';
-
     return showDialog<String>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -336,9 +329,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                       .toList(),
                   onChanged: (value) {
-                    setStateDialog(() {
-                      turnoSeleccionado = value;
-                    });
+                    setStateDialog(() { turnoSeleccionado = value; });
                   },
                 ),
               ],
@@ -359,7 +350,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
 
   @override
   Widget build(BuildContext context) {
-    if (_cargandoDatos) {
+    if (_cargandoDatos || _enfermeroId == null) {
       return const Scaffold(
         backgroundColor: Colors.white,
         body: Center(child: CircularProgressIndicator(color: Color(0xFF1C63BB))),
@@ -374,101 +365,59 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
             : _indiceNavegacionActual == 1
             ? _construirTabDirectorioPacientes()
             : _indiceNavegacionActual == 2
-            ? _construirTabReporte()
+            ? PantallaAlarmasEnfermero(enfermeroId: _enfermeroId!)
             : _indiceNavegacionActual == 3
+            ? _construirTabReporte()
+            : _indiceNavegacionActual == 4
             ? _construirTabPerfil()
-            : const Center(child: Text("Error de navegación", style: TextStyle(color: Colors.grey))),
+            : const Center(child: Text("Error de navegación")),
       ),
+      bottomNavigationBar: _construirBottomNavigation(),
+    );
+  }
 
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(30),
-            topRight: Radius.circular(30),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 10,
-              offset: Offset(0, -5),
-            ),
+  Widget _construirBottomNavigation() {
+    return Container(
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -5))],
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+        child: BottomNavigationBar(
+          currentIndex: _indiceNavegacionActual,
+          onTap: (index) {
+            setState(() { _indiceNavegacionActual = index; });
+          },
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          selectedItemColor: Colors.black,
+          unselectedItemColor: const Color(0xFF888888),
+          showSelectedLabels: false,
+          showUnselectedLabels: false,
+          items: [
+            _crearBottomNavItem(Icons.home_outlined, 0, 'Home'),
+            _crearBottomNavItem(Icons.bar_chart, 1, 'Pacientes'),
+            _crearBottomNavItem(Icons.notifications_active_outlined, 2, 'Alarmas'),
+            _crearBottomNavItem(Icons.access_time, 3, 'Historial'),
+            _crearBottomNavItem(Icons.person_outline, 4, 'Perfil'),
           ],
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(30),
-            topRight: Radius.circular(30),
-          ),
-          child: BottomNavigationBar(
-            currentIndex: _indiceNavegacionActual,
-            onTap: (index) {
-              setState(() {
-                _indiceNavegacionActual = index;
-              });
-            },
-            type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.white,
-            selectedItemColor: Colors.black,
-            unselectedItemColor: const Color(0xFF888888),
-            showSelectedLabels: false,
-            showUnselectedLabels: false,
-            items: [
-              BottomNavigationBarItem(
-                icon: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.home_outlined, size: 28, color: _indiceNavegacionActual == 0 ? Colors.black : const Color(0xFF888888)),
-                    if (_indiceNavegacionActual == 0) _puntoRojo(),
-                  ],
-                ),
-                label: 'Home',
-              ),
-              BottomNavigationBarItem(
-                icon: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.bar_chart, size: 28, color: _indiceNavegacionActual == 1 ? Colors.black : const Color(0xFF888888)),
-                    if (_indiceNavegacionActual == 1) _puntoRojo(),
-                  ],
-                ),
-                label: 'Pacientes',
-              ),
-              BottomNavigationBarItem(
-                icon: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.access_time, size: 28, color: _indiceNavegacionActual == 2 ? Colors.black : const Color(0xFF888888)),
-                    if (_indiceNavegacionActual == 2) _puntoRojo(),
-                  ],
-                ),
-                label: 'Historial',
-              ),
-              BottomNavigationBarItem(
-                icon: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.person_outline, size: 28, color: _indiceNavegacionActual == 3 ? Colors.black : const Color(0xFF888888)),
-                    if (_indiceNavegacionActual == 3) _puntoRojo(),
-                  ],
-                ),
-                label: 'Perfil',
-              ),
-            ],
-          ),
         ),
       ),
     );
   }
 
-  Widget _puntoRojo() {
-    return Container(
-      margin: const EdgeInsets.only(top: 4),
-      width: 5,
-      height: 5,
-      decoration: const BoxDecoration(
-        color: Color(0xFFD32F2F), // Homologado
-        shape: BoxShape.circle,
+  BottomNavigationBarItem _crearBottomNavItem(IconData icono, int index, String label) {
+    return BottomNavigationBarItem(
+      icon: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icono, size: 28, color: _indiceNavegacionActual == index ? Colors.black : const Color(0xFF888888)),
+          if (_indiceNavegacionActual == index)
+            Container(margin: const EdgeInsets.only(top: 4), width: 5, height: 5, decoration: const BoxDecoration(color: Color(0xFFD32F2F), shape: BoxShape.circle)),
+        ],
       ),
+      label: label,
     );
   }
 
@@ -479,15 +428,11 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _itemLeyenda(const Color(0xFFD32F2F), 'Hipo'),
+            _itemLeyenda(const Color(0xFFD32F2F), 'Hipo/Hiper'),
             const SizedBox(width: 15),
-            _itemLeyenda(const Color(0xFFE65100), 'Bajo'),
+            _itemLeyenda(const Color(0xFFE65100), 'Bajo/Elevado'),
             const SizedBox(width: 15),
             _itemLeyenda(const Color(0xFF2E7D32), 'Normal'),
-            const SizedBox(width: 15),
-            _itemLeyenda(const Color(0xFFE65100), 'Elevado'),
-            const SizedBox(width: 15),
-            _itemLeyenda(const Color(0xFFD32F2F), 'Hiper'),
             const SizedBox(width: 15),
             _itemLeyenda(Colors.grey, 'Sin Dato'),
           ],
@@ -500,23 +445,9 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 5),
-        Text(
-          texto,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        Text(texto, style: const TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w600)),
       ],
     );
   }
@@ -556,10 +487,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
           padding: const EdgeInsets.fromLTRB(25.0, 30.0, 25.0, 30.0),
           decoration: const BoxDecoration(
             color: Color(0xFF1C63BB),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(30),
-            ),
+            borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,47 +500,21 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Hola, Enf. $_nombreEnfermeroLocal',
-                          style: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: -0.5,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        Text('Hola, Enf. $_nombreEnfermeroLocal', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -0.5), maxLines: 1, overflow: TextOverflow.ellipsis),
                         const SizedBox(height: 5),
-                        Text(
-                          _fechaFormateada,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFFE8E8E8),
-                          ),
-                        ),
+                        Text(_fechaFormateada, style: const TextStyle(fontSize: 14, color: Color(0xFFE8E8E8))),
                       ],
                     ),
                   ),
                   GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _indiceNavegacionActual = 3;
-                      });
-                    },
+                    onTap: () { setState(() { _indiceNavegacionActual = 4; }); },
                     child: Container(
-                      width: 55,
-                      height: 55,
+                      width: 55, height: 55,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.white.withOpacity(0.2),
                         border: Border.all(color: Colors.white, width: 2),
-                        image: _imagenPerfil != null
-                            ? DecorationImage(image: FileImage(_imagenPerfil!), fit: BoxFit.cover)
-                            : const DecorationImage(
-                          image: AssetImage('assets/enfermero_placeholder.png'),
-                          fit: BoxFit.cover,
-                        ),
+                        image: _imagenPerfil != null ? DecorationImage(image: FileImage(_imagenPerfil!), fit: BoxFit.cover) : const DecorationImage(image: AssetImage('assets/enfermero_placeholder.png'), fit: BoxFit.cover),
                       ),
                       child: _imagenPerfil == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
                     ),
@@ -641,38 +543,20 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Mis Pacientes',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.black,
-                ),
-              ),
+              const Text('Mis Pacientes', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.black)),
               ElevatedButton.icon(
                 onPressed: () async {
                   if (_enfermeroId == null) return;
-                  final nuevoPaciente = await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => PantallaAgregarPaciente(enfermeroId: _enfermeroId!)),
-                  );
-
-                  if (nuevoPaciente == true) {
-                    await _cargarDatosBD();
-                  }
+                  final nuevoPaciente = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaAgregarPaciente(enfermeroId: _enfermeroId!)));
+                  if (nuevoPaciente == true) await _cargarDatosBD();
                 },
                 icon: const Icon(Icons.add, size: 20, color: Colors.white),
-                label: const Text(
-                  'Añadir',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
+                label: const Text('Añadir', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0C80EB),
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                 ),
               ),
@@ -686,11 +570,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
           padding: const EdgeInsets.symmetric(horizontal: 25.0),
           child: Container(
             height: 50,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F7FA),
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: const Color(0xFFE8E8E8), width: 1.5),
-            ),
+            decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFE8E8E8), width: 1.5)),
             child: TextField(
               controller: _busquedaCtrl,
               onChanged: (val) => setState(() {}),
@@ -710,11 +590,8 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
           child: pacientesFiltrados.isEmpty
               ? Center(
             child: Text(
-              _listaPacientes.isEmpty
-                  ? 'No tienes pacientes asignados.\nToca "Añadir" para comenzar.'
-                  : 'No se encontraron pacientes.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey, fontSize: 16),
+              _listaPacientes.isEmpty ? 'No tienes pacientes asignados.\nToca "Añadir" para comenzar.' : 'No se encontraron pacientes.',
+              textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 16),
             ),
           )
               : ListView.builder(

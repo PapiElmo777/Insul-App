@@ -147,6 +147,19 @@ class DatabaseHelper {
         FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
       )
     ''');
+    await db.execute('''
+      CREATE TABLE recordatorios_enfermero (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        enfermero_id INTEGER NOT NULL,
+        paciente_id INTEGER,
+        paciente_nombre TEXT,
+        cama TEXT,
+        mensaje TEXT NOT NULL,
+        fecha_hora TEXT NOT NULL,
+        completado INTEGER DEFAULT 0,
+        FOREIGN KEY (enfermero_id) REFERENCES enfermeros(id) ON DELETE CASCADE
+      )
+    ''');
 
     // ────────────────────────────────────────────────────────────────────────
     // TABLAS EXCLUSIVAS PARA EL ENFERMERO Y SUS PACIENTES LOCALES
@@ -506,5 +519,29 @@ class DatabaseHelper {
       orderBy: 'veces_usado DESC',
       limit: 10,
     );
+  }
+  // ── RECORDATORIOS DEL ENFERMERO ───────────────────────────────────────────
+  Future<int> insertarRecordatorioEnfermero(Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    return await baseDatos.insert('recordatorios_enfermero', datos);
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerRecordatoriosEnfermero(int enfermeroId) async {
+    final baseDatos = await db;
+    return await baseDatos.query('recordatorios_enfermero',
+        where: 'enfermero_id = ?',
+        whereArgs: [enfermeroId],
+        orderBy: 'completado ASC, fecha_hora ASC'
+    );
+  }
+
+  Future<void> actualizarEstadoRecordatorio(int id, int completado) async {
+    final baseDatos = await db;
+    await baseDatos.update('recordatorios_enfermero', {'completado': completado}, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> eliminarRecordatorio(int id) async {
+    final baseDatos = await db;
+    await baseDatos.delete('recordatorios_enfermero', where: 'id = ?', whereArgs: [id]);
   }
 }
