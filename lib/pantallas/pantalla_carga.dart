@@ -73,8 +73,8 @@ class _PantallaCargaState extends State<PantallaCarga> {
               text: const TextSpan(
                 style: TextStyle(fontSize: 44, color: Colors.white),
                 children: [
-                  TextSpan(text: 'Insul ', style: TextStyle(fontWeight: FontWeight.w400)),
-                  TextSpan(text: 'App', style: TextStyle(fontWeight: FontWeight.bold)),
+                  TextSpan(text: 'Insul ', style: TextStyle(fontWeight: FontWeight.bold)),
+                  TextSpan(text: 'App', style: TextStyle(fontWeight: FontWeight.w400)),
                 ],
               ),
             ),

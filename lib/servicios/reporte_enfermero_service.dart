@@ -370,6 +370,7 @@ class ReportePdfService {
   static pw.Widget _bloquePacienteDetalle(Map<String, dynamic> p) {
     final hist = List<Map<String, dynamic>>.from(p['historialGlucosa'] ?? []);
     final meds = List<Map<String, dynamic>>.from(p['medicamentos'] ?? []);
+    final histIns = List<Map<String, dynamic>>.from(p['historialInsulina'] ?? []);
     final rawObs = p['observacionesTurno'] as List<dynamic>? ?? [];
     final List<Map<String, dynamic>> obsConvertidas = rawObs.map((o) {
       if (o is String) return {'nota': o};
@@ -463,25 +464,37 @@ class ReportePdfService {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Expanded(
-                      flex: 5,
+                      flex: 38,
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          _tituloSeccion('MEDICAMENTOS E INSULINA'),
-                          pw.SizedBox(height: 6),
-                          _listaCajas(meds.isNotEmpty ? meds : [{'nombre': 'Sin medicamentos registrados'}], esMeds: true),
+                          _tituloSeccion('MEDICAMENTOS'),
+                          pw.SizedBox(height: 4),
+                          _listaCajas(meds, tipo: 1),
                         ],
                       ),
                     ),
-                    pw.SizedBox(width: 10),
+                    pw.SizedBox(width: 6),
                     pw.Expanded(
-                      flex: 5,
+                      flex: 24,
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          _tituloSeccion('NOTAS DE ENFERMERÍA'),
-                          pw.SizedBox(height: 6),
-                          _listaCajas(obsConvertidas.isNotEmpty ? obsConvertidas : [{'nota': 'Sin observaciones.'}], esMeds: false),
+                          _tituloSeccion('INSULINA'),
+                          pw.SizedBox(height: 4),
+                          _listaCajas(histIns, tipo: 2),
+                        ],
+                      ),
+                    ),
+                    pw.SizedBox(width: 6),
+                    pw.Expanded(
+                      flex: 38,
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          _tituloSeccion('NOTAS'),
+                          pw.SizedBox(height: 4),
+                          _listaCajas(obsConvertidas, tipo: 3),
                         ],
                       ),
                     ),
@@ -557,51 +570,70 @@ class ReportePdfService {
     );
   }
 
-  static pw.Widget _listaCajas(List<Map<String, dynamic>> items, {required bool esMeds}) {
+  static pw.Widget _listaCajas(List<dynamic> items, {required int tipo}) {
+    if (items.isEmpty) {
+      String txt = tipo == 1 ? 'Sin medicación' : tipo == 2 ? 'Sin insulina' : 'Sin notas';
+      items = [{'empty': txt}];
+    }
+
     return pw.Container(
-      padding: const pw.EdgeInsets.all(8),
+      padding: const pw.EdgeInsets.all(6),
       decoration: pw.BoxDecoration(
         color: _C.gris100,
         borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
         border: pw.Border.all(color: _C.gris300, width: 0.5),
       ),
       child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: items.take(4).map((item) {
           String titulo = '';
           String subtitulo = '';
+          PdfColor colorPunto = _C.gris500;
 
-          if (esMeds) {
+          if (item is Map && item.containsKey('empty')) {
+            titulo = item['empty'];
+            colorPunto = _C.gris300;
+          } else if (tipo == 1) { // Medicamentos
             titulo = '${item['nombre'] ?? ''} ${item['dosis'] != null ? '- ${item['dosis']}' : ''}';
             subtitulo = item['frecuencia'] ?? '';
             final sum = (item['suministrado'] == 1 || item['suministrado'] == true);
             if (item.containsKey('suministrado')) {
-              subtitulo += sum ? ' (✓ Aplicado)' : ' (Pendiente)';
+              subtitulo += sum ? ' (Aplicado)' : ' (Pendiente)';
             }
-          } else {
-            titulo = _limpiarTexto(item['nota'] ?? item['observacion']);
+            colorPunto = sum ? _C.verde : _C.naranja;
+          } else if (tipo == 2) { // Insulina
+            titulo = '${item['unidades']} UI';
+            colorPunto = _C.azul;
             if (item['fecha'] != null) {
-              final f = item['fecha'] is DateTime ? item['fecha'] as DateTime : DateTime.tryParse(item['fecha'].toString());
+              final f = item['fecha'] is DateTime ? item['fecha'] : DateTime.tryParse(item['fecha'].toString());
+              if (f != null) subtitulo = DateFormat('dd/MM HH:mm').format(f);
+            }
+          } else if (tipo == 3) { // Notas
+            titulo = _limpiarTexto(item['nota'] ?? item['observacion']);
+            colorPunto = _C.naranja;
+            if (item['fecha'] != null) {
+              final f = item['fecha'] is DateTime ? item['fecha'] : DateTime.tryParse(item['fecha'].toString());
               if (f != null) subtitulo = DateFormat('dd/MM HH:mm').format(f);
             }
           }
 
           return pw.Padding(
-            padding: const pw.EdgeInsets.only(bottom: 6),
+            padding: const pw.EdgeInsets.only(bottom: 5),
             child: pw.Row(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Container(
                   width: 3.5, height: 3.5,
-                  margin: const pw.EdgeInsets.only(top: 3, right: 5),
-                  decoration: pw.BoxDecoration(color: esMeds ? _C.verde : _C.naranja, shape: pw.BoxShape.circle),
+                  margin: const pw.EdgeInsets.only(top: 3, right: 4),
+                  decoration: pw.BoxDecoration(color: colorPunto, shape: pw.BoxShape.circle),
                 ),
                 pw.Expanded(
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text(titulo, style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold, color: _C.gris900)),
+                      pw.Text(titulo, style: pw.TextStyle(fontSize: 6.5, fontWeight: pw.FontWeight.bold, color: _C.gris900)),
                       if (subtitulo.isNotEmpty)
-                        pw.Text(subtitulo, style: const pw.TextStyle(fontSize: 6, color: _C.gris700)),
+                        pw.Text(subtitulo, style: const pw.TextStyle(fontSize: 5.5, color: _C.gris700)),
                     ],
                   ),
                 ),
