@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import '../../database/database_helper.dart';
+import 'pantalla_calculadora_enfermero.dart';
 
 class PantallaDetallePaciente extends StatefulWidget {
   final Map<String, dynamic> paciente;
@@ -290,7 +291,7 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008CCF)),
-              child: const Text('Registrar Dosis', style: TextStyle(color: Colors.white)),
+              child: const Text('Registrar', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -513,7 +514,6 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
               ),
               const SizedBox(height: 20),
 
-              // Grafica
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
@@ -522,16 +522,15 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Control Glucémico', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
+                        const Expanded(child: Text('Control Glucémico', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Colors.black))),
                         TextButton.icon(
                           onPressed: _mostrarDialogoAgregarGlucosa,
-                          icon: const Icon(Icons.add, color: Color(0xFF0C80EB)),
-                          label: const Text('Añadir Medida', style: TextStyle(color: Color(0xFF0C80EB), fontWeight: FontWeight.bold)),
+                          icon: const Icon(Icons.add, color: Color(0xFF0C80EB), size: 20),
+                          label: const Text('Añadir', style: TextStyle(color: Color(0xFF0C80EB), fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
 
-                    // Recordatorio
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
@@ -546,7 +545,6 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                       ),
                     ),
 
-                    // Grafico Interactivo
                     Container(
                       height: 280,
                       width: double.infinity,
@@ -601,7 +599,6 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                     ),
                     const SizedBox(height: 15),
 
-                    // Promedio y TIR
                     Row(
                       children: [
                         Expanded(child: _crearTarjetaStat('Promedio', '${_calcularPromedio().toStringAsFixed(1)}', 'mg/dL', Icons.timeline, const Color(0xFF008CCF))),
@@ -623,12 +620,39 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Suministro de Insulina', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
-                          TextButton.icon(
-                            onPressed: _mostrarDialogoAgregarInsulina,
-                            icon: const Icon(Icons.colorize, color: Color(0xFF0C80EB)),
-                            label: const Text('Suministrar', style: TextStyle(color: Color(0xFF0C80EB), fontWeight: FontWeight.bold)),
-                          ),
+                          const Expanded(child: Text('Suministro de Insulina', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Colors.black))),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF3E0),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: IconButton(
+                                  icon: const Icon(Icons.calculate, color: Color(0xFFE65100), size: 22),
+                                  tooltip: 'Calculadora ADA',
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(8),
+                                  onPressed: () async {
+                                    final result = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (_) => PantallaCalculadoraEnfermero(paciente: widget.paciente))
+                                    );
+                                    if (result == true) {
+                                      await _cargarDatosPaciente();
+                                    }
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              TextButton.icon(
+                                onPressed: _mostrarDialogoAgregarInsulina,
+                                icon: const Icon(Icons.colorize, color: Color(0xFF0C80EB), size: 20),
+                                label: const Text('Añadir', style: TextStyle(color: Color(0xFF0C80EB), fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          )
                         ],
                       ),
                       const SizedBox(height: 10),
@@ -656,7 +680,6 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                 ),
                 const Divider(height: 50, thickness: 1),
               ],
-              // Medicamentos
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
@@ -695,7 +718,6 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
               ),
               const Divider(height: 50, thickness: 1),
 
-              // Observaciones
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
@@ -704,10 +726,10 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Observaciones de Turno', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
+                        const Expanded(child: Text('Observaciones de Turno', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Colors.black))),
                         TextButton.icon(
                           onPressed: _mostrarDialogoObservacion,
-                          icon: const Icon(Icons.note_add, color: Color(0xFF0C80EB)),
+                          icon: const Icon(Icons.note_add, color: Color(0xFF0C80EB), size: 20),
                           label: const Text('Añadir', style: TextStyle(color: Color(0xFF0C80EB), fontWeight: FontWeight.bold)),
                         ),
                       ],
