@@ -532,7 +532,6 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     }
   }
 
-  // PUNTO 4: Modificado para aceptar irAIdentificacion
   Future<void> _guardarDatosPacienteYFinalizar({bool irAIdentificacion = false}) async {
     final db = DatabaseHelper();
     final usuarioId = await db.obtenerSesionActiva();
@@ -644,7 +643,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
                         MaterialPageRoute(
                           builder: (context) => PantallaInicioPaciente(
                             nombrePaciente: nombrePaciente,
-                            indiceInicial: irAIdentificacion ? 5 : 0, // Salto automático
+                            indiceInicial: irAIdentificacion ? 5 : 0,
                           ),
                         ),
                             (Route<dynamic> route) => false,
@@ -1549,6 +1548,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
 
   String? _tipoPaciente;
   final TextEditingController _parentescoCtrl = TextEditingController();
+  final TextEditingController _nombrePacienteCtrl = TextEditingController();
 
   String? _sexoPaciente;
   final TextEditingController _edadPacienteCtrl = TextEditingController();
@@ -1627,6 +1627,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
   void dispose() {
     _pageController.dispose();
     _parentescoCtrl.dispose();
+    _nombrePacienteCtrl.dispose();
     _edadPacienteCtrl.dispose();
     _alergiasPacienteCtrl.dispose();
     _pesoPacienteCtrl.dispose();
@@ -1779,8 +1780,8 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
                         context,
                         MaterialPageRoute(
                           builder: (context) => PantallaInicioPaciente(
-                            nombrePaciente: 'Paciente',
-                            indiceInicial: irAIdentificacion ? 5 : 0, // Salto automático
+                            nombrePaciente: _nombrePacienteCtrl.text.isNotEmpty ? _nombrePacienteCtrl.text : 'Paciente',
+                            indiceInicial: irAIdentificacion ? 5 : 0,
                           ),
                         ),
                             (Route<dynamic> route) => false,
@@ -1931,7 +1932,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
   }
 
   Widget _construirFase1TipoPaciente() {
-    bool fase1Completa = _tipoPaciente != null && _parentescoCtrl.text.isNotEmpty;
+    bool fase1Completa = _tipoPaciente != null && _parentescoCtrl.text.isNotEmpty && _nombrePacienteCtrl.text.isNotEmpty;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(35.0),
@@ -1972,6 +1973,13 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
               titulo: 'Tu parentesco o relación con el paciente',
               hint: 'Ej. Hijo, Madre, Enfermero particular...',
               controlador: _parentescoCtrl,
+              esNumero: false
+          ),
+          const SizedBox(height: 20),
+          _crearCampoTexto(
+              titulo: 'Nombre del paciente',
+              hint: 'Ej. Juan Pérez',
+              controlador: _nombrePacienteCtrl,
               esNumero: false
           ),
           const SizedBox(height: 40),
