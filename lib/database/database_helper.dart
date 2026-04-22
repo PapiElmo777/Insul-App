@@ -147,6 +147,7 @@ class DatabaseHelper {
         FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
       )
     ''');
+
     await db.execute('''
       CREATE TABLE recordatorios_enfermero (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -239,6 +240,70 @@ class DatabaseHelper {
         FOREIGN KEY (enfermero_id) REFERENCES enfermeros(id) ON DELETE CASCADE
       )
     ''');
+    
+    // TABLAS EXCLUSIVAS PARA EL CUIDADOR Y SUS PACIENTES LOCALES
+    await db.execute('''
+      CREATE TABLE pacientes_cuidador (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cuidador_id INTEGER NOT NULL,
+        tipo_paciente TEXT,
+        parentesco TEXT,
+        nombre TEXT NOT NULL,
+        sexo TEXT,
+        edad INTEGER,
+        tiempo_dx TEXT,
+        tipo_diabetes TEXT,
+        alergias TEXT,
+        peso REAL,
+        altura REAL,
+        imc REAL,
+        limite_hipo REAL DEFAULT 70,
+        limite_hiper REAL DEFAULT 180,
+        rango_min REAL DEFAULT 80,
+        rango_max REAL DEFAULT 130,
+        metodo_insulina TEXT,
+        insulina_basal_marca TEXT,
+        insulina_basal_dosis TEXT,
+        insulina_rapida_marca TEXT,
+        insulina_rapida_patron TEXT,
+        bomba_unidades TEXT,
+        bomba_frecuencia TEXT,
+        med_oral_nombre TEXT,
+        med_oral_dosis TEXT,
+        frecuencia_monitoreo TEXT,
+        medico_nombre TEXT,
+        riesgo_caidas TEXT,
+        estado_cognitivo TEXT,
+        autonomia_menor TEXT,
+        contacto_escolar TEXT,
+        identificacion_completada INTEGER DEFAULT 0,
+        FOREIGN KEY (cuidador_id) REFERENCES usuarios(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE otros_medicamentos_cuidador (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        paciente_cuidador_id INTEGER NOT NULL,
+        nombre TEXT NOT NULL,
+        gramaje TEXT NOT NULL,
+        proposito TEXT,
+        frecuencia TEXT,
+        FOREIGN KEY (paciente_cuidador_id) REFERENCES pacientes_cuidador(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE registros_glucosa_cuidador (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        paciente_cuidador_id INTEGER NOT NULL,
+        valor REAL NOT NULL,
+        momento TEXT,
+        notas TEXT,
+        fecha TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (paciente_cuidador_id) REFERENCES pacientes_cuidador(id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   // ── USUARIOS ──────────────────────────────────────────────────────────────
@@ -285,8 +350,7 @@ class DatabaseHelper {
 
   Future<int> insertarEnfermero(Map<String, dynamic> datos) async {
     final baseDatos = await db;
-    return await baseDatos.insert('enfermeros', datos,
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    return await baseDatos.insert('enfermeros', datos, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<Map<String, dynamic>?> obtenerEnfermeroPorUsuario(int usuarioId) async {
@@ -314,8 +378,7 @@ class DatabaseHelper {
 
   Future<int> insertarPaciente(Map<String, dynamic> datos) async {
     final baseDatos = await db;
-    return await baseDatos.insert('pacientes', datos,
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    return await baseDatos.insert('pacientes', datos, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<Map<String, dynamic>?> obtenerPacientePorUsuario(int usuarioId) async {
@@ -543,5 +606,35 @@ class DatabaseHelper {
   Future<void> eliminarRecordatorio(int id) async {
     final baseDatos = await db;
     await baseDatos.delete('recordatorios_enfermero', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // METODOS PARA EL ROL DE CUIDADOR
+  Future<int> insertarPacienteCuidador(Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    return await baseDatos.insert('pacientes_cuidador', datos);
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerPacientesPorCuidador(int cuidadorId) async {
+    final baseDatos = await db;
+    return await baseDatos.query('pacientes_cuidador', where: 'cuidador_id = ?', whereArgs: [cuidadorId]);
+  }
+
+  Future<int> insertarOtroMedicamentoCuidador(Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    return await baseDatos.insert('otros_medicamentos_cuidador', datos);
+  }
+
+  Future<int> insertarRegistroGlucosaCuidador(Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    return await baseDatos.insert('registros_glucosa_cuidador', datos);
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerRegistrosGlucosaCuidador(int pacienteCuidadorId) async {
+    final baseDatos = await db;
+    return await baseDatos.query('registros_glucosa_cuidador',
+        where: 'paciente_cuidador_id = ?',
+        whereArgs: [pacienteCuidadorId],
+        orderBy: 'fecha DESC'
+    );
   }
 }
