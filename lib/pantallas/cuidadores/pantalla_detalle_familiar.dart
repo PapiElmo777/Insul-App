@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'tab_glucosa_familiar.dart';
 import 'tab_medicamentos_familiar.dart';
+import 'tab_calculadora_familiar.dart';
 
 class PantallaDetalleFamiliar extends StatefulWidget {
   final Map<String, dynamic> paciente;
@@ -88,11 +89,8 @@ class _PantallaDetalleFamiliarState extends State<PantallaDetalleFamiliar> {
             onCambiarTab: _cambiarTab
         );
       case 1:
-        return Column(
-          children: [
-            _construirHeaderBasico('Calculadora de Dosis'),
-            const Expanded(child: Center(child: Text('Aquí se conectará la Calculadora de Dosis', style: TextStyle(color: Colors.grey)))),
-          ],
+        return TabCalculadoraFamiliar(
+          paciente: widget.paciente,
         );
       case 2:
         return TabMedicamentosFamiliar(paciente: widget.paciente);
