@@ -260,8 +260,10 @@ class DatabaseHelper {
         metodo_insulina TEXT,
         insulina_basal_marca TEXT,
         insulina_basal_dosis TEXT,
+        insulina_basal_horario TEXT,
         insulina_rapida_marca TEXT,
         insulina_rapida_patron TEXT,
+        insulina_rapida_horario TEXT,
         bomba_unidades TEXT,
         bomba_frecuencia TEXT,
         med_oral_nombre TEXT,
@@ -631,6 +633,26 @@ class DatabaseHelper {
         where: 'paciente_cuidador_id = ?',
         whereArgs: [pacienteCuidadorId],
         orderBy: 'fecha DESC'
+    );
+  }
+
+  Future<int> actualizarPacienteCuidador(int id, Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    return await baseDatos.update(
+      'pacientes_cuidador',
+      datos,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> actualizarMedicamentoCuidador(int id, Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    return await baseDatos.update(
+      'otros_medicamentos_cuidador',
+      datos,
+      where: 'id = ?',
+      whereArgs: [id],
     );
   }
 
