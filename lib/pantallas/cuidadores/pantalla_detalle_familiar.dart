@@ -13,6 +13,13 @@ class PantallaDetalleFamiliar extends StatefulWidget {
 
 class _PantallaDetalleFamiliarState extends State<PantallaDetalleFamiliar> {
   int _indiceActual = 0;
+
+  void _cambiarTab(int index) {
+    setState(() {
+      _indiceActual = index;
+    });
+  }
+
   BottomNavigationBarItem _crearBottomNavItem(IconData icono, int index, String label) {
     return BottomNavigationBarItem(
       icon: Column(
@@ -43,14 +50,7 @@ class _PantallaDetalleFamiliarState extends State<PantallaDetalleFamiliar> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      body: Column(
-        children: [
-          _construirHeaderFamiliar(),
-          Expanded(
-            child: _construirCuerpoActual(),
-          )
-        ],
-      ),
+      body: _construirCuerpoActual(),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
@@ -60,7 +60,7 @@ class _PantallaDetalleFamiliarState extends State<PantallaDetalleFamiliar> {
           borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
           child: BottomNavigationBar(
             currentIndex: _indiceActual,
-            onTap: (index) => setState(() => _indiceActual = index),
+            onTap: _cambiarTab,
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.white,
             selectedItemColor: Colors.black,
@@ -80,104 +80,55 @@ class _PantallaDetalleFamiliarState extends State<PantallaDetalleFamiliar> {
     );
   }
 
-  Widget _construirHeaderFamiliar() {
+  Widget _construirCuerpoActual() {
+    switch (_indiceActual) {
+      case 0:
+        return TabGlucosaFamiliar(
+            paciente: widget.paciente,
+            onCambiarTab: _cambiarTab
+        );
+      case 1:
+        return Column(
+          children: [
+            _construirHeaderBasico('Calculadora de Dosis'),
+            const Expanded(child: Center(child: Text('Aquí se conectará la Calculadora de Dosis', style: TextStyle(color: Colors.grey)))),
+          ],
+        );
+      case 2:
+        return TabMedicamentosFamiliar(paciente: widget.paciente);
+      case 3:
+        return Column(
+          children: [
+            _construirHeaderBasico('Historial Clínico'),
+            const Expanded(child: Center(child: Text('Aquí se conectarán los Registros/Historial', style: TextStyle(color: Colors.grey)))),
+          ],
+        );
+      case 4:
+        return Column(
+          children: [
+            _construirHeaderBasico('Identificación Médica'),
+            const Expanded(child: Center(child: Text('Aquí se conectará la ID Médica', style: TextStyle(color: Colors.grey)))),
+          ],
+        );
+      default:
+        return const Center(child: Text('Vista no encontrada'));
+    }
+  }
+
+  Widget _construirHeaderBasico(String titulo) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(top: 50, left: 15, right: 20, bottom: 25),
       decoration: const BoxDecoration(
         color: Color(0xFF1C63BB),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(40),
-          bottomRight: Radius.circular(40),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 10,
-            offset: Offset(0, 5),
-          ),
-        ],
+        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
-              ),
-              Expanded(
-                child: Text(
-                  'Perfil de ${widget.paciente['nombre']}',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 15),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Datos físicos
-                Text(
-                  'Edad: ${widget.paciente['edad']} años | Estatura: ${widget.paciente['altura']} cm | Peso: ${widget.paciente['peso']} kg',
-                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 10),
-
-                // Etiqueta de Parentesco
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF00D1FF).withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: const Color(0xFF00D1FF).withOpacity(0.5)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.favorite, color: Color(0xFF00D1FF), size: 16),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Parentesco: ${widget.paciente['parentesco']}',
-                        style: const TextStyle(color: Color(0xFF00D1FF), fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+          IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white), onPressed: () => Navigator.pop(context)),
+          Expanded(child: Text(titulo, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white), overflow: TextOverflow.ellipsis)),
         ],
       ),
     );
-  }
-
-  Widget _construirCuerpoActual() {
-    switch (_indiceActual) {
-      case 0:
-        return TabGlucosaFamiliar(paciente: widget.paciente);
-      case 1:
-        return const Center(
-          child: Text('Aquí se conectará la Calculadora de Dosis', style: TextStyle(color: Colors.grey)),
-        );
-      case 2:
-        return TabMedicamentosFamiliar(paciente: widget.paciente);
-      case 3:
-        return const Center(
-          child: Text('Aquí se conectarán los Registros/Historial', style: TextStyle(color: Colors.grey)),
-        );
-      case 4:
-        return const Center(
-          child: Text('Aquí se conectará la ID Médica', style: TextStyle(color: Colors.grey)),
-        );
-      default:
-        return const Center(child: Text('Vista no encontrada'));
-    }
   }
 }
