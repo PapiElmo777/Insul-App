@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'tab_glucosa_familiar.dart';
-import 'tab_medicamentos_familiar.dart';
 import 'tab_calculadora_familiar.dart';
+import 'tab_medicamentos_familiar.dart';
+import 'tab_registros_familiar.dart';
 
 class PantallaDetalleFamiliar extends StatefulWidget {
   final Map<String, dynamic> paciente;
@@ -93,26 +94,28 @@ class _PantallaDetalleFamiliarState extends State<PantallaDetalleFamiliar> {
           paciente: widget.paciente,
         );
       case 2:
-        return TabMedicamentosFamiliar(paciente: widget.paciente);
+        return TabMedicamentosFamiliar(
+            paciente: widget.paciente
+        );
       case 3:
-        return Column(
-          children: [
-            _construirHeaderBasico('Historial Clínico'),
-            const Expanded(child: Center(child: Text('Aquí se conectarán los Registros/Historial', style: TextStyle(color: Colors.grey)))),
-          ],
+        return TabRegistrosFamiliar(
+            paciente: widget.paciente
         );
       case 4:
         return Column(
           children: [
             _construirHeaderBasico('Identificación Médica'),
-            const Expanded(child: Center(child: Text('Aquí se conectará la ID Médica', style: TextStyle(color: Colors.grey)))),
+            const Expanded(
+                child: Center(
+                    child: Text('Aquí se conectará la ID Médica', style: TextStyle(color: Colors.grey))
+                )
+            ),
           ],
         );
       default:
         return const Center(child: Text('Vista no encontrada'));
     }
   }
-
   Widget _construirHeaderBasico(String titulo) {
     return Container(
       width: double.infinity,
@@ -123,8 +126,17 @@ class _PantallaDetalleFamiliarState extends State<PantallaDetalleFamiliar> {
       ),
       child: Row(
         children: [
-          IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white), onPressed: () => Navigator.pop(context)),
-          Expanded(child: Text(titulo, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white), overflow: TextOverflow.ellipsis)),
+          IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+              onPressed: () => Navigator.pop(context)
+          ),
+          Expanded(
+              child: Text(
+                  titulo,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                  overflow: TextOverflow.ellipsis
+              )
+          ),
         ],
       ),
     );
