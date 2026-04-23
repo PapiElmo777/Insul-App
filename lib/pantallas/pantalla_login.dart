@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'pantalla_registro.dart';
 import '../database/database_helper.dart';
-import '../database/mock_data.dart'; // Archivo pruebas
+import '../database/mock_data.dart';
 import 'enfermeros/pantalla_inicio_enfermero.dart';
 import 'paciente/pantalla_inicio_paciente.dart';
+import 'cuidadores/pantalla_inicio_cuidador.dart';
 
 class PantallaLogin extends StatefulWidget {
   const PantallaLogin({super.key});
@@ -90,7 +91,10 @@ class _PantallaLoginState extends State<PantallaLogin> with SingleTickerProvider
           MaterialPageRoute(builder: (_) => const PantallaInicioEnfermero()));
     } else if (rol == 'Paciente') {
       Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (_) => PantallaInicioPaciente(nombrePaciente: usuario['nombre'])));
+          MaterialPageRoute(builder: (_) => PantallaInicioPaciente(nombrePaciente: usuario['nombre'] as String)));
+    } else if (rol == 'Cuidador') {
+      Navigator.pushReplacement(context,
+          MaterialPageRoute(builder: (_) => PantallaInicioCuidador(nombreCuidador: usuario['nombre'] as String)));
     } else {
       setState(() {
         _cargando = false;

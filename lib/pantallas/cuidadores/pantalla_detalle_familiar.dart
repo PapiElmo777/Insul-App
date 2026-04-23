@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'tab_glucosa_familiar.dart';
+import 'tab_medicamentos_familiar.dart';
 
 class PantallaDetalleFamiliar extends StatefulWidget {
   final Map<String, dynamic> paciente;
@@ -11,6 +13,31 @@ class PantallaDetalleFamiliar extends StatefulWidget {
 
 class _PantallaDetalleFamiliarState extends State<PantallaDetalleFamiliar> {
   int _indiceActual = 0;
+  BottomNavigationBarItem _crearBottomNavItem(IconData icono, int index, String label) {
+    return BottomNavigationBarItem(
+      icon: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+              icono,
+              size: 28,
+              color: _indiceActual == index ? Colors.black : const Color(0xFF888888)
+          ),
+          if (_indiceActual == index)
+            Container(
+                margin: const EdgeInsets.only(top: 4),
+                width: 5,
+                height: 5,
+                decoration: const BoxDecoration(
+                    color: Color(0xFFD32F2F),
+                    shape: BoxShape.circle
+                )
+            ),
+        ],
+      ),
+      label: label,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,28 +52,27 @@ class _PantallaDetalleFamiliarState extends State<PantallaDetalleFamiliar> {
         ],
       ),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, -5))
-            ]
+        decoration: const BoxDecoration(
+          borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -5))],
         ),
         child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
           child: BottomNavigationBar(
             currentIndex: _indiceActual,
             onTap: (index) => setState(() => _indiceActual = index),
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.white,
-            selectedItemColor: const Color(0xFF1C63BB),
-            unselectedItemColor: Colors.grey,
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            unselectedLabelStyle: const TextStyle(fontSize: 11),
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.water_drop)),
-              BottomNavigationBarItem(icon: Icon(Icons.calculate)),
-              BottomNavigationBarItem(icon: Icon(Icons.medication)),
-              BottomNavigationBarItem(icon: Icon(Icons.history)),
-              BottomNavigationBarItem(icon: Icon(Icons.badge)),
+            selectedItemColor: Colors.black,
+            unselectedItemColor: const Color(0xFF888888),
+            showSelectedLabels: false,
+            showUnselectedLabels: false,
+            items: [
+              _crearBottomNavItem(Icons.water_drop, 0, 'Glucosa'),
+              _crearBottomNavItem(Icons.calculate, 1, 'Dosis'),
+              _crearBottomNavItem(Icons.medication, 2, 'Meds'),
+              _crearBottomNavItem(Icons.history, 3, 'Registros'),
+              _crearBottomNavItem(Icons.badge, 4, 'ID Médica'),
             ],
           ),
         ),
@@ -132,21 +158,16 @@ class _PantallaDetalleFamiliarState extends State<PantallaDetalleFamiliar> {
     );
   }
 
-  // Controlador de las pestañas internas
   Widget _construirCuerpoActual() {
     switch (_indiceActual) {
       case 0:
-        return const Center(
-          child: Text('Aquí se conectará el Dashboard de Glucosa', style: TextStyle(color: Colors.grey)),
-        );
+        return TabGlucosaFamiliar(paciente: widget.paciente);
       case 1:
         return const Center(
           child: Text('Aquí se conectará la Calculadora de Dosis', style: TextStyle(color: Colors.grey)),
         );
       case 2:
-        return const Center(
-          child: Text('Aquí se conectarán los Medicamentos', style: TextStyle(color: Colors.grey)),
-        );
+        return TabMedicamentosFamiliar(paciente: widget.paciente);
       case 3:
         return const Center(
           child: Text('Aquí se conectarán los Registros/Historial', style: TextStyle(color: Colors.grey)),

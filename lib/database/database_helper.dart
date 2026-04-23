@@ -162,9 +162,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // ────────────────────────────────────────────────────────────────────────
-    // TABLAS EXCLUSIVAS PARA EL ENFERMERO Y SUS PACIENTES LOCALES
-    // ────────────────────────────────────────────────────────────────────────
     await db.execute('''
       CREATE TABLE pacientes_enfermero (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -240,8 +237,7 @@ class DatabaseHelper {
         FOREIGN KEY (enfermero_id) REFERENCES enfermeros(id) ON DELETE CASCADE
       )
     ''');
-    
-    // TABLAS EXCLUSIVAS PARA EL CUIDADOR Y SUS PACIENTES LOCALES
+
     await db.execute('''
       CREATE TABLE pacientes_cuidador (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -636,5 +632,15 @@ class DatabaseHelper {
         whereArgs: [pacienteCuidadorId],
         orderBy: 'fecha DESC'
     );
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerMedicamentosDePacienteCuidador(int pacienteCuidadorId) async {
+    final baseDatos = await db;
+    return await baseDatos.query('otros_medicamentos_cuidador', where: 'paciente_cuidador_id = ?', whereArgs: [pacienteCuidadorId]);
+  }
+
+  Future<void> eliminarMedicamentoCuidador(int id) async {
+    final baseDatos = await db;
+    await baseDatos.delete('otros_medicamentos_cuidador', where: 'id = ?', whereArgs: [id]);
   }
 }

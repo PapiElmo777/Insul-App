@@ -48,11 +48,20 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
 
     if (mounted) {
       setState(() {
-        _historialGlucosa = glucosa.map((e) => {'valor': e['valor'], 'fecha': DateTime.parse(e['fecha'])}).toList();
-        _medicamentos = List<Map<String, dynamic>>.from(meds);
-        _historialInsulina = insul.map((e) => {'unidades': e['unidades'], 'fecha': DateTime.parse(e['fecha'])}).toList();
+        _historialGlucosa = glucosa.map((e) => {
+          'valor': (e['valor'] as num?)?.toInt() ?? 0,
+          'fecha': DateTime.tryParse(e['fecha']?.toString() ?? '') ?? DateTime.now()
+        }).toList();
 
-        _observacionesBD = obs.map((e) => e['nota'] as String).toList();
+        _medicamentos = List<Map<String, dynamic>>.from(meds);
+
+        _historialInsulina = insul.map((e) => {
+          'unidades': (e['unidades'] as num?)?.toInt() ?? 0,
+          'fecha': DateTime.tryParse(e['fecha']?.toString() ?? '') ?? DateTime.now()
+        }).toList();
+
+        _observacionesBD = obs.map((e) => e['nota']?.toString() ?? '').toList();
+
         if (_observacionesBD.isEmpty && widget.paciente['estadoGeneral'] != null && widget.paciente['estadoGeneral'].toString().isNotEmpty) {
           _observacionesBD.add('NOTA DE INGRESO:\n${widget.paciente['estadoGeneral']}');
         }

@@ -24,12 +24,23 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
   }
 
   Future<void> _cargarRegistros() async {
-    final db = DatabaseHelper();
-    final data = await db.obtenerRegistrosGlucosaCuidador(widget.paciente['id']);
-    setState(() {
-      _ultimosRegistros = data;
-      _cargando = false;
-    });
+    try {
+      final db = DatabaseHelper();
+      final data = await db.obtenerRegistrosGlucosaCuidador(widget.paciente['id']);
+      if (mounted) {
+        setState(() {
+          _ultimosRegistros = data;
+          _cargando = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error cargando glucosa: $e");
+      if (mounted) {
+        setState(() {
+          _cargando = false;
+        });
+      }
+    }
   }
 
   void _guardarGlucosa() async {
@@ -64,9 +75,7 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
           const SizedBox(height: 25),
           const Text('Acciones Rápidas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
           const SizedBox(height: 15),
-
           _botonAgregarGlucosa(),
-
           const SizedBox(height: 25),
           const Text('Últimas lecturas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
           const SizedBox(height: 15),
@@ -81,7 +90,7 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
     String ultima = '--';
     if (_ultimosRegistros.isNotEmpty) {
       ultima = _ultimosRegistros.first['valor'].toString();
-      promedio = _ultimosRegistros.map((e) => e['valor'] as double).reduce((a, b) => a + b) / _ultimosRegistros.length;
+      promedio = _ultimosRegistros.map((e) => (e['valor'] as num).toDouble()).reduce((a, b) => a + b) / _ultimosRegistros.length;
     }
 
     return Row(

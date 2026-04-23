@@ -96,10 +96,10 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
             'alergias': p['alergias'],
             'dieta': p['dieta'],
             'estadoGeneral': p['estado_general'],
-            'hipoLimit': (p['hipo_limit'] as num).toInt(),
-            'hiperLimit': (p['hiper_limit'] as num).toInt(),
-            'rangoMin': (p['rango_min'] as num).toInt(),
-            'rangoMax': (p['rango_max'] as num).toInt(),
+            'hipoLimit': (p['hipo_limit'] as num?)?.toInt() ?? 70,
+            'hiperLimit': (p['hiper_limit'] as num?)?.toInt() ?? 180,
+            'rangoMin': (p['rango_min'] as num?)?.toInt() ?? 80,
+            'rangoMax': (p['rango_max'] as num?)?.toInt() ?? 130,
             'glucosa': ultimaGlucosa,
             'fechaUltimaGlucosa': fechaUltimaGlucosa,
           });
@@ -1120,7 +1120,7 @@ class _TarjetaPaciente extends StatelessWidget {
                       if (lecturaAtrasada) Padding(padding: const EdgeInsets.only(right: 5), child: Icon(Icons.timer_off_outlined, color: colorIndicador, size: 20)),
                       Expanded(
                         child: Text(
-                          paciente['nombre'],
+                          paciente['nombre'] ?? 'Paciente',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
@@ -1133,7 +1133,7 @@ class _TarjetaPaciente extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text('Cama/Ubicación: ${paciente['ubicacion']}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                  Text('Cama/Ubicación: ${paciente['ubicacion'] ?? 'N/A'}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
                   const SizedBox(height: 8),
 
                   Row(
@@ -1243,8 +1243,8 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(paciente['nombre'], style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: Colors.black)),
-                      Text('Edad: ${paciente['edad']} | Exp: ${paciente['expediente']}', style: const TextStyle(fontSize: 16, color: Colors.black54)),
+                      Text(paciente['nombre'] ?? 'Paciente', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: Colors.black)),
+                      Text('Edad: ${paciente['edad']?.toString() ?? '--'} | Exp: ${paciente['expediente'] ?? '--'}', style: const TextStyle(fontSize: 16, color: Colors.black54)),
                     ],
                   ),
                 ),
@@ -1263,7 +1263,7 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('Ubicación', style: TextStyle(fontSize: 13, color: Colors.grey)),
-                      Text(paciente['ubicacion'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+                      Text(paciente['ubicacion'] ?? 'N/A', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
                     ],
                   ),
                 ),
@@ -1272,7 +1272,7 @@ class _TarjetaPacienteDetallada extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('Tipo Diabetes', style: TextStyle(fontSize: 13, color: Colors.grey)),
-                      Text(paciente['tipoDiabetes'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+                      Text(paciente['tipoDiabetes'] ?? 'N/A', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
                     ],
                   ),
                 ),
