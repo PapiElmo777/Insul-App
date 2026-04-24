@@ -302,6 +302,16 @@ class DatabaseHelper {
         FOREIGN KEY (paciente_cuidador_id) REFERENCES pacientes_cuidador(id) ON DELETE CASCADE
       )
     ''');
+    await db.execute('''
+      CREATE TABLE reportes_cuidador (
+        id TEXT PRIMARY KEY,
+        paciente_cuidador_id INTEGER NOT NULL,
+        periodo TEXT,
+        fecha TEXT,
+        archivo_bytes BLOB,
+        FOREIGN KEY (paciente_cuidador_id) REFERENCES pacientes_cuidador(id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   // ── USUARIOS ──────────────────────────────────────────────────────────────
@@ -459,9 +469,7 @@ class DatabaseHelper {
   Future<int?> obtenerSesionActiva() async {
     final baseDatos = await db;
     final resultado = await baseDatos.query('sesion', where: 'id = 1', limit: 1);
-    if (resultado.isNotEmpty) {
-      return resultado.first['usuario_id'] as int?;
-    }
+    if (resultado.isNotEmpty) return resultado.first['usuario_id'] as int?;
     return null;
   }
 
@@ -470,10 +478,7 @@ class DatabaseHelper {
     await baseDatos.delete('sesion', where: 'id = 1');
   }
 
-  // ───────────────────────────────────────────────
-  // MÉTODOS PARA EL ROL DE ENFERMERO
-  // ───────────────────────────────────────────────
-
+  // ── MÉTODOS ROL ENFERMERO ───────────────────────────────────────────────
   Future<int> insertarPacienteEnfermero(Map<String, dynamic> datos) async {
     final baseDatos = await db;
     return await baseDatos.insert('pacientes_enfermero', datos);
@@ -664,5 +669,26 @@ class DatabaseHelper {
   Future<void> eliminarMedicamentoCuidador(int id) async {
     final baseDatos = await db;
     await baseDatos.delete('otros_medicamentos_cuidador', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ── REPORTES DE CUIDADOR ───────────────────────────────────────────────
+  Future<void> insertarReporteCuidador(Map<String, dynamic> datos) async {
+    final baseDatos = await db;
+    await baseDatos.insert('reportes_cuidador', datos);
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerReportesDeFamiliar(int pacienteCuidadorId) async {
+    final baseDatos = await db;
+    return await baseDatos.query(
+        'reportes_cuidador',
+        where: 'paciente_cuidador_id = ?',
+        whereArgs: [pacienteCuidadorId],
+        orderBy: 'fecha DESC'
+    );
+  }
+
+  Future<void> eliminarReporteCuidador(String id) async {
+    final baseDatos = await db;
+    await baseDatos.delete('reportes_cuidador', where: 'id = ?', whereArgs: [id]);
   }
 }

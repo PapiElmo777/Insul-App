@@ -3,6 +3,7 @@ import '../../database/database_helper.dart';
 import '../pantalla_login.dart';
 import '../pantallas_cuestionarios.dart';
 import 'pantalla_detalle_familiar.dart';
+import 'tab_reportes_cuidador.dart';
 
 class PantallaInicioCuidador extends StatefulWidget {
   final String nombreCuidador;
@@ -14,6 +15,7 @@ class PantallaInicioCuidador extends StatefulWidget {
 }
 
 class _PantallaInicioCuidadorState extends State<PantallaInicioCuidador> {
+  int _indiceActual = 0;
   String _saludo = '';
   List<Map<String, dynamic>> _pacientes = [];
   bool _cargando = true;
@@ -42,14 +44,18 @@ class _PantallaInicioCuidadorState extends State<PantallaInicioCuidador> {
 
     if (userId != null) {
       final data = await db.obtenerPacientesPorCuidador(userId);
-      setState(() {
-        _pacientes = data;
-        _cargando = false;
-      });
+      if (mounted) {
+        setState(() {
+          _pacientes = data;
+          _cargando = false;
+        });
+      }
     } else {
-      setState(() {
-        _cargando = false;
-      });
+      if (mounted) {
+        setState(() {
+          _cargando = false;
+        });
+      }
     }
   }
 
@@ -88,28 +94,71 @@ class _PantallaInicioCuidadorState extends State<PantallaInicioCuidador> {
     }
   }
 
+  void _cambiarTab(int index) {
+    setState(() {
+      _indiceActual = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      body: _cargando
-          ? const Center(child: CircularProgressAnimation())
-          : Column(
-        children: [
-          _construirHeader(),
-          Expanded(
-            child: _pacientes.isEmpty
-                ? _construirEstadoVacio()
-                : _construirListaPacientes(),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
+      body: _indiceActual == 0
+          ? _construirVistaFamiliares()
+          : const TabReportesCuidador(),
+      floatingActionButton: _indiceActual == 0
+          ? FloatingActionButton.extended(
         onPressed: _agregarFamiliar,
         backgroundColor: const Color(0xFF00D1FF),
         icon: const Icon(Icons.person_add_alt_1, color: Color(0xFF1C63BB)),
         label: const Text('Añadir Familiar', style: TextStyle(color: Color(0xFF1C63BB), fontWeight: FontWeight.bold)),
+      )
+          : null,
+
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -5))],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+          child: BottomNavigationBar(
+            currentIndex: _indiceActual,
+            onTap: _cambiarTab,
+            backgroundColor: Colors.white,
+            selectedItemColor: const Color(0xFF1C63BB),
+            unselectedItemColor: const Color(0xFF888888),
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_rounded),
+                label: 'Inicio',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.folder_shared),
+                label: 'Historiales',
+              ),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _construirVistaFamiliares() {
+    if (_cargando) {
+      return const Center(child: CircularProgressAnimation());
+    }
+
+    return Column(
+      children: [
+        _construirHeader(),
+        Expanded(
+          child: _pacientes.isEmpty
+              ? _construirEstadoVacio()
+              : _construirListaPacientes(),
+        ),
+      ],
     );
   }
 

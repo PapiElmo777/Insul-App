@@ -16,15 +16,23 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
   List<Map<String, dynamic>> _registrosGlucosa = [];
   bool _cargando = true;
 
-  final int limiteHipo = 70;
-  final int limiteHiper = 180;
-  final int rangoMin = 80;
-  final int rangoMax = 130;
+  late int limiteHipo;
+  late int limiteHiper;
+  late int rangoMin;
+  late int rangoMax;
 
   @override
   void initState() {
     super.initState();
+    _inicializarLimites();
     _cargarRegistros();
+  }
+
+  void _inicializarLimites() {
+    limiteHipo = (widget.paciente['limite_hipo'] as num?)?.toInt() ?? 70;
+    limiteHiper = (widget.paciente['limite_hiper'] as num?)?.toInt() ?? 180;
+    rangoMin = (widget.paciente['rango_min'] as num?)?.toInt() ?? 80;
+    rangoMax = (widget.paciente['rango_max'] as num?)?.toInt() ?? 130;
   }
 
   Future<void> _cargarRegistros() async {
@@ -57,7 +65,7 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
     final fechaStr = _registrosGlucosa.first['fecha'].toString();
     try {
       final fecha = DateTime.parse(fechaStr);
-      return DateFormat("d/M/yyyy 'a las' HH:mm", 'es_ES').format(fecha);
+      return DateFormat("dd/MM/yyyy 'a las' HH:mm").format(fecha);
     } catch (e) {
       return fechaStr.substring(0, 16);
     }
@@ -133,7 +141,7 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Ultima Lectura
+                // Tarjeta Última Lectura
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
@@ -152,7 +160,17 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
                             'Última Lectura',
                             style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w600, fontSize: 18, color: Color(0xFF3F3F3F)),
                           ),
-                          Icon(Icons.show_chart_rounded, color: Colors.grey.shade500, size: 24),
+                          // ¡AQUÍ ESTÁ EL BOTÓN DE VER HISTORIAL!
+                          GestureDetector(
+                            onTap: () => widget.onCambiarTab(3), // Nos manda a la pestaña de Registros
+                            child: Row(
+                              children: const [
+                                Text('Ver historial', style: TextStyle(color: Color(0xFF1C63BB), fontWeight: FontWeight.bold, fontSize: 13)),
+                                SizedBox(width: 4),
+                                Icon(Icons.arrow_forward_ios, color: Color(0xFF1C63BB), size: 12),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 5),
@@ -242,7 +260,6 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
                 ),
                 const SizedBox(height: 25),
 
-                // Acciones Rapidas
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
@@ -478,7 +495,7 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
                                     'valor': valor,
                                     'momento': momentoSeleccionado,
                                     'notas': notasCtrl.text,
-                                    'fecha': DateTime.now().toString(),
+                                    'fecha': DateTime.now().toIso8601String(),
                                   });
 
                                   _cargarRegistros();
