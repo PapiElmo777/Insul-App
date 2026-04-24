@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 import 'dart:typed_data';
-import '../../../database/database_helper.dart';
-import '../../../servicios/servicios/reporte_paciente_service.dart';
-import '../../../servicios/id_medica_service.dart';
+import 'package:insulapp/database/database_helper.dart';
+import 'package:insulapp/servicios/servicios/reporte_paciente_service.dart';
+import 'package:insulapp/servicios/id_medica_service.dart';
 
 class TabReportesCuidador extends StatefulWidget {
   const TabReportesCuidador({super.key});
@@ -290,11 +290,109 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
     }
   }
 
+  Widget _construirListaDocumentos(List<Map<String, dynamic>> reportesFiltrados, bool esPestanaID) {
+    if (_cargando) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF1C63BB)));
+    }
+
+    if (reportesFiltrados.isEmpty) {
+      return Center(
+          child: Text(
+              esPestanaID ? 'No hay IDs generadas.' : 'No hay Reportes AGP generados.',
+              style: const TextStyle(color: Colors.grey)
+          )
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      itemCount: reportesFiltrados.length,
+      itemBuilder: (context, index) {
+        final reporte = reportesFiltrados[index];
+        final fechaFormateada = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(reporte['fecha']));
+        final bytes = reporte['archivo_bytes'] as Uint8List;
+        final esIDMedica = reporte['periodo'] == 'ID Médica';
+
+        return Card(
+          elevation: 0,
+          margin: const EdgeInsets.only(bottom: 15),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                  color: esIDMedica ? const Color(0xFFD32F2F).withOpacity(0.5) : Colors.grey.shade300,
+                  width: esIDMedica ? 1.5 : 1.0)
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => _verReporte(bytes),
+            child: Padding(
+              padding: const EdgeInsets.all(15.0),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                        color: esIDMedica ? const Color(0xFFFFEBEE) : const Color(0xFFE8F4F8),
+                        shape: BoxShape.circle
+                    ),
+                    child: Icon(
+                        esIDMedica ? Icons.badge : Icons.picture_as_pdf,
+                        color: esIDMedica ? const Color(0xFFD32F2F) : const Color(0xFF1C63BB),
+                        size: 28
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(esIDMedica ? 'ID de Emergencia' : 'Reporte AGP', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        const SizedBox(height: 4),
+                        Text(
+                            esIDMedica ? 'Llevar siempre consigo' : 'Periodo: ${reporte['periodo']}',
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: esIDMedica ? const Color(0xFFD32F2F) : Colors.black87,
+                                fontWeight: esIDMedica ? FontWeight.w600 : FontWeight.normal
+                            )
+                        ),
+                        Text('Creado: $fechaFormateada', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.share, color: Color(0xFF1C63BB)),
+                        onPressed: () => _compartirReporte(bytes, _familiarSeleccionado!['nombre'], esIDMedica),
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.all(8),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Color(0xFFFF6B6B)),
+                        onPressed: () => _eliminarReporte(reporte['id']),
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.all(8),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_cargando && _familiares.isEmpty) {
       return const Center(child: CircularProgressIndicator(color: Color(0xFF1C63BB)));
     }
+
+    final reportesID = _reportesGuardados.where((r) => r['periodo'] == 'ID Médica').toList();
+    final reportesAGP = _reportesGuardados.where((r) => r['periodo'] != 'ID Médica').toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -314,7 +412,7 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
               children: [
                 Text('Documentos y Reportes', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
                 SizedBox(height: 5),
-                Text('Genera IDs Médicas y reportes de tus familiares.', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                Text('Genera y gestiona los documentos de tus familiares.', style: TextStyle(color: Colors.white70, fontSize: 14)),
               ],
             ),
           ),
@@ -323,156 +421,131 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
             const Expanded(child: Center(child: Text('No tienes familiares registrados.', style: TextStyle(color: Colors.grey))))
           else
             Expanded(
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Selecciona a tu familiar:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-                        const SizedBox(height: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 15),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(15),
-                            border: Border.all(color: const Color(0xFFD2D2D2)),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<Map<String, dynamic>>(
-                              value: _familiarSeleccionado,
-                              isExpanded: true,
-                              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF1C63BB)),
-                              items: _familiares.map((fam) {
-                                return DropdownMenuItem<Map<String, dynamic>>(
-                                  value: fam,
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.person, color: Color(0xFF1C63BB), size: 20),
-                                      const SizedBox(width: 10),
-                                      Text(fam['nombre'], style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setState(() => _familiarSeleccionado = val);
-                                  _cargarReportes();
-                                }
-                              },
+              child: DefaultTabController(
+                length: 2,
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Selecciona a tu familiar:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(color: const Color(0xFFD2D2D2)),
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _generando ? null : _generarNuevoReporteAGP,
-                                icon: const Icon(Icons.analytics, color: Colors.white, size: 18),
-                                label: const Text('Reporte AGP', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0C80EB),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<Map<String, dynamic>>(
+                                value: _familiarSeleccionado,
+                                isExpanded: true,
+                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF1C63BB)),
+                                items: _familiares.map((fam) {
+                                  return DropdownMenuItem<Map<String, dynamic>>(
+                                    value: fam,
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.person, color: Color(0xFF1C63BB), size: 20),
+                                        const SizedBox(width: 10),
+                                        Text(fam['nombre'], style: const TextStyle(fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: _generando ? null : (val) {
+                                  if (val != null) {
+                                    setState(() => _familiarSeleccionado = val);
+                                    _cargarReportes();
+                                  }
+                                },
                               ),
                             ),
+                          ),
+                          const SizedBox(height: 15),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _generando ? null : _generarNuevoReporteAGP,
+                                  icon: const Icon(Icons.analytics, color: Colors.white, size: 18),
+                                  label: const Text('Reporte AGP', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0C80EB),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _generando ? null : _generarNuevaIDMedica,
+                                  icon: const Icon(Icons.badge, color: Colors.white, size: 18),
+                                  label: const Text('ID Médica', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFD32F2F),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    if (_familiarSeleccionado != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F4F8),
+                          border: Border.symmetric(horizontal: BorderSide(color: Colors.grey.shade300, width: 1)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.folder_shared, color: Color(0xFF1C63BB), size: 20),
                             const SizedBox(width: 10),
                             Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _generando ? null : _generarNuevaIDMedica,
-                                icon: const Icon(Icons.badge, color: Colors.white, size: 18),
-                                label: const Text('ID Médica', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFD32F2F),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
+                              child: Text(
+                                'Archivos de ${_familiarSeleccionado!['nombre']}',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1C63BB)),
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
 
-                  const Divider(height: 1, thickness: 1, color: Color(0xFFD2D2D2)),
-                  Expanded(
-                    child: _cargando
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF1C63BB)))
-                        : _reportesGuardados.isEmpty
-                        ? const Center(child: Text('No hay documentos generados para este familiar.', style: TextStyle(color: Colors.grey)))
-                        : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                      itemCount: _reportesGuardados.length,
-                      itemBuilder: (context, index) {
-                        final reporte = _reportesGuardados[index];
-                        final fechaFormateada = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(reporte['fecha']));
-                        final bytes = reporte['archivo_bytes'] as Uint8List;
-                        final esIDMedica = reporte['periodo'] == 'ID Médica';
-
-                        return Card(
-                          elevation: 0,
-                          margin: const EdgeInsets.only(bottom: 15),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              side: BorderSide(color: esIDMedica ? const Color(0xFFD32F2F).withOpacity(0.5) : Colors.grey.shade300, width: esIDMedica ? 1.5 : 1.0)
-                          ),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(20),
-                            onTap: () => _verReporte(bytes),
-                            child: Padding(
-                              padding: const EdgeInsets.all(15.0),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                        color: esIDMedica ? const Color(0xFFFFEBEE) : const Color(0xFFE8F4F8),
-                                        shape: BoxShape.circle
-                                    ),
-                                    child: Icon(esIDMedica ? Icons.badge : Icons.picture_as_pdf, color: esIDMedica ? const Color(0xFFD32F2F) : const Color(0xFF1C63BB), size: 28),
-                                  ),
-                                  const SizedBox(width: 15),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(esIDMedica ? 'ID de Emergencia' : 'Reporte AGP', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                        const SizedBox(height: 4),
-                                        Text(esIDMedica ? 'Llevar siempre consigo' : 'Periodo: ${reporte['periodo']}', style: TextStyle(fontSize: 13, color: esIDMedica ? const Color(0xFFD32F2F) : Colors.black87, fontWeight: esIDMedica ? FontWeight.w600 : FontWeight.normal)),
-                                        Text('Creado: $fechaFormateada', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                                      ],
-                                    ),
-                                  ),
-                                  Column(
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.share, color: Color(0xFF1C63BB)),
-                                        onPressed: () => _compartirReporte(bytes, _familiarSeleccionado!['nombre'], esIDMedica),
-                                        constraints: const BoxConstraints(),
-                                        padding: const EdgeInsets.all(8),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline, color: Color(0xFFFF6B6B)),
-                                        onPressed: () => _eliminarReporte(reporte['id']),
-                                        constraints: const BoxConstraints(),
-                                        padding: const EdgeInsets.all(8),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                    Container(
+                      color: Colors.white,
+                      child: const TabBar(
+                        labelColor: Color(0xFF1C63BB),
+                        unselectedLabelColor: Colors.grey,
+                        indicatorColor: Color(0xFF1C63BB),
+                        indicatorWeight: 3,
+                        tabs: [
+                          Tab(text: 'Reportes Clínicos', icon: Icon(Icons.picture_as_pdf)),
+                          Tab(text: 'IDs de Emergencia', icon: Icon(Icons.badge)),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    const Divider(height: 1, thickness: 1, color: Color(0xFFD2D2D2)),
+
+                    Expanded(
+                      child: TabBarView(
+                        children: [
+                          _construirListaDocumentos(reportesAGP, false),
+                          _construirListaDocumentos(reportesID, true),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
