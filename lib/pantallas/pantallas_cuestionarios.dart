@@ -330,6 +330,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
   String? _tiempoDx;
   String? _tipoDiabetes;
   final TextEditingController _alergiasCtrl = TextEditingController();
+  final TextEditingController _hospitalizacionesCtrl = TextEditingController();
   final TextEditingController _pesoCtrl = TextEditingController();
   final TextEditingController _alturaCtrl = TextEditingController();
 
@@ -411,6 +412,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     _pageController.dispose();
     _edadCtrl.dispose();
     _alergiasCtrl.dispose();
+    _hospitalizacionesCtrl.dispose();
     _pesoCtrl.dispose();
     _alturaCtrl.dispose();
     _pesoFocus.dispose();
@@ -566,6 +568,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
         'tiempo_dx': _tiempoDx ?? '',
         'tipo_diabetes': _tipoDiabetes ?? '',
         'alergias': _alergiasCtrl.text,
+        'hospitalizaciones': _hospitalizacionesCtrl.text.isEmpty ? 'Ninguna' : _hospitalizacionesCtrl.text,
         'peso': double.tryParse(_pesoCtrl.text) ?? 0.0,
         'altura': double.tryParse(_alturaCtrl.text) ?? 0.0,
         'imc': _imc,
@@ -830,6 +833,9 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
           const SizedBox(height: 20),
 
           _crearCampoTexto(titulo: 'Alergias Conocidas (Opcional)', hint: 'Ej. Penicilina, Ninguna', controlador: _alergiasCtrl, esNumero: false),
+          const SizedBox(height: 20),
+
+          _crearCampoTexto(titulo: 'Hospitalizaciones Recientes (Opcional)', hint: 'Ej. Ninguna', controlador: _hospitalizacionesCtrl, esNumero: false),
           const SizedBox(height: 20),
 
           Row(
@@ -1532,7 +1538,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
     );
   }
 }
-//------------------------------------------------------------------------------------------------
+
 class PantallaCuestionarioCuidador extends StatefulWidget {
   const PantallaCuestionarioCuidador({super.key});
 
@@ -1555,6 +1561,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
   String? _tiempoDxPaciente;
   String? _tipoDiabetesPaciente;
   final TextEditingController _alergiasPacienteCtrl = TextEditingController();
+  final TextEditingController _hospitalizacionesCtrl = TextEditingController();
   final TextEditingController _pesoPacienteCtrl = TextEditingController();
   final TextEditingController _alturaPacienteCtrl = TextEditingController();
 
@@ -1630,6 +1637,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
     _nombrePacienteCtrl.dispose();
     _edadPacienteCtrl.dispose();
     _alergiasPacienteCtrl.dispose();
+    _hospitalizacionesCtrl.dispose();
     _pesoPacienteCtrl.dispose();
     _alturaPacienteCtrl.dispose();
     _pesoFocus.dispose();
@@ -1785,6 +1793,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
         'tiempo_dx': _tiempoDxPaciente ?? '',
         'tipo_diabetes': _tipoDiabetesPaciente ?? '',
         'alergias': _alergiasPacienteCtrl.text,
+        'hospitalizaciones': _hospitalizacionesCtrl.text.isEmpty ? 'Ninguna' : _hospitalizacionesCtrl.text,
         'peso': double.tryParse(_pesoPacienteCtrl.text) ?? 0.0,
         'altura': double.tryParse(_alturaPacienteCtrl.text) ?? 0.0,
         'imc': _imcPaciente,
@@ -2133,6 +2142,9 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
           const SizedBox(height: 20),
 
           _crearCampoTexto(titulo: 'Alergias Conocidas (Opcional)', hint: 'Ej. Penicilina, Ninguna', controlador: _alergiasPacienteCtrl, esNumero: false),
+          const SizedBox(height: 20),
+
+          _crearCampoTexto(titulo: 'Hospitalizaciones Recientes (Opcional)', hint: 'Ej. Ninguna', controlador: _hospitalizacionesCtrl, esNumero: false),
           const SizedBox(height: 20),
 
           Row(

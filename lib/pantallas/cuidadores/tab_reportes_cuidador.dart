@@ -4,6 +4,7 @@ import 'package:printing/printing.dart';
 import 'dart:typed_data';
 import '../../../database/database_helper.dart';
 import '../../../servicios/servicios/reporte_paciente_service.dart';
+import '../../../servicios/id_medica_service.dart';
 
 class TabReportesCuidador extends StatefulWidget {
   const TabReportesCuidador({super.key});
@@ -38,7 +39,7 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
             _familiares = List<Map<String, dynamic>>.from(data);
             if (_familiares.isNotEmpty) {
               _familiarSeleccionado = _familiares.first;
-              _cargarReportes(); // Cargamos los reportes del primer familiar
+              _cargarReportes();
             } else {
               _cargando = false;
             }
@@ -68,12 +69,12 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
     }
   }
 
-  Future<void> _generarNuevoReporte() async {
+  Future<void> _generarNuevoReporteAGP() async {
     if (_familiarSeleccionado == null) return;
 
     setState(() => _generando = true);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Generando reporte...'), duration: Duration(seconds: 2)),
+      const SnackBar(content: Text('Generando reporte clínico...'), duration: Duration(seconds: 2)),
     );
 
     try {
@@ -88,14 +89,13 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
       if (registrosSoloGlucosa.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No hay suficientes lecturas de glucosa para generar un reporte válido.'), backgroundColor: Colors.orange),
+            const SnackBar(content: Text('No hay lecturas suficientes para un reporte.'), backgroundColor: Colors.orange),
           );
           setState(() => _generando = false);
         }
         return;
       }
 
-      // Adaptador para el servicio de PDF
       final pacienteReporte = {
         'nombre': paciente['nombre']?.toString() ?? 'Familiar',
         'edad': int.tryParse(paciente['edad'].toString()) ?? 0,
@@ -124,7 +124,6 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
         };
       }).toList();
 
-      // Rango de fechas para el título del reporte
       final sorted = List<Map<String, dynamic>>.from(registrosParseados)..sort((a, b) => (a['fecha'] as DateTime).compareTo(b['fecha'] as DateTime));
       final iniStr = DateFormat('dd MMM yy').format(sorted.first['fecha'] as DateTime);
       final finStr = DateFormat('dd MMM yy').format(sorted.last['fecha'] as DateTime);
@@ -135,7 +134,6 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
         registros: registrosParseados,
       );
 
-      // Guardar permanentemente en la Base de Datos
       await dbHelper.insertarReporteCuidador({
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'paciente_cuidador_id': paciente['id'],
@@ -144,20 +142,115 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
         'archivo_bytes': pdfBytes,
       });
 
-      // Recargar la lista visual
       await _cargarReportes();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reporte generado y guardado con éxito.'), backgroundColor: Color(0xFF2E7D32)),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reporte guardado.'), backgroundColor: Color(0xFF2E7D32)));
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al generar PDF: $e'), backgroundColor: Colors.red),
-        );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) setState(() => _generando = false);
+    }
+  }
+
+  Future<void> _generarNuevaIDMedica() async {
+    if (_familiarSeleccionado == null) return;
+
+    setState(() => _generando = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Generando Tarjeta de Emergencia...'), duration: Duration(seconds: 2)),
+    );
+
+    try {
+      final dbHelper = DatabaseHelper();
+      final paciente = _familiarSeleccionado!;
+
+      // 1. Obtener y preparar datos del paciente
+      Map<String, dynamic> datosCompletos = {
+        'nombre_completo': paciente['nombre'] ?? 'Paciente Familiar',
+        'edad': paciente['edad']?.toString() ?? '--',
+        'sexo': paciente['sexo'] ?? '--',
+        'tipo_diabetes': paciente['tipo_diabetes'] ?? 'No especificado',
+        'tipo_sanguineo': paciente['tipo_sanguineo'] ?? 'No sabe',
+        'alergias': paciente['alergias'] ?? 'Ninguna',
+        'enfermedades_cronicas': paciente['enfermedades_cronicas'] ?? 'Ninguna',
+        'hospitalizaciones': paciente['hospitalizaciones'] ?? 'Ninguna',
+        'cirugias': paciente['cirugias'] ?? 'Ninguna',
+        'clinica': paciente['clinica'] ?? 'No especificada',
+        'medico_nombre': paciente['medico_nombre'] ?? 'No asignado',
+        'emergencia_nombre': paciente['emergencia_nombre'] ?? 'No asignado',
+        'emergencia_telefono': paciente['emergencia_telefono'] ?? '--',
+        'metodo_insulina': paciente['metodo_insulina'] ?? 'No usa',
+        'insulina_basal_marca': paciente['insulina_basal_marca'] ?? '',
+        'insulina_basal_dosis': paciente['insulina_basal_dosis'] ?? '',
+        'insulina_rapida_marca': paciente['insulina_rapida_marca'] ?? '',
+      };
+
+      // 2. Cargar medicamentos
+      final medsBD = await dbHelper.obtenerMedicamentosDePacienteCuidador(paciente['id']);
+      List<Map<String, dynamic>> medicamentos = List<Map<String, dynamic>>.from(medsBD);
+      if (paciente['med_oral_nombre'] != null && paciente['med_oral_nombre'].toString().isNotEmpty) {
+        medicamentos.insert(0, {'nombre': paciente['med_oral_nombre'], 'gramaje': paciente['med_oral_dosis'] ?? ''});
       }
+
+      // 3. Cargar y calcular métricas de glucosa
+      final registrosBD = await dbHelper.obtenerRegistrosGlucosaCuidador(paciente['id']);
+      final lecturas = registrosBD.where((r) => (r['valor'] as num) > 0).toList();
+
+      int promedio = 0, tir = 0, pctHipo = 0, pctHiper = 0, minG = 0, maxG = 0;
+      if (lecturas.isNotEmpty) {
+        int suma = 0, countNormal = 0, countHipo = 0, countHiper = 0;
+        int min = 999, max = 0;
+        int limHipo = (paciente['limite_hipo'] as num?)?.toInt() ?? 70;
+        int limHiper = (paciente['limite_hiper'] as num?)?.toInt() ?? 180;
+        int rMin = (paciente['rango_min'] as num?)?.toInt() ?? 80;
+        int rMax = (paciente['rango_max'] as num?)?.toInt() ?? 130;
+
+        for (var r in lecturas) {
+          int v = (r['valor'] as num).toInt();
+          suma += v;
+          if (v < min) min = v;
+          if (v > max) max = v;
+          if (v < limHipo) countHipo++;
+          else if (v > limHiper) countHiper++;
+          else if (v >= rMin && v <= rMax) countNormal++;
+        }
+
+        promedio = (suma / lecturas.length).round();
+        minG = min; maxG = max;
+        tir = ((countNormal / lecturas.length) * 100).round();
+        pctHipo = ((countHipo / lecturas.length) * 100).round();
+        pctHiper = ((countHiper / lecturas.length) * 100).round();
+      }
+
+      // 4. Generar el PDF
+      final pdfBytes = await IdentificacionMedicaService.generarPDF(
+        datos: datosCompletos,
+        medicamentos: medicamentos,
+        promedio: promedio,
+        tir: tir,
+        pctHipo: pctHipo,
+        pctHiper: pctHiper,
+        minG: minG,
+        maxG: maxG,
+      );
+
+      await dbHelper.insertarReporteCuidador({
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'paciente_cuidador_id': paciente['id'],
+        'periodo': 'ID Médica',
+        'fecha': DateTime.now().toIso8601String(),
+        'archivo_bytes': pdfBytes,
+      });
+
+      await _cargarReportes();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ID Médica guardada.'), backgroundColor: Color(0xFF2E7D32)));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _generando = false);
     }
@@ -167,16 +260,17 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
     await Printing.layoutPdf(onLayout: (format) async => bytes);
   }
 
-  void _compartirReporte(Uint8List bytes, String nombrePaciente) async {
-    await Printing.sharePdf(bytes: bytes, filename: 'Reporte_AGP_${nombrePaciente.replaceAll(" ", "_")}.pdf');
+  void _compartirReporte(Uint8List bytes, String nombrePaciente, bool esID) async {
+    final nombreArchivo = esID ? 'ID_Emergencia_${nombrePaciente.replaceAll(" ", "_")}.pdf' : 'Reporte_AGP_${nombrePaciente.replaceAll(" ", "_")}.pdf';
+    await Printing.sharePdf(bytes: bytes, filename: nombreArchivo);
   }
 
   void _eliminarReporte(String id) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar Reporte', style: TextStyle(color: Color(0xFFD32F2F), fontWeight: FontWeight.bold)),
-        content: const Text('¿Estás seguro de que deseas eliminar este reporte de tu historial local?'),
+        title: const Text('Eliminar Documento', style: TextStyle(color: Color(0xFFD32F2F), fontWeight: FontWeight.bold)),
+        content: const Text('¿Estás seguro de que deseas eliminar este documento de tu historial local?'),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
@@ -218,9 +312,9 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Historiales y Reportes', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
+                Text('Documentos y Reportes', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
                 SizedBox(height: 5),
-                Text('Administra los reportes de tus familiares.', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                Text('Genera IDs Médicas y reportes de tus familiares.', style: TextStyle(color: Colors.white70, fontSize: 14)),
               ],
             ),
           ),
@@ -271,22 +365,35 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 55,
-                          child: ElevatedButton.icon(
-                            onPressed: _generando ? null : _generarNuevoReporte,
-                            icon: _generando
-                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Icon(Icons.add_chart, color: Colors.white),
-                            label: Text(_generando ? 'Procesando...' : 'Generar Nuevo Reporte AGP', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0C80EB),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                              elevation: 4,
+                        const SizedBox(height: 15),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: _generando ? null : _generarNuevoReporteAGP,
+                                icon: const Icon(Icons.analytics, color: Colors.white, size: 18),
+                                label: const Text('Reporte AGP', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0C80EB),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: _generando ? null : _generarNuevaIDMedica,
+                                icon: const Icon(Icons.badge, color: Colors.white, size: 18),
+                                label: const Text('ID Médica', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFD32F2F),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -297,7 +404,7 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
                     child: _cargando
                         ? const Center(child: CircularProgressIndicator(color: Color(0xFF1C63BB)))
                         : _reportesGuardados.isEmpty
-                        ? const Center(child: Text('Aún no has generado reportes para este familiar.', style: TextStyle(color: Colors.grey)))
+                        ? const Center(child: Text('No hay documentos generados para este familiar.', style: TextStyle(color: Colors.grey)))
                         : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                       itemCount: _reportesGuardados.length,
@@ -305,13 +412,14 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
                         final reporte = _reportesGuardados[index];
                         final fechaFormateada = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(reporte['fecha']));
                         final bytes = reporte['archivo_bytes'] as Uint8List;
+                        final esIDMedica = reporte['periodo'] == 'ID Médica';
 
                         return Card(
                           elevation: 0,
                           margin: const EdgeInsets.only(bottom: 15),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
-                              side: BorderSide(color: Colors.grey.shade300)
+                              side: BorderSide(color: esIDMedica ? const Color(0xFFD32F2F).withOpacity(0.5) : Colors.grey.shade300, width: esIDMedica ? 1.5 : 1.0)
                           ),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(20),
@@ -322,17 +430,20 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
                                 children: [
                                   Container(
                                     padding: const EdgeInsets.all(12),
-                                    decoration: const BoxDecoration(color: Color(0xFFE8F4F8), shape: BoxShape.circle),
-                                    child: const Icon(Icons.picture_as_pdf, color: Color(0xFFD32F2F), size: 28),
+                                    decoration: BoxDecoration(
+                                        color: esIDMedica ? const Color(0xFFFFEBEE) : const Color(0xFFE8F4F8),
+                                        shape: BoxShape.circle
+                                    ),
+                                    child: Icon(esIDMedica ? Icons.badge : Icons.picture_as_pdf, color: esIDMedica ? const Color(0xFFD32F2F) : const Color(0xFF1C63BB), size: 28),
                                   ),
                                   const SizedBox(width: 15),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text('Reporte AGP', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                        Text(esIDMedica ? 'ID de Emergencia' : 'Reporte AGP', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                         const SizedBox(height: 4),
-                                        Text('Periodo: ${reporte['periodo']}', style: const TextStyle(fontSize: 13, color: Colors.black87)),
+                                        Text(esIDMedica ? 'Llevar siempre consigo' : 'Periodo: ${reporte['periodo']}', style: TextStyle(fontSize: 13, color: esIDMedica ? const Color(0xFFD32F2F) : Colors.black87, fontWeight: esIDMedica ? FontWeight.w600 : FontWeight.normal)),
                                         Text('Creado: $fechaFormateada', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                                       ],
                                     ),
@@ -341,7 +452,7 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
                                     children: [
                                       IconButton(
                                         icon: const Icon(Icons.share, color: Color(0xFF1C63BB)),
-                                        onPressed: () => _compartirReporte(bytes, _familiarSeleccionado!['nombre']),
+                                        onPressed: () => _compartirReporte(bytes, _familiarSeleccionado!['nombre'], esIDMedica),
                                         constraints: const BoxConstraints(),
                                         padding: const EdgeInsets.all(8),
                                       ),

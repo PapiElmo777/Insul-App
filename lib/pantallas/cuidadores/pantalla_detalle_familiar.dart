@@ -3,6 +3,7 @@ import 'tab_glucosa_familiar.dart';
 import 'tab_calculadora_familiar.dart';
 import 'tab_medicamentos_familiar.dart';
 import 'tab_registros_familiar.dart';
+import 'tab_identificacion_familiar.dart';
 
 class PantallaDetalleFamiliar extends StatefulWidget {
   final Map<String, dynamic> paciente;
@@ -102,43 +103,14 @@ class _PantallaDetalleFamiliarState extends State<PantallaDetalleFamiliar> {
             paciente: widget.paciente
         );
       case 4:
-        return Column(
-          children: [
-            _construirHeaderBasico('Identificación Médica'),
-            const Expanded(
-                child: Center(
-                    child: Text('Aquí se conectará la ID Médica', style: TextStyle(color: Colors.grey))
-                )
-            ),
-          ],
+        return TabIdentificacionFamiliar(
+          familiarId: widget.paciente['id'],
+          onActualizarDashboard: () {
+            setState(() {});
+          },
         );
       default:
         return const Center(child: Text('Vista no encontrada'));
     }
-  }
-  Widget _construirHeaderBasico(String titulo) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.only(top: 50, left: 15, right: 20, bottom: 25),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1C63BB),
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-              onPressed: () => Navigator.pop(context)
-          ),
-          Expanded(
-              child: Text(
-                  titulo,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-                  overflow: TextOverflow.ellipsis
-              )
-          ),
-        ],
-      ),
-    );
   }
 }

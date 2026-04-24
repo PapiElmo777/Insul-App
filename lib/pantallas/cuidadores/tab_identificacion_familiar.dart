@@ -7,25 +7,29 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../../database/database_helper.dart';
 
-class PantallaIdentificacionMedica extends StatefulWidget {
+class TabIdentificacionFamiliar extends StatefulWidget {
+  final int familiarId;
   final VoidCallback onActualizarDashboard;
 
-  const PantallaIdentificacionMedica({super.key, required this.onActualizarDashboard});
+  const TabIdentificacionFamiliar({
+    super.key,
+    required this.familiarId,
+    required this.onActualizarDashboard
+  });
 
   @override
-  State<PantallaIdentificacionMedica> createState() => _PantallaIdentificacionMedicaState();
+  State<TabIdentificacionFamiliar> createState() => _TabIdentificacionFamiliarState();
 }
 
-class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMedica> {
+class _TabIdentificacionFamiliarState extends State<TabIdentificacionFamiliar> {
   bool _cargando = true;
   bool _identificacionCompletada = false;
 
-  int? _usuarioId;
-  int? _pacienteId;
+  int? _cuidadorId;
   Map<String, dynamic> _datosCompletos = {};
   List<Map<String, dynamic>> _medicamentos = [];
 
-  // Variables Resumen Glucemico
+  // Variables Resumen Glucémico
   int _promedio = 0;
   int _tir = 0;
   int _pctHipo = 0;
@@ -43,7 +47,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
   final _medicoCtrl = TextEditingController();
   final _clinicaCtrl = TextEditingController();
 
-  // Tipo SanguIneo
+  // Tipo Sanguíneo
   String _tipoSanguineoSeleccionado = 'No sabe';
   final List<String> _tiposSanguineos = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'No sabe'];
 
@@ -55,35 +59,39 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
 
   Future<void> _cargarDatos() async {
     final db = DatabaseHelper();
-    final usuarioId = await db.obtenerSesionActiva();
+    final cuidadorId = await db.obtenerSesionActiva();
 
-    if (usuarioId != null) {
-      _usuarioId = usuarioId;
-      final usuario = await db.obtenerUsuarioPorId(usuarioId);
-      final paciente = await db.obtenerPacientePorUsuario(usuarioId);
+    if (cuidadorId != null) {
+      _cuidadorId = cuidadorId;
 
-      if (paciente != null && usuario != null) {
-        _pacienteId = paciente['id'];
-        _identificacionCompletada = (paciente['identificacion_completada'] ?? 0) == 1;
+      // Obtener la lista de pacientes del cuidador y filtrar por el ID recibido
+      final pacientes = await db.obtenerPacientesPorCuidador(cuidadorId);
+      final familiar = pacientes.firstWhere(
+              (p) => p['id'] == widget.familiarId,
+          orElse: () => <String, dynamic>{}
+      );
+
+      if (familiar.isNotEmpty) {
+        _identificacionCompletada = (familiar['identificacion_completada'] ?? 0) == 1;
 
         _datosCompletos = {
-          'nombre_completo': '${usuario['nombre']} ${usuario['apellidos']}',
-          'edad': paciente['edad']?.toString() ?? '--',
-          'sexo': paciente['sexo'] ?? '--',
-          'tipo_diabetes': paciente['tipo_diabetes'] ?? 'No especificado',
-          'tipo_sanguineo': paciente['tipo_sanguineo'] ?? 'No sabe',
-          'alergias': paciente['alergias'] ?? 'Ninguna',
-          'enfermedades_cronicas': paciente['enfermedades_cronicas'] ?? 'Ninguna',
-          'hospitalizaciones': paciente['hospitalizaciones'] ?? 'Ninguna',
-          'cirugias': paciente['cirugias'] ?? 'Ninguna',
-          'clinica': paciente['clinica'] ?? 'No especificada',
-          'medico_nombre': paciente['medico_nombre'] ?? 'No asignado',
-          'emergencia_nombre': paciente['emergencia_nombre'] ?? 'No asignado',
-          'emergencia_telefono': paciente['emergencia_telefono'] ?? '--',
-          'metodo_insulina': paciente['metodo_insulina'] ?? 'No usa',
-          'insulina_basal_marca': paciente['insulina_basal_marca'] ?? '',
-          'insulina_basal_dosis': paciente['insulina_basal_dosis'] ?? '',
-          'insulina_rapida_marca': paciente['insulina_rapida_marca'] ?? '',
+          'nombre_completo': familiar['nombre'] ?? 'Sin Nombre',
+          'edad': familiar['edad']?.toString() ?? '--',
+          'sexo': familiar['sexo'] ?? '--',
+          'tipo_diabetes': familiar['tipo_diabetes'] ?? 'No especificado',
+          'tipo_sanguineo': familiar['tipo_sanguineo'] ?? 'No sabe',
+          'alergias': familiar['alergias'] ?? 'Ninguna',
+          'enfermedades_cronicas': familiar['enfermedades_cronicas'] ?? 'Ninguna',
+          'hospitalizaciones': familiar['hospitalizaciones'] ?? 'Ninguna',
+          'cirugias': familiar['cirugias'] ?? 'Ninguna',
+          'clinica': familiar['clinica'] ?? 'No especificada',
+          'medico_nombre': familiar['medico_nombre'] ?? 'No asignado',
+          'emergencia_nombre': familiar['emergencia_nombre'] ?? 'No asignado',
+          'emergencia_telefono': familiar['emergencia_telefono'] ?? '--',
+          'metodo_insulina': familiar['metodo_insulina'] ?? 'No usa',
+          'insulina_basal_marca': familiar['insulina_basal_marca'] ?? '',
+          'insulina_basal_dosis': familiar['insulina_basal_dosis'] ?? '',
+          'insulina_rapida_marca': familiar['insulina_rapida_marca'] ?? '',
         };
 
         _alergiasCtrl.text = _datosCompletos['alergias'] == 'Ninguna' ? '' : _datosCompletos['alergias'];
@@ -99,13 +107,13 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
           _tipoSanguineoSeleccionado = _datosCompletos['tipo_sanguineo'];
         }
 
-        final medsBD = await db.obtenerMedicamentosDePaciente(_pacienteId!);
+        final medsBD = await db.obtenerMedicamentosDePacienteCuidador(widget.familiarId);
         _medicamentos = List<Map<String, dynamic>>.from(medsBD);
-        if (paciente['med_oral_nombre'] != null && paciente['med_oral_nombre'].toString().isNotEmpty) {
-          _medicamentos.insert(0, {'nombre': paciente['med_oral_nombre'], 'gramaje': paciente['med_oral_dosis'] ?? ''});
+        if (familiar['med_oral_nombre'] != null && familiar['med_oral_nombre'].toString().isNotEmpty) {
+          _medicamentos.insert(0, {'nombre': familiar['med_oral_nombre'], 'gramaje': familiar['med_oral_dosis'] ?? ''});
         }
 
-        final registrosBD = await db.obtenerRegistrosGlucosa(_pacienteId!);
+        final registrosBD = await db.obtenerRegistrosGlucosaCuidador(widget.familiarId);
         final lecturas = registrosBD.where((r) => (r['valor'] as num) > 0).toList();
 
         if (lecturas.isNotEmpty) {
@@ -116,10 +124,10 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
           int min = 999;
           int max = 0;
 
-          int limHipo = (paciente['limite_hipo'] as num?)?.toInt() ?? 70;
-          int limHiper = (paciente['limite_hiper'] as num?)?.toInt() ?? 180;
-          int rMin = (paciente['rango_min'] as num?)?.toInt() ?? 80;
-          int rMax = (paciente['rango_max'] as num?)?.toInt() ?? 130;
+          int limHipo = (familiar['limite_hipo'] as num?)?.toInt() ?? 70;
+          int limHiper = (familiar['limite_hiper'] as num?)?.toInt() ?? 180;
+          int rMin = (familiar['rango_min'] as num?)?.toInt() ?? 80;
+          int rMax = (familiar['rango_max'] as num?)?.toInt() ?? 130;
 
           for (var r in lecturas) {
             int v = (r['valor'] as num).toInt();
@@ -146,10 +154,8 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
   }
 
   Future<void> _guardarFormulario() async {
-    if (_usuarioId == null) return;
-
     final db = DatabaseHelper();
-    await db.actualizarPaciente(_usuarioId!, {
+    await db.actualizarPacienteCuidador(widget.familiarId, {
       'enfermedades_cronicas': _enfCronicasCtrl.text.isEmpty ? 'Ninguna' : _enfCronicasCtrl.text,
       'alergias': _alergiasCtrl.text.isEmpty ? 'Ninguna' : _alergiasCtrl.text,
       'tipo_sanguineo': _tipoSanguineoSeleccionado,
@@ -283,7 +289,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
                             pw.SizedBox(height: 3),
                             pw.Text('Edad: ${_datosCompletos['edad']} años  |  Sexo: ${_datosCompletos['sexo']}  |  Sangre: ${_datosCompletos['tipo_sanguineo']}', style: pw.TextStyle(fontSize: 8, color: cGris300)),
                             pw.SizedBox(height: 2),
-                            pw.Text('Expediente: #PAC-00${_pacienteId ?? 'X'}', style: pw.TextStyle(fontSize: 8, color: cGris300)),
+                            pw.Text('Expediente Familiar: #FAM-00${widget.familiarId}', style: pw.TextStyle(fontSize: 8, color: cGris300)),
                           ],
                         ),
                         pw.Column(
@@ -705,7 +711,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                // ──ENCABEZADO DE LA CREDENCIAL ──
+                // ── ENCABEZADO DE LA CREDENCIAL ──
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFF1C63BB), width: 2), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))]),
@@ -740,8 +746,8 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('ID Expediente', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
-                                Text('#PAC-00${_pacienteId ?? 'X'}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
+                                const Text('ID Expediente Familiar', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+                                Text('#FAM-00${widget.familiarId}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
                               ],
                             ),
                             Column(
@@ -759,7 +765,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
                 ),
                 const SizedBox(height: 20),
 
-                // ──INFORMACION CRITICA ──
+                // ── INFORMACION CRITICA ──
                 _construirSeccion(
                   titulo: 'Información Crítica',
                   icono: Icons.warning_rounded,
@@ -783,7 +789,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
                 ),
                 const SizedBox(height: 20),
 
-                // ──RESUMEN GLUCEMICO ──
+                // ── RESUMEN GLUCEMICO ──
                 _construirSeccion(
                   titulo: 'Resumen Glucémico',
                   icono: Icons.pie_chart,
@@ -812,7 +818,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
                 ),
                 const SizedBox(height: 20),
 
-                // ──EVENTOS CLINICOS ──
+                // ── EVENTOS CLINICOS ──
                 _construirSeccion(
                   titulo: 'Eventos Clínicos',
                   icono: Icons.local_hospital,
@@ -826,7 +832,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
                 ),
                 const SizedBox(height: 20),
 
-                // ──CONTACTO Y SEGUIMIENTO ──
+                // ── CONTACTO Y SEGUIMIENTO ──
                 _construirSeccion(
                   titulo: 'Seguimiento Médico',
                   icono: Icons.business,
