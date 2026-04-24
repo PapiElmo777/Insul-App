@@ -80,11 +80,15 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
       final dbHelper = DatabaseHelper();
       final paciente = _familiarSeleccionado!;
       final registrosRaw = await dbHelper.obtenerRegistrosGlucosaCuidador(paciente['id']);
+      final registrosSoloGlucosa = registrosRaw.where((r) {
+        final val = double.tryParse(r['valor'].toString()) ?? 0.0;
+        return val > 0;
+      }).toList();
 
-      if (registrosRaw.isEmpty) {
+      if (registrosSoloGlucosa.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No hay lecturas suficientes para generar el reporte.'), backgroundColor: Colors.orange),
+            const SnackBar(content: Text('No hay suficientes lecturas de glucosa para generar un reporte válido.'), backgroundColor: Colors.orange),
           );
           setState(() => _generando = false);
         }
@@ -106,8 +110,7 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
         'medico': paciente['medico_nombre']?.toString() ?? 'No especificado',
       };
 
-      // Parseo de fechas para el PDF
-      final registrosParseados = registrosRaw.map((r) {
+      final registrosParseados = registrosSoloGlucosa.map((r) {
         DateTime fecha;
         try {
           fecha = DateTime.parse(r['fecha'].toString());
@@ -228,7 +231,6 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
             Expanded(
               child: Column(
                 children: [
-                  // --- SECCIÓN SUPERIOR: Selector y Botón ---
                   Container(
                     padding: const EdgeInsets.all(20),
                     child: Column(

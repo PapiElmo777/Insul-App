@@ -39,9 +39,11 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
     try {
       final db = DatabaseHelper();
       final data = await db.obtenerRegistrosGlucosaCuidador(widget.paciente['id']);
+      final registrosReales = data.where((r) => (r['valor'] as num) > 0).toList();
+
       if (mounted) {
         setState(() {
-          _registrosGlucosa = data;
+          _registrosGlucosa = registrosReales;
           _cargando = false;
         });
       }
@@ -160,9 +162,8 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
                             'Última Lectura',
                             style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w600, fontSize: 18, color: Color(0xFF3F3F3F)),
                           ),
-                          // ¡AQUÍ ESTÁ EL BOTÓN DE VER HISTORIAL!
                           GestureDetector(
-                            onTap: () => widget.onCambiarTab(3), // Nos manda a la pestaña de Registros
+                            onTap: () => widget.onCambiarTab(3),
                             child: Row(
                               children: const [
                                 Text('Ver historial', style: TextStyle(color: Color(0xFF1C63BB), fontWeight: FontWeight.bold, fontSize: 13)),
