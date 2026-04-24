@@ -275,6 +275,14 @@ class DatabaseHelper {
         autonomia_menor TEXT,
         contacto_escolar TEXT,
         identificacion_completada INTEGER DEFAULT 0,
+        tipo_sanguineo TEXT,
+        emergencia_nombre TEXT,
+        emergencia_parentesco TEXT,
+        emergencia_telefono TEXT,
+        enfermedades_cronicas TEXT,
+        hospitalizaciones TEXT,
+        cirugias TEXT,
+        clinica TEXT,
         FOREIGN KEY (cuidador_id) REFERENCES usuarios(id) ON DELETE CASCADE
       )
     ''');

@@ -5,6 +5,7 @@ import 'pantalla_login.dart';
 import '../database/database_helper.dart';
 import 'enfermeros/pantalla_inicio_enfermero.dart';
 import 'paciente/pantalla_inicio_paciente.dart';
+import 'cuidadores/pantalla_inicio_cuidador.dart';
 
 class PantallaCarga extends StatefulWidget {
   const PantallaCarga({super.key});
@@ -37,6 +38,9 @@ class _PantallaCargaState extends State<PantallaCarga> {
         } else if (rol == 'Paciente') {
           Navigator.pushReplacement(context,
               MaterialPageRoute(builder: (_) => PantallaInicioPaciente(nombrePaciente: usuario['nombre'])));
+        } else if (rol == 'Cuidador') {
+          Navigator.pushReplacement(context,
+              MaterialPageRoute(builder: (_) => PantallaInicioCuidador(nombreCuidador: usuario['nombre'])));
         } else {
           Navigator.pushReplacement(context,
               MaterialPageRoute(builder: (_) => const PantallaLogin()));
