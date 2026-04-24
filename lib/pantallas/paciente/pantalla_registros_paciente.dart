@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'hide TextDirection;
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 class PantallaRegistrosPaciente extends StatefulWidget {
   final List<Map<String, dynamic>> registros;
@@ -51,7 +52,7 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
     DateTime limite = DateTime.now().subtract(Duration(days: dias));
 
     return registrosValidos.where((r) {
-      DateTime fechaRegistro = r['fecha'];
+      DateTime fechaRegistro = r['fecha'] is DateTime ? r['fecha'] : DateTime.parse(r['fecha'].toString());
       return fechaRegistro.isAfter(limite);
     }).toList();
   }
@@ -86,11 +87,13 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
   }
 
   void _mostrarDetallesPunto(Map<String, dynamic> registro) {
-    String estado = _obtenerEstadoGlucosa(registro['valor']);
+    int valorG = (registro['valor'] as num).toInt();
+    String estado = _obtenerEstadoGlucosa(valorG);
     Color colorEstado = _obtenerColorEstado(estado);
-    String fecha = DateFormat("EEEE, d 'de' MMMM yyyy", 'es_ES').format(registro['fecha']);
-    String hora = DateFormat("HH:mm a", 'es_ES').format(registro['fecha']);
-    String notas = registro['notas'] ?? '';
+    DateTime fechaObj = registro['fecha'] is DateTime ? registro['fecha'] : DateTime.parse(registro['fecha'].toString());
+    String fecha = DateFormat("EEEE, d 'de' MMMM yyyy", 'es_ES').format(fechaObj);
+    String hora = DateFormat("HH:mm a", 'es_ES').format(fechaObj);
+    String notas = registro['notas']?.toString() ?? '';
 
     showModalBottomSheet(
       context: context,
@@ -131,7 +134,7 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Text('${registro['valor']}', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold, fontSize: 48, color: colorEstado, height: 1.0)),
+                  Text('$valorG', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold, fontSize: 48, color: colorEstado, height: 1.0)),
                   const SizedBox(width: 5),
                   const Text('mg/dL', style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.bold)),
                 ],
@@ -141,7 +144,7 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
               const Divider(height: 20),
               _filaDetalle(Icons.access_time, 'Hora', hora),
               const Divider(height: 20),
-              _filaDetalle(Icons.restaurant_menu, 'Periodo', registro['momento']),
+              _filaDetalle(Icons.restaurant_menu, 'Periodo', registro['momento']?.toString() ?? 'No especificado'),
               const Divider(height: 20),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,9 +183,7 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
         );
       },
     ).whenComplete(() {
-      setState(() {
-        _indiceSeleccionadoGrafica = null;
-      });
+      setState(() { _indiceSeleccionadoGrafica = null; });
     });
   }
 
@@ -219,6 +220,7 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
     final TextEditingController notasCtrl = TextEditingController();
     String momentoSeleccionado = 'Antes de comer';
     DateTime fechaSeleccionada = DateTime.now();
+    String? errorTexto;
 
     showModalBottomSheet(
         context: context,
@@ -251,6 +253,7 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                         TextField(
                           controller: valorCtrl,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           textAlign: TextAlign.center,
                           decoration: InputDecoration(
                             hintText: 'ej. 120',
@@ -259,6 +262,9 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                             contentPadding: const EdgeInsets.symmetric(vertical: 15),
                           ),
+                          onChanged: (v) {
+                            if (errorTexto != null) setStateSheet(() => errorTexto = null);
+                          },
                         ),
                         const SizedBox(height: 15),
 
@@ -294,8 +300,21 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                           ),
                         ),
                         const SizedBox(height: 25),
+                        if (errorTexto != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            margin: const EdgeInsets.only(bottom: 15),
+                            decoration: BoxDecoration(color: const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFD32F2F))),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.warning_amber_rounded, color: Color(0xFFD32F2F), size: 20),
+                                const SizedBox(width: 10),
+                                Expanded(child: Text(errorTexto!, style: const TextStyle(color: Color(0xFFD32F2F), fontWeight: FontWeight.bold, fontSize: 13))),
+                              ],
+                            ),
+                          ),
+                        ],
 
-                        // Boton Guardar
                         SizedBox(
                           width: double.infinity,
                           height: 50,
@@ -303,6 +322,12 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                             onPressed: () {
                               if (valorCtrl.text.isNotEmpty) {
                                 int valor = int.tryParse(valorCtrl.text) ?? 0;
+
+                                if (valor < 20 || valor > 600) {
+                                  setStateSheet(() => errorTexto = 'Ingresa un valor realista (20 - 600 mg/dL)');
+                                  return;
+                                }
+
                                 if (valor > 0) {
                                   widget.onAgregarRegistro({
                                     'valor': valor,
@@ -312,6 +337,8 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                                   });
                                   Navigator.pop(context);
                                 }
+                              } else {
+                                setStateSheet(() => errorTexto = 'El nivel de glucosa no puede estar vacío');
                               }
                             },
                             icon: const Icon(Icons.save_alt, color: Colors.white),
@@ -644,27 +671,18 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
 
   Widget _crearTarjetaRegistro(Map<String, dynamic> registro) {
     int val = registro['valor'];
-    DateTime fecha = registro['fecha'];
-    String momento = registro['momento'];
-    String notas = registro['notas'] ?? '';
+    DateTime fecha = registro['fecha'] is DateTime ? registro['fecha'] : DateTime.parse(registro['fecha'].toString());
+    String momento = registro['momento']?.toString() ?? 'No especificado';
+    String notas = registro['notas']?.toString() ?? '';
     String estado = _obtenerEstadoGlucosa(val);
     Color colorFondo, colorBorde, colorTexto, colorIcono;
 
     if (estado == 'Hipoglucemia' || estado == 'Hiperglucemia') {
-      colorFondo = const Color(0xFFFFEBEE);
-      colorBorde = const Color(0xFFD32F2F);
-      colorTexto = const Color(0xFFD32F2F);
-      colorIcono = const Color(0xFFFFCDD2);
+      colorFondo = const Color(0xFFFFEBEE); colorBorde = const Color(0xFFD32F2F); colorTexto = const Color(0xFFD32F2F); colorIcono = const Color(0xFFFFCDD2);
     } else if (estado == 'Bajo' || estado == 'Elevado') {
-      colorFondo = const Color(0xFFFFF3E0);
-      colorBorde = const Color(0xFFE65100);
-      colorTexto = const Color(0xFFE65100);
-      colorIcono = const Color(0xFFFFE0B2);
-    } else { // Normal (Verde)
-      colorFondo = const Color(0xFFE8F5E9);
-      colorBorde = const Color(0xFF2E7D32);
-      colorTexto = const Color(0xFF2E7D32);
-      colorIcono = const Color(0xFFC8E6C9);
+      colorFondo = const Color(0xFFFFF3E0); colorBorde = const Color(0xFFE65100); colorTexto = const Color(0xFFE65100); colorIcono = const Color(0xFFFFE0B2);
+    } else {
+      colorFondo = const Color(0xFFE8F5E9); colorBorde = const Color(0xFF2E7D32); colorTexto = const Color(0xFF2E7D32); colorIcono = const Color(0xFFC8E6C9);
     }
 
     return GestureDetector(
@@ -672,21 +690,13 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: colorFondo,
-          border: Border.all(color: colorBorde, width: 2),
-          borderRadius: BorderRadius.circular(20),
-        ),
+        decoration: BoxDecoration(color: colorFondo, border: Border.all(color: colorBorde, width: 2), borderRadius: BorderRadius.circular(20)),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               width: 45, height: 45,
-              decoration: BoxDecoration(
-                color: colorIcono,
-                border: Border.all(color: colorFondo, width: 2),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: colorIcono, border: Border.all(color: colorFondo, width: 2), shape: BoxShape.circle),
               child: Icon(Icons.water_drop_outlined, color: colorBorde, size: 24),
             ),
             const SizedBox(width: 12),
@@ -698,47 +708,17 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
+                        crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic,
                         children: [
-                          Text(
-                            val.toString(),
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w600,
-                              fontSize: 28,
-                              color: colorTexto,
-                              height: 1.0,
-                            ),
-                          ),
+                          Text(val.toString(), style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 28, color: colorTexto, height: 1.0)),
                           const SizedBox(width: 4),
-                          const Text(
-                            'mg/dL',
-                            style: TextStyle(
-                              fontFamily: 'Roboto',
-                              fontWeight: FontWeight.w500,
-                              fontSize: 12,
-                              color: Color(0xFF848282),
-                            ),
-                          ),
+                          const Text('mg/dL', style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w500, fontSize: 12, color: Color(0xFF848282))),
                         ],
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: colorIcono,
-                          border: Border.all(color: colorTexto, width: 1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          estado,
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 10,
-                            color: colorTexto,
-                          ),
-                        ),
+                        decoration: BoxDecoration(color: colorIcono, border: Border.all(color: colorTexto, width: 1), borderRadius: BorderRadius.circular(10)),
+                        child: Text(estado, style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w600, fontSize: 10, color: colorTexto)),
                       ),
                     ],
                   ),
@@ -747,23 +727,12 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                     children: [
                       const Icon(Icons.calendar_today, size: 12, color: Colors.black87),
                       const SizedBox(width: 4),
-                      Text(
-                        DateFormat("d 'de' MMMM yyyy · HH:mm", 'es_ES').format(fecha),
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.black87),
-                      ),
+                      Text(DateFormat("d 'de' MMMM yyyy · HH:mm", 'es_ES').format(fecha), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.black87)),
                     ],
                   ),
-                  Text(
-                    momento,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.black87),
-                  ),
+                  Text(momento, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.black87)),
                   if (notas.isNotEmpty)
-                    Text(
-                      '"$notas"',
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Color(0xFF626060), fontStyle: FontStyle.italic),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text('"$notas"', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Color(0xFF626060), fontStyle: FontStyle.italic), maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
@@ -874,10 +843,8 @@ class _GraficaPacientePainter extends CustomPainter {
       int val = historial[i]['valor'];
       Color c;
 
-      if (val < limiteHipo) c = const Color(0xFFD32F2F);
-      else if (val > limiteHiper) c = const Color(0xFFD32F2F);
+      if (val < limiteHipo || val > limiteHiper) c = const Color(0xFFD32F2F);
       else if (val >= rangoMin && val <= rangoMax) c = const Color(0xFF2E7D32);
-      else if (val < rangoMin) c = const Color(0xFFE65100);
       else c = const Color(0xFFE65100);
 
       if (indiceSeleccionado == i) {
@@ -899,9 +866,10 @@ class _GraficaPacientePainter extends CustomPainter {
       }
 
       if (i == 0 || i == points.length - 1 || historial.length <= 14) {
+        DateTime fechaObj = historial[i]['fecha'] is DateTime ? historial[i]['fecha'] : DateTime.parse(historial[i]['fecha'].toString());
         TextPainter tpFecha = TextPainter(
           text: TextSpan(
-            text: DateFormat('dd/MM').format(historial[i]['fecha']),
+            text: DateFormat('dd/MM').format(fechaObj),
             style: const TextStyle(color: Colors.black87, fontSize: 9, fontWeight: FontWeight.w500),
           ),
           textDirection: TextDirection.ltr,

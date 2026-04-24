@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import '../../../database/database_helper.dart';
 
@@ -625,6 +626,7 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
                         TextField(
                           controller: valorCtrl,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           textAlign: TextAlign.center,
                           decoration: InputDecoration(
                             hintText: 'ej. 120',
@@ -674,6 +676,18 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
                             onPressed: () async {
                               if (valorCtrl.text.isNotEmpty) {
                                 int valor = int.tryParse(valorCtrl.text) ?? 0;
+
+                                if (valor < 20 || valor > 600) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Por favor, ingresa un valor de glucosa realista (20 - 600 mg/dL)', style: TextStyle(fontWeight: FontWeight.bold)),
+                                        backgroundColor: Colors.red,
+                                        behavior: SnackBarBehavior.floating,
+                                      )
+                                  );
+                                  return;
+                                }
+
                                 if (valor > 0) {
                                   final db = DatabaseHelper();
                                   await db.insertarRegistroGlucosaCuidador({

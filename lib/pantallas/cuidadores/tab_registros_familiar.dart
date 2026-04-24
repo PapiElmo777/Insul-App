@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import '../../../database/database_helper.dart';
 
@@ -85,7 +86,7 @@ class _TabRegistrosFamiliarState extends State<TabRegistrosFamiliar> {
     DateTime limite = DateTime.now().subtract(Duration(days: dias));
 
     return registrosValidos.where((r) {
-      DateTime fechaRegistro = r['fecha'];
+      DateTime fechaRegistro = r['fecha'] is DateTime ? r['fecha'] : DateTime.parse(r['fecha'].toString());
       return fechaRegistro.isAfter(limite);
     }).toList();
   }
@@ -119,10 +120,129 @@ class _TabRegistrosFamiliarState extends State<TabRegistrosFamiliar> {
     );
   }
 
+  void _mostrarDetallesPunto(Map<String, dynamic> registro) {
+    int valorG = (registro['valor'] as num).toInt();
+    String estado = _obtenerEstadoGlucosa(valorG);
+    Color colorEstado = _obtenerColorEstado(estado);
+    DateTime fechaObj = registro['fecha'] is DateTime ? registro['fecha'] : DateTime.parse(registro['fecha'].toString());
+    String fecha = DateFormat("EEEE, d 'de' MMMM yyyy", 'es_ES').format(fechaObj);
+    String hora = DateFormat("HH:mm a", 'es_ES').format(fechaObj);
+    String notas = registro['notas']?.toString() ?? '';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(25),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Detalle de Lectura', style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold, fontSize: 20)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: colorEstado.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: colorEstado),
+                    ),
+                    child: Text(estado, style: TextStyle(color: colorEstado, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 25),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text('$valorG', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold, fontSize: 48, color: colorEstado, height: 1.0)),
+                  const SizedBox(width: 5),
+                  const Text('mg/dL', style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.calendar_today, color: Color(0xFF1C63BB), size: 20),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Fecha', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 2),
+                        Text(fecha[0].toUpperCase() + fecha.substring(1), style: const TextStyle(fontSize: 15, color: Colors.black87, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.access_time, color: Color(0xFF1C63BB), size: 20),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Hora', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 2),
+                        Text(hora, style: const TextStyle(fontSize: 15, color: Colors.black87, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (notas.isNotEmpty) ...[
+                const Divider(height: 20),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.note, color: Color(0xFF1C63BB), size: 20),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Notas del paciente', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 2),
+                          Text(notas, style: const TextStyle(fontSize: 14, color: Colors.black87, fontStyle: FontStyle.italic)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    ).whenComplete(() {
+      setState(() { _indiceSeleccionadoGrafica = null; });
+    });
+  }
+
   void _mostrarFormularioNuevaMedida() {
     final TextEditingController valorCtrl = TextEditingController();
     final TextEditingController notasCtrl = TextEditingController();
     String momentoSeleccionado = 'Antes de comer';
+    String? errorTexto;
 
     showModalBottomSheet(
         context: context,
@@ -154,6 +274,7 @@ class _TabRegistrosFamiliarState extends State<TabRegistrosFamiliar> {
                         TextField(
                           controller: valorCtrl,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           textAlign: TextAlign.center,
                           decoration: InputDecoration(
                             hintText: 'ej. 120',
@@ -162,6 +283,9 @@ class _TabRegistrosFamiliarState extends State<TabRegistrosFamiliar> {
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                             contentPadding: const EdgeInsets.symmetric(vertical: 15),
                           ),
+                          onChanged: (v) {
+                            if (errorTexto != null) setStateSheet(() => errorTexto = null);
+                          },
                         ),
                         const SizedBox(height: 15),
 
@@ -195,6 +319,20 @@ class _TabRegistrosFamiliarState extends State<TabRegistrosFamiliar> {
                           ),
                         ),
                         const SizedBox(height: 25),
+                        if (errorTexto != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            margin: const EdgeInsets.only(bottom: 15),
+                            decoration: BoxDecoration(color: const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFD32F2F))),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.warning_amber_rounded, color: Color(0xFFD32F2F), size: 20),
+                                const SizedBox(width: 10),
+                                Expanded(child: Text(errorTexto!, style: const TextStyle(color: Color(0xFFD32F2F), fontWeight: FontWeight.bold, fontSize: 13))),
+                              ],
+                            ),
+                          ),
+                        ],
 
                         SizedBox(
                           width: double.infinity,
@@ -203,6 +341,12 @@ class _TabRegistrosFamiliarState extends State<TabRegistrosFamiliar> {
                             onPressed: () async {
                               if (valorCtrl.text.isNotEmpty) {
                                 int valor = int.tryParse(valorCtrl.text) ?? 0;
+
+                                if (valor < 20 || valor > 600) {
+                                  setStateSheet(() => errorTexto = 'Ingresa un valor realista (20 - 600 mg/dL)');
+                                  return;
+                                }
+
                                 if (valor > 0) {
                                   final db = DatabaseHelper();
                                   await db.insertarRegistroGlucosaCuidador({
@@ -216,6 +360,8 @@ class _TabRegistrosFamiliarState extends State<TabRegistrosFamiliar> {
                                   if (mounted) Navigator.pop(context);
                                   await _cargarRegistros();
                                 }
+                              } else {
+                                setStateSheet(() => errorTexto = 'El nivel de glucosa no puede estar vacío');
                               }
                             },
                             icon: const Icon(Icons.save_alt, color: Colors.white),
@@ -389,7 +535,27 @@ class _TabRegistrosFamiliarState extends State<TabRegistrosFamiliar> {
                                 width: registrosGrafica.length > 5 ? registrosGrafica.length * 50.0 : MediaQuery.of(context).size.width - 80,
                                 child: GestureDetector(
                                   onTapUp: (details) {
-                                    // Lógica de tap para tooltip de gráfica
+                                    double offsetX = 40.0;
+                                    double paddingX = 20.0;
+                                    double startX = offsetX + paddingX;
+
+                                    double customPaintWidth = (registrosGrafica.length > 5 ? registrosGrafica.length * 50.0 : MediaQuery.of(context).size.width - 80) - 40.0;
+                                    double graphWidth = customPaintWidth - offsetX;
+                                    double activeWidth = graphWidth - (paddingX * 2);
+
+                                    double stepX = registrosGrafica.length > 1 ? activeWidth / (registrosGrafica.length - 1) : activeWidth / 2;
+                                    double dx = details.localPosition.dx;
+
+                                    int index = ((dx - startX) / stepX).round();
+
+                                    if (index >= 0 && index < registrosGrafica.length) {
+                                      double pointX = registrosGrafica.length == 1 ? startX + (activeWidth / 2) : startX + (index * stepX);
+                                      if ((dx - pointX).abs() < 30.0) {
+                                        setState(() { _indiceSeleccionadoGrafica = index; });
+                                        int indiceReal = (registrosGrafica.length - 1) - index;
+                                        _mostrarDetallesPunto(registrosGrafica[indiceReal]);
+                                      }
+                                    }
                                   },
                                   child: CustomPaint(
                                     painter: _GraficaFamiliarPainter(
@@ -451,9 +617,9 @@ class _TabRegistrosFamiliarState extends State<TabRegistrosFamiliar> {
 
   Widget _crearTarjetaRegistro(Map<String, dynamic> registro) {
     int val = (registro['valor'] as num).toInt();
-    DateTime fecha = registro['fecha'];
-    String momento = registro['momento'];
-    String notas = registro['notas'] ?? '';
+    DateTime fecha = registro['fecha'] is DateTime ? registro['fecha'] : DateTime.parse(registro['fecha'].toString());
+    String momento = registro['momento']?.toString() ?? 'No especificado';
+    String notas = registro['notas']?.toString() ?? '';
     String estado = _obtenerEstadoGlucosa(val);
     Color colorFondo, colorBorde, colorTexto, colorIcono;
 
@@ -461,64 +627,63 @@ class _TabRegistrosFamiliarState extends State<TabRegistrosFamiliar> {
       colorFondo = const Color(0xFFFFEBEE); colorBorde = const Color(0xFFD32F2F); colorTexto = const Color(0xFFD32F2F); colorIcono = const Color(0xFFFFCDD2);
     } else if (estado == 'Bajo' || estado == 'Elevado') {
       colorFondo = const Color(0xFFFFF3E0); colorBorde = const Color(0xFFE65100); colorTexto = const Color(0xFFE65100); colorIcono = const Color(0xFFFFE0B2);
-    } else {
+    } else { // Normal (Verde)
       colorFondo = const Color(0xFFE8F5E9); colorBorde = const Color(0xFF2E7D32); colorTexto = const Color(0xFF2E7D32); colorIcono = const Color(0xFFC8E6C9);
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorFondo,
-        border: Border.all(color: colorBorde, width: 2),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 45, height: 45,
-            decoration: BoxDecoration(color: colorIcono, border: Border.all(color: colorFondo, width: 2), shape: BoxShape.circle),
-            child: Icon(Icons.water_drop_outlined, color: colorBorde, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(val.toString(), style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 24, color: colorTexto, height: 1.0)),
-                        const SizedBox(width: 4),
-                        const Text('mg/dL', style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w500, fontSize: 12, color: Color(0xFF848282))),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: colorIcono, border: Border.all(color: colorTexto, width: 1), borderRadius: BorderRadius.circular(10)),
-                      child: Text(estado, style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w600, fontSize: 10, color: colorTexto)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_today, size: 12, color: Colors.black87),
-                    const SizedBox(width: 4),
-                    Text(DateFormat("dd/MM/yyyy · HH:mm").format(fecha), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.black87)),
-                  ],
-                ),
-                Text(momento, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.black87)),
-                if (notas.isNotEmpty)
-                  Text('"$notas"', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Color(0xFF626060), fontStyle: FontStyle.italic), maxLines: 1, overflow: TextOverflow.ellipsis),
-              ],
+    return GestureDetector(
+      onTap: () => _mostrarDetallesPunto(registro),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: colorFondo, border: Border.all(color: colorBorde, width: 2), borderRadius: BorderRadius.circular(20)),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 45, height: 45,
+              decoration: BoxDecoration(color: colorIcono, border: Border.all(color: colorFondo, width: 2), shape: BoxShape.circle),
+              child: Icon(Icons.water_drop_outlined, color: colorBorde, size: 24),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(val.toString(), style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 28, color: colorTexto, height: 1.0)),
+                          const SizedBox(width: 4),
+                          const Text('mg/dL', style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w500, fontSize: 12, color: Color(0xFF848282))),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: colorIcono, border: Border.all(color: colorTexto, width: 1), borderRadius: BorderRadius.circular(10)),
+                        child: Text(estado, style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w600, fontSize: 10, color: colorTexto)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 12, color: Colors.black87),
+                      const SizedBox(width: 4),
+                      Text(DateFormat("d 'de' MMMM yyyy · HH:mm", 'es_ES').format(fecha), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.black87)),
+                    ],
+                  ),
+                  Text(momento, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.black87)),
+                  if (notas.isNotEmpty)
+                    Text('"$notas"', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Color(0xFF626060), fontStyle: FontStyle.italic), maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -623,22 +788,29 @@ class _GraficaFamiliarPainter extends CustomPainter {
       else if (val >= rangoMin && val <= rangoMax) c = const Color(0xFF2E7D32);
       else c = const Color(0xFFE65100);
 
-      canvas.drawCircle(points[i], 6.0, Paint()..color = Colors.white..style = PaintingStyle.fill);
-      canvas.drawCircle(points[i], 4.0, Paint()..color = c..style = PaintingStyle.fill);
+      if (indiceSeleccionado == i) {
+        canvas.drawCircle(points[i], 14.0, Paint()..color = c.withOpacity(0.4)..style = PaintingStyle.fill);
+        canvas.drawCircle(points[i], 8.0, Paint()..color = Colors.white..style = PaintingStyle.fill);
+        canvas.drawCircle(points[i], 6.0, Paint()..color = c..style = PaintingStyle.fill);
+      } else {
+        canvas.drawCircle(points[i], 6.0, Paint()..color = Colors.white..style = PaintingStyle.fill);
+        canvas.drawCircle(points[i], 4.0, Paint()..color = c..style = PaintingStyle.fill);
+      }
 
-      if (historial.length <= 14 || val < limiteHipo || val > limiteHiper) {
+      if (historial.length <= 14 || val < limiteHipo || val > limiteHiper || indiceSeleccionado == i) {
         TextPainter tpVal = TextPainter(
-          text: TextSpan(text: '$val', style: TextStyle(color: c, fontWeight: FontWeight.bold, fontSize: 11)),
+          text: TextSpan(text: '$val', style: TextStyle(color: c, fontWeight: FontWeight.bold, fontSize: indiceSeleccionado == i ? 13 : 11)),
           textDirection: TextDirection.ltr,
         );
         tpVal.layout();
-        tpVal.paint(canvas, Offset(points[i].dx - tpVal.width / 2, points[i].dy - 20));
+        tpVal.paint(canvas, Offset(points[i].dx - tpVal.width / 2, points[i].dy - (indiceSeleccionado == i ? 24 : 20)));
       }
 
       if (i == 0 || i == points.length - 1 || historial.length <= 14) {
+        DateTime fechaObj = historial[i]['fecha'] is DateTime ? historial[i]['fecha'] : DateTime.parse(historial[i]['fecha'].toString());
         TextPainter tpFecha = TextPainter(
           text: TextSpan(
-            text: DateFormat('dd/MM').format(historial[i]['fecha']),
+            text: DateFormat('dd/MM').format(fechaObj),
             style: const TextStyle(color: Colors.black87, fontSize: 9, fontWeight: FontWeight.w500),
           ),
           textDirection: TextDirection.ltr,

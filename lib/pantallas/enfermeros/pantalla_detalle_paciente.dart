@@ -237,8 +237,14 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
               onPressed: () async {
                 if (_glucosaCtrl.text.isNotEmpty) {
                   int nuevoValor = int.parse(_glucosaCtrl.text);
-                  if (nuevoValor <= 0 || nuevoValor > 600) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Por favor, ingresa un valor de glucosa realista (1-600 mg/dL)')));
+                  if (nuevoValor < 20 || nuevoValor > 600) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Por favor, ingresa un valor de glucosa realista (20 - 600 mg/dL)', style: TextStyle(fontWeight: FontWeight.bold)),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                        )
+                    );
                     return;
                   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'dart:io';
@@ -221,6 +222,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                         TextField(
                           controller: valorCtrl,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           textAlign: TextAlign.center,
                           decoration: InputDecoration(
                             hintText: 'ej. 120',
@@ -270,7 +272,18 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                             onPressed: () async {
                               if (valorCtrl.text.isNotEmpty) {
                                 int valor = int.tryParse(valorCtrl.text) ?? 0;
-                                if (valor > 0 && _pacienteId != null) {
+                                if (valor < 20 || valor > 600) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Por favor, ingresa un valor de glucosa realista (20 - 600 mg/dL)', style: TextStyle(fontWeight: FontWeight.bold)),
+                                        backgroundColor: Colors.red,
+                                        behavior: SnackBarBehavior.floating,
+                                      )
+                                  );
+                                  return;
+                                }
+
+                                if (_pacienteId != null) {
                                   final db = DatabaseHelper();
                                   await db.insertarRegistroGlucosa({
                                     'paciente_id': _pacienteId,
