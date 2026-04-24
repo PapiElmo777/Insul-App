@@ -97,11 +97,10 @@ class ReportePacienteService {
       print("No se pudo cargar el logo SVG.");
     }
 
-    // Parámetros clínicos
-    final int hipo  = paciente['limiteHipo'] ?? 70;
-    final int hiper = paciente['hiperLimit'] ?? 180;
-    final int rMin  = paciente['rangoMin']   ?? 80;
-    final int rMax  = paciente['rangoMax']   ?? 130;
+    final int hipo  = (paciente['limiteHipo'] as num?)?.toInt() ?? 70;
+    final int hiper = (paciente['hiperLimit'] as num?)?.toInt() ?? 180;
+    final int rMin  = (paciente['rangoMin'] as num?)?.toInt() ?? 80;
+    final int rMax  = (paciente['rangoMax'] as num?)?.toInt() ?? 130;
 
     // Estadísticas
     final int total = registros.length;
@@ -112,7 +111,7 @@ class ReportePacienteService {
     if (total > 0) {
       double suma = 0;
       for (final r in registros) {
-        final int v = r['valor'] as int;
+        final int v = (r['valor'] as num).toInt();
         suma += v;
         if (v < minVal) minVal = v;
         if (v > maxVal) maxVal = v;
@@ -125,7 +124,7 @@ class ReportePacienteService {
       promedio = suma / total;
       double sumaCuad = 0;
       for (final r in registros) {
-        sumaCuad += math.pow((r['valor'] as int) - promedio, 2);
+        sumaCuad += math.pow(((r['valor'] as num).toInt()) - promedio, 2);
       }
       final desvStd = math.sqrt(sumaCuad / total);
       cv = promedio > 0 ? (desvStd / promedio) * 100 : 0.0;
@@ -341,11 +340,11 @@ class ReportePacienteService {
                   ),
                   pw.SizedBox(height: 2),
                   pw.Text('Período: $rangoFechas', style: const pw.TextStyle(fontSize: 8, color: _C.gris300)),
-                  if ((paciente['peso'] ?? 0) > 0 || (paciente['altura'] ?? 0) > 0)
+                  if (((paciente['peso'] as num?) ?? 0) > 0 || ((paciente['altura'] as num?) ?? 0) > 0)
                     pw.Text(
                       'Peso: ${paciente['peso'] ?? '--'} kg  |  '
                           'Talla: ${paciente['altura'] ?? '--'} cm  |  '
-                          'IMC: ${paciente['imc'] != null ? (paciente['imc'] as double).toStringAsFixed(1) : '--'}',
+                          'IMC: ${paciente['imc'] != null ? (paciente['imc'] as num).toDouble().toStringAsFixed(1) : '--'}',
                       style: const pw.TextStyle(fontSize: 8, color: _C.gris300),
                     ),
                 ],
@@ -565,7 +564,7 @@ class ReportePacienteService {
     for (int i = 0; i < regsOrdenados.length; i++) {
       lineaPrincipal.add(pw.PointChartValue(
         i.toDouble(),
-        (regsOrdenados[i]['valor'] as int).toDouble(),
+        (regsOrdenados[i]['valor'] as num).toDouble(),
       ));
     }
 
@@ -620,7 +619,7 @@ class ReportePacienteService {
     ));
 
     for (int i = 0; i < regsOrdenados.length; i++) {
-      final int val = regsOrdenados[i]['valor'] as int;
+      final int val = (regsOrdenados[i]['valor'] as num).toInt();
       final PdfColor pc = _colorSemaforo(val, hipo, hiper, rMin, rMax);
       datasets.add(pw.LineDataSet(
         data: [pw.PointChartValue(i.toDouble(), val.toDouble())],
@@ -811,7 +810,7 @@ class ReportePacienteService {
       child: pw.Column(
         children: conNotas.map((r) {
           final fecha = DateFormat('dd/MM/yy HH:mm').format(r['fecha'] as DateTime);
-          final val = r['valor'] as int;
+          final val = (r['valor'] as num).toInt();
           return pw.Padding(
             padding: const pw.EdgeInsets.only(bottom: 8),
             child: pw.Row(

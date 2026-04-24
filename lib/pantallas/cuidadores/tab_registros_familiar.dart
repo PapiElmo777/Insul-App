@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' hide TextDirection;
-import 'package:printing/printing.dart';
 import '../../../database/database_helper.dart';
-import '../../../servicios/servicios/reporte_paciente_service.dart';
 
 class TabRegistrosFamiliar extends StatefulWidget {
   final Map<String, dynamic> paciente;
@@ -268,7 +266,7 @@ class _TabRegistrosFamiliarState extends State<TabRegistrosFamiliar> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Historial y Reportes',
+                  'Historial',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 Text(
@@ -306,75 +304,20 @@ class _TabRegistrosFamiliarState extends State<TabRegistrosFamiliar> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: _mostrarFormularioNuevaMedida,
-                          icon: const Icon(Icons.add_circle, color: Colors.white, size: 20),
-                          label: const Text('Añadir Lectura', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0C80EB),
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                          ),
-                        ),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton.icon(
+                      onPressed: _mostrarFormularioNuevaMedida,
+                      icon: const Icon(Icons.add_circle, color: Colors.white, size: 22),
+                      label: const Text('Añadir Nueva Lectura', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0C80EB),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        elevation: 4,
+                        shadowColor: const Color(0xFF0C80EB).withOpacity(0.5),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            if (registrosLecturas.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('No hay registros suficientes para generar el reporte.')),
-                              );
-                              return;
-                            }
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Generando Reporte PDF...'), duration: Duration(seconds: 1)),
-                            );
-
-                            try {
-                              final pacienteReporte = {
-                                'nombre': widget.paciente['nombre'],
-                                'edad': widget.paciente['edad'],
-                                'tipoDiabetes': widget.paciente['tipo_diabetes'],
-                                'peso': widget.paciente['peso'],
-                                'altura': widget.paciente['altura'],
-                                'imc': widget.paciente['imc'],
-                                'limiteHipo': widget.paciente['limite_hipo'],
-                                'hiperLimit': widget.paciente['limite_hiper'],
-                                'rangoMin': widget.paciente['rango_min'],
-                                'rangoMax': widget.paciente['rango_max'],
-                                'medico': widget.paciente['medico_nombre'],
-                              };
-
-                              final pdfBytes = await ReportePacienteService.generarReporteAGP(
-                                paciente: pacienteReporte,
-                                registros: registrosLecturas,
-                              );
-
-                              await Printing.sharePdf(
-                                bytes: pdfBytes,
-                                filename: 'Reporte_AGP_${widget.paciente['nombre']}.pdf',
-                              );
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error al generar PDF: $e'), backgroundColor: Colors.red),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.picture_as_pdf, color: Color(0xFFD32F2F), size: 20),
-                          label: const Text('Exportar PDF', style: TextStyle(color: Color(0xFFD32F2F), fontWeight: FontWeight.bold)),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFD32F2F), width: 1.5),
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 25),
 
