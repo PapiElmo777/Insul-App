@@ -46,6 +46,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
   int rangoMax = 130;
 
   List<Map<String, dynamic>> _registrosGlucosa = [];
+  int _refreshKeyMedicamentos = 0;
 
   @override
   void initState() {
@@ -113,6 +114,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
     if (mounted) {
       setState(() {
         _cargandoDatos = false;
+        _refreshKeyMedicamentos++;
       });
     }
   }
@@ -550,8 +552,11 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
           PantallaCalculadoraDosis(onRegistroGuardado: _cargarDatosBD),
 
           _construirTabHistorial(),
+          SafeArea(
+            key: ValueKey('meds_$_refreshKeyMedicamentos'),
+            child: const PantallaMedicamentosPaciente(),
+          ),
 
-          const SafeArea(child: PantallaMedicamentosPaciente()),
           SafeArea(child: PantallaIdentificacionMedica(onActualizarDashboard: _cargarDatosBD)),
 
           SafeArea(

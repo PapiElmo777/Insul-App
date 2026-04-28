@@ -16,10 +16,17 @@ class PantallaDetalleFamiliar extends StatefulWidget {
 
 class _PantallaDetalleFamiliarState extends State<PantallaDetalleFamiliar> {
   int _indiceActual = 0;
+  int _refreshKey = 0;
 
   void _cambiarTab(int index) {
     setState(() {
       _indiceActual = index;
+    });
+  }
+
+  void _actualizarDatos() {
+    setState(() {
+      _refreshKey++;
     });
   }
 
@@ -87,23 +94,29 @@ class _PantallaDetalleFamiliarState extends State<PantallaDetalleFamiliar> {
     switch (_indiceActual) {
       case 0:
         return TabGlucosaFamiliar(
+            key: ValueKey('gluc_$_refreshKey'),
             paciente: widget.paciente,
             onCambiarTab: _cambiarTab
         );
       case 1:
         return TabCalculadoraFamiliar(
+          key: ValueKey('calc_$_refreshKey'),
           paciente: widget.paciente,
+          onRegistroGuardado: _actualizarDatos,
         );
       case 2:
         return TabMedicamentosFamiliar(
+            key: ValueKey('meds_$_refreshKey'),
             paciente: widget.paciente
         );
       case 3:
         return TabRegistrosFamiliar(
+            key: ValueKey('regs_$_refreshKey'),
             paciente: widget.paciente
         );
       case 4:
         return TabIdentificacionFamiliar(
+          key: ValueKey('id_$_refreshKey'),
           familiarId: widget.paciente['id'],
           onActualizarDashboard: () {
             setState(() {});
