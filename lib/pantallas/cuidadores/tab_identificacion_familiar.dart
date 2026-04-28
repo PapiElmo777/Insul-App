@@ -49,7 +49,7 @@ class _TabIdentificacionFamiliarState extends State<TabIdentificacionFamiliar> {
 
   // Tipo Sanguíneo
   String _tipoSanguineoSeleccionado = 'Desconocido';
-  final List<String> _tiposSanguineos = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'No sabe'];
+  final List<String> _tiposSanguineos = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Desconocido'];
 
   @override
   void initState() {

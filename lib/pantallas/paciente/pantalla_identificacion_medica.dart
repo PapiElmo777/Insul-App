@@ -45,7 +45,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
 
   // Tipo SanguIneo
   String _tipoSanguineoSeleccionado = 'Desconocido';
-  final List<String> _tiposSanguineos = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'No sabe'];
+  final List<String> _tiposSanguineos = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Desconocido'];
 
   @override
   void initState() {
