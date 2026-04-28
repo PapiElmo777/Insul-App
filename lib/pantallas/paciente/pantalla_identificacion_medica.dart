@@ -44,7 +44,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
   final _clinicaCtrl = TextEditingController();
 
   // Tipo SanguIneo
-  String _tipoSanguineoSeleccionado = 'No sabe';
+  String _tipoSanguineoSeleccionado = 'Desconocido';
   final List<String> _tiposSanguineos = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'No sabe'];
 
   @override

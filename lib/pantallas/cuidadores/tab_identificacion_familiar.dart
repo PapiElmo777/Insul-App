@@ -48,7 +48,7 @@ class _TabIdentificacionFamiliarState extends State<TabIdentificacionFamiliar> {
   final _clinicaCtrl = TextEditingController();
 
   // Tipo Sanguíneo
-  String _tipoSanguineoSeleccionado = 'No sabe';
+  String _tipoSanguineoSeleccionado = 'Desconocido';
   final List<String> _tiposSanguineos = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'No sabe'];
 
   @override
