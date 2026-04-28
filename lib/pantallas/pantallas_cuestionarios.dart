@@ -343,9 +343,8 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
   final TextEditingController _hiperCtrl = TextEditingController(text: '180');
   final TextEditingController _rangoMinCtrl = TextEditingController(text: '80');
   final TextEditingController _rangoMaxCtrl = TextEditingController(text: '130');
-
-  final TextEditingController _fsiCtrl = TextEditingController();
-  final TextEditingController _ricCtrl = TextEditingController();
+  final TextEditingController _fsiCtrl = TextEditingController(text: '50');
+  final TextEditingController _ricCtrl = TextEditingController(text: '15');
 
   String? _metodoInsulina;
   String? _tipoInsulinaInyeccion;
@@ -576,6 +575,8 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
         'limite_hiper': double.tryParse(_hiperCtrl.text) ?? 180.0,
         'rango_min': double.tryParse(_rangoMinCtrl.text) ?? 80.0,
         'rango_max': double.tryParse(_rangoMaxCtrl.text) ?? 130.0,
+        'fsi': double.tryParse(_fsiCtrl.text) ?? 50.0,
+        'ric': double.tryParse(_ricCtrl.text) ?? 15.0,
         'metodo_insulina': _metodoInsulina ?? '',
         'insulina_basal_marca': _insulinaBasalMarcaCtrl.text,
         'insulina_basal_dosis': _insulinaBasalDosisCtrl.text,
@@ -942,11 +943,11 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Configuración Avanzada (Pendiente)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                const Text('Configuración Avanzada', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 15),
-                _crearCampoTexto(titulo: 'Factor de Sensibilidad (FSI)', hint: 'En desarrollo...', controlador: _fsiCtrl, esNumero: false, activo: false),
+                _crearCampoTexto(titulo: 'Factor de Sensibilidad (FSI)', hint: 'Ej. 50', controlador: _fsiCtrl, esNumero: true, activo: true),
                 const SizedBox(height: 10),
-                _crearCampoTexto(titulo: 'Relación Insulina/Carbos (RIC)', hint: 'En desarrollo...', controlador: _ricCtrl, esNumero: false, activo: false),
+                _crearCampoTexto(titulo: 'Relación Insulina/Carbos (RIC)', hint: 'Ej. 15', controlador: _ricCtrl, esNumero: true, activo: true),
               ],
             ),
           ),
@@ -1574,8 +1575,8 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
   final TextEditingController _hiperCtrl = TextEditingController(text: '180');
   final TextEditingController _rangoMinCtrl = TextEditingController(text: '80');
   final TextEditingController _rangoMaxCtrl = TextEditingController(text: '130');
-  final TextEditingController _fsiCtrl = TextEditingController();
-  final TextEditingController _ricCtrl = TextEditingController();
+  final TextEditingController _fsiCtrl = TextEditingController(text: '50');
+  final TextEditingController _ricCtrl = TextEditingController(text: '15');
 
   String? _metodoInsulinaPaciente;
   String? _tipoInsulinaInyeccionPaciente;
@@ -1801,6 +1802,8 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
         'limite_hiper': double.tryParse(_hiperCtrl.text) ?? 180.0,
         'rango_min': double.tryParse(_rangoMinCtrl.text) ?? 80.0,
         'rango_max': double.tryParse(_rangoMaxCtrl.text) ?? 130.0,
+        'fsi': double.tryParse(_fsiCtrl.text) ?? 50.0,
+        'ric': double.tryParse(_ricCtrl.text) ?? 15.0,
         'metodo_insulina': _metodoInsulinaPaciente ?? '',
         'insulina_basal_marca': _insulinaBasalMarcaCtrl.text,
         'insulina_basal_dosis': _insulinaBasalDosisCtrl.text,
@@ -2251,11 +2254,11 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Configuración Avanzada (Pendiente)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                const Text('Configuración Avanzada', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 15),
-                _crearCampoTexto(titulo: 'Factor de Sensibilidad (FSI)', hint: 'En desarrollo...', controlador: _fsiCtrl, esNumero: false, activo: false),
+                _crearCampoTexto(titulo: 'Factor de Sensibilidad (FSI)', hint: 'Ej. 50', controlador: _fsiCtrl, esNumero: true, activo: true),
                 const SizedBox(height: 10),
-                _crearCampoTexto(titulo: 'Relación Insulina/Carbos (RIC)', hint: 'En desarrollo...', controlador: _ricCtrl, esNumero: false, activo: false),
+                _crearCampoTexto(titulo: 'Relación Insulina/Carbos (RIC)', hint: 'Ej. 15', controlador: _ricCtrl, esNumero: true, activo: true),
               ],
             ),
           ),
@@ -2776,7 +2779,6 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
             width: double.infinity, height: 50,
             child: ElevatedButton(
               onPressed: () {
-                // AQUÍ ESTABA EL ERROR: Llamamos a _guardarDatosPacienteYFinalizar en vez de _mostrarDialogoFinalizacion
                 _guardarDatosPacienteYFinalizar(irAIdentificacion: true);
               },
               style: ElevatedButton.styleFrom(
@@ -2792,7 +2794,6 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
             width: double.infinity, height: 50,
             child: OutlinedButton(
               onPressed: () {
-                // AQUÍ TAMBIÉN ESTABA EL ERROR
                 _guardarDatosPacienteYFinalizar(irAIdentificacion: false);
               },
               style: OutlinedButton.styleFrom(

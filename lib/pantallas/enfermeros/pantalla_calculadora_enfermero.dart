@@ -15,11 +15,11 @@ class PantallaCalculadoraEnfermero extends StatefulWidget {
 }
 
 class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnfermero> {
-  final TextEditingController _glucosaCtrl = TextEditingController();
-  final TextEditingController _carbosCtrl = TextEditingController();
-  final TextEditingController _metaCtrl = TextEditingController(text: '100');
-  final TextEditingController _fsiCtrl = TextEditingController(text: '50');
-  final TextEditingController _ricCtrl = TextEditingController(text: '15');
+  late TextEditingController _glucosaCtrl;
+  late TextEditingController _carbosCtrl;
+  late TextEditingController _metaCtrl;
+  late TextEditingController _fsiCtrl;
+  late TextEditingController _ricCtrl;
 
   double _dosisCorreccion = 0.0;
   double _dosisComida = 0.0;
@@ -37,6 +37,20 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
     {'nombre': 'Leche Entera (240ml)', 'carbos': 12.0},
     {'nombre': 'Avena Cocida (1/2 taza)', 'carbos': 14.0},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _glucosaCtrl = TextEditingController();
+    _carbosCtrl = TextEditingController();
+    double meta = (widget.paciente['glucosa_meta'] as num?)?.toDouble() ?? 100.0;
+    double fsi = (widget.paciente['fsi'] as num?)?.toDouble() ?? 50.0;
+    double ric = (widget.paciente['ric'] as num?)?.toDouble() ?? 15.0;
+
+    _metaCtrl = TextEditingController(text: meta.toStringAsFixed(0));
+    _fsiCtrl = TextEditingController(text: fsi.toStringAsFixed(0));
+    _ricCtrl = TextEditingController(text: ric.toStringAsFixed(0));
+  }
 
   @override
   void dispose() {
