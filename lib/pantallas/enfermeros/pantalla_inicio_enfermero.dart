@@ -503,169 +503,181 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
       pacientesFiltrados.sort((a, b) => (a['ubicacion'] ?? '').compareTo(b['ubicacion'] ?? ''));
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(25.0, 30.0, 25.0, 30.0),
-          decoration: const BoxDecoration(
-            color: Color(0xFF1C63BB),
-            borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
-          ),
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              Container(
+                padding: const EdgeInsets.fromLTRB(25.0, 30.0, 25.0, 30.0),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1C63BB),
+                  borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text('Hola, Enf. $_nombreEnfermeroLocal', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -0.5), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        const SizedBox(height: 5),
-                        Text(_fechaFormateada, style: const TextStyle(fontSize: 14, color: Color(0xFFE8E8E8))),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Hola, Enf. $_nombreEnfermeroLocal', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -0.5), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              const SizedBox(height: 5),
+                              Text(_fechaFormateada, style: const TextStyle(fontSize: 14, color: Color(0xFFE8E8E8))),
+                            ],
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () { setState(() { _indiceNavegacionActual = 4; }); },
+                          child: Container(
+                            width: 55, height: 55,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withOpacity(0.2),
+                              border: Border.all(color: Colors.white, width: 2),
+                              image: _imagenPerfil != null ? DecorationImage(image: FileImage(_imagenPerfil!), fit: BoxFit.cover) : const DecorationImage(image: AssetImage('assets/enfermero_placeholder.png'), fit: BoxFit.cover),
+                            ),
+                            child: _imagenPerfil == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                  GestureDetector(
-                    onTap: () { setState(() { _indiceNavegacionActual = 4; }); },
-                    child: Container(
-                      width: 55, height: 55,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.2),
-                        border: Border.all(color: Colors.white, width: 2),
-                        image: _imagenPerfil != null ? DecorationImage(image: FileImage(_imagenPerfil!), fit: BoxFit.cover) : const DecorationImage(image: AssetImage('assets/enfermero_placeholder.png'), fit: BoxFit.cover),
+                  ],
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(25.0),
+                child: Row(
+                  children: [
+                    Expanded(child: _crearTarjetaDashboard('Total', totalPacientes.toString(), Icons.people, const Color(0xFF1C63BB))),
+                    const SizedBox(width: 10),
+                    Expanded(child: _crearTarjetaDashboard('Estables', pacientesEstables.toString(), Icons.check_circle, const Color(0xFF2E7D32))),
+                    const SizedBox(width: 10),
+                    Expanded(child: _crearTarjetaDashboard('Atención', pacientesPrioridad.toString(), Icons.warning, const Color(0xFFD32F2F))),
+                  ],
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Mis Pacientes', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.black)),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        if (_enfermeroId == null) return;
+                        final nuevoPaciente = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaAgregarPaciente(enfermeroId: _enfermeroId!)));
+                        if (nuevoPaciente == true) await _cargarDatosBD();
+                      },
+                      icon: const Icon(Icons.add, size: 20, color: Colors.white),
+                      label: const Text('Añadir', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0C80EB),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                       ),
-                      child: _imagenPerfil == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
+                    ),
+                  ],
+                ),
+              ),
+
+              _construirLeyendaColores(),
+              const SizedBox(height: 15),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                child: Container(
+                  height: 50,
+                  decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFE8E8E8), width: 1.5)),
+                  child: TextField(
+                    controller: _busquedaCtrl,
+                    onChanged: (val) => setState(() {}),
+                    decoration: const InputDecoration(
+                      hintText: 'Buscar paciente o cama...',
+                      hintStyle: TextStyle(color: Colors.grey),
+                      prefixIcon: Icon(Icons.search, color: Color(0xFF1C63BB)),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(vertical: 15),
                     ),
                   ),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        Padding(
-          padding: const EdgeInsets.all(25.0),
-          child: Row(
-            children: [
-              Expanded(child: _crearTarjetaDashboard('Total', totalPacientes.toString(), Icons.people, const Color(0xFF1C63BB))),
-              const SizedBox(width: 10),
-              Expanded(child: _crearTarjetaDashboard('Estables', pacientesEstables.toString(), Icons.check_circle, const Color(0xFF2E7D32))),
-              const SizedBox(width: 10),
-              Expanded(child: _crearTarjetaDashboard('Atención', pacientesPrioridad.toString(), Icons.warning, const Color(0xFFD32F2F))),
-            ],
-          ),
-        ),
-
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Mis Pacientes', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.black)),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  if (_enfermeroId == null) return;
-                  final nuevoPaciente = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaAgregarPaciente(enfermeroId: _enfermeroId!)));
-                  if (nuevoPaciente == true) await _cargarDatosBD();
-                },
-                icon: const Icon(Icons.add, size: 20, color: Colors.white),
-                label: const Text('Añadir', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0C80EB),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                 ),
               ),
-            ],
-          ),
-        ),
 
-        _construirLeyendaColores(),
-        const SizedBox(height: 15),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25.0),
-          child: Container(
-            height: 50,
-            decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFE8E8E8), width: 1.5)),
-            child: TextField(
-              controller: _busquedaCtrl,
-              onChanged: (val) => setState(() {}),
-              decoration: const InputDecoration(
-                hintText: 'Buscar paciente o cama...',
-                hintStyle: TextStyle(color: Colors.grey),
-                prefixIcon: Icon(Icons.search, color: Color(0xFF1C63BB)),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 15),
-              ),
-            ),
-          ),
-        ),
-
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 5),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              const Text('Ordenar por:', style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.bold)),
-              const SizedBox(width: 10),
-              FilterChip(
-                label: Text('Nivel de Urgencia', style: TextStyle(color: _ordenarPorUrgencia ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 12)),
-                selected: _ordenarPorUrgencia,
-                onSelected: (val) {
-                  setState(() { _ordenarPorUrgencia = val; });
-                },
-                selectedColor: const Color(0xFFD32F2F),
-                checkmarkColor: Colors.white,
-                backgroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(color: _ordenarPorUrgencia ? Colors.transparent : const Color(0xFFD2D2D2))
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 5),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    const Text('Ordenar por:', style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 10),
+                    FilterChip(
+                      label: Text('Nivel de Urgencia', style: TextStyle(color: _ordenarPorUrgencia ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 12)),
+                      selected: _ordenarPorUrgencia,
+                      onSelected: (val) {
+                        setState(() { _ordenarPorUrgencia = val; });
+                      },
+                      selectedColor: const Color(0xFFD32F2F),
+                      checkmarkColor: Colors.white,
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(color: _ordenarPorUrgencia ? Colors.transparent : const Color(0xFFD2D2D2))
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(height: 5),
             ],
           ),
         ),
-        const SizedBox(height: 5),
 
-        Expanded(
-          child: pacientesFiltrados.isEmpty
-              ? Center(
-            child: Text(
-              _listaPacientes.isEmpty ? 'No tienes pacientes asignados.\nToca "Añadir" para comenzar.' : 'No se encontraron pacientes.',
-              textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 16),
+        if (pacientesFiltrados.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Text(
+                _listaPacientes.isEmpty ? 'No tienes pacientes asignados.\nToca "Añadir" para comenzar.' : 'No se encontraron pacientes.',
+                textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 16),
+              ),
             ),
           )
-              : ListView.builder(
+        else
+          SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 5.0),
-            itemCount: pacientesFiltrados.length,
-            itemBuilder: (context, index) {
-              final paciente = pacientesFiltrados[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 15.0),
-                child: _TarjetaPaciente(
-                  paciente: paciente,
-                  onTap: () async {
-                    final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaDetallePaciente(paciente: paciente, nombreEnfermero: _nombreEnfermeroLocal)));
-                    if (res == 'eliminar') {
-                      final db = DatabaseHelper();
-                      await db.eliminarPacienteEnfermero(paciente['id']);
-                      await _cargarDatosBD();
-                    } else {
-                      await _cargarDatosBD();
-                    }
-                  },
-                ),
-              );
-            },
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                  final paciente = pacientesFiltrados[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 15.0),
+                    child: _TarjetaPaciente(
+                      paciente: paciente,
+                      onTap: () async {
+                        final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaDetallePaciente(paciente: paciente, nombreEnfermero: _nombreEnfermeroLocal)));
+                        if (res == 'eliminar') {
+                          final db = DatabaseHelper();
+                          await db.eliminarPacienteEnfermero(paciente['id']);
+                          await _cargarDatosBD();
+                        } else {
+                          await _cargarDatosBD();
+                        }
+                      },
+                    ),
+                  );
+                },
+                childCount: pacientesFiltrados.length,
+              ),
+            ),
           ),
-        ),
       ],
     );
   }

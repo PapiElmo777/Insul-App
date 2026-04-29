@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class IdentificacionMedicaService {
   static Future<Uint8List> generarPDF({
@@ -15,7 +16,16 @@ class IdentificacionMedicaService {
     required int minG,
     required int maxG,
   }) async {
-    final pdf = pw.Document();
+
+    final fontRegular = await PdfGoogleFonts.robotoRegular();
+    final fontBold = await PdfGoogleFonts.robotoBold();
+
+    final pdf = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: fontRegular,
+        bold: fontBold,
+      ),
+    );
 
     String strInsulina = 'No usa insulina';
     if (datos['metodo_insulina'] != 'No usa' && datos['metodo_insulina'] != 'No especificado' && datos['metodo_insulina'] != null) {
