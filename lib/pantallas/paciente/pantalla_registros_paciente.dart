@@ -64,7 +64,7 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
     String titulo = estado == 'Hipoglucemia' ? '⚠️ Medida Correctiva (ADA): Hipoglucemia' : '⚠️ Medida Correctiva (ADA): Hiperglucemia';
     String texto = estado == 'Hipoglucemia'
         ? 'Aplica la regla 15-15:\n\n1. Consume 15g de carbohidratos de acción rápida (ej. ½ vaso de jugo, 1 cda. de miel o azúcar, 3-4 pastillas de glucosa).\n2. Espera 15 min y vuelve a medir tu glucosa.\n3. Si sigue menor a 70 mg/dL, repite.\n4. Al normalizarse, come un snack o tu comida.'
-        : 'Sigue estas recomendaciones:\n\n1. Bebe abundante agua para ayudar a eliminar el exceso de azúcar a través de la orina.\n2. Aplica tu dosis de corrección de insulina según lo indicado por tu médico.\n3. Si tu glucosa es mayor a 240 mg/dL, verifica si hay cetonas en tu orina. NO hagas ejercicio si están presentes.';
+        : 'Sigue estas recomendaciones:\n\n1. Bebe abundante agua para ayudar a eliminar el exceso de azúcar a través de la orina.\n2. Aplica tu dosis de corrección de insulina según lo indicado por tu médico.\n3. Si tu glucosa es mayor a 240 mg/dL, verifica si hay cetonas en tu orina. NO hagas ejercicio si están presentes.\n4. Consulte a su médico.';
 
     return Container(
       padding: const EdgeInsets.all(15),
@@ -83,6 +83,30 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
           const Text('Fuente: American Diabetes Association (ADA)', style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic)),
         ],
       ),
+    );
+  }
+
+  void _mostrarDialogoProtocoloADA(String estado) {
+    String titulo = estado == 'Hipoglucemia' ? '⚠️ Medida Correctiva (ADA): Hipoglucemia' : '⚠️ Medida Correctiva (ADA): Hiperglucemia';
+    String texto = estado == 'Hipoglucemia'
+        ? 'Aplica la regla 15-15:\n\n1. Consume 15g de carbohidratos de acción rápida (ej. ½ vaso de jugo, 1 cda. de miel o azúcar, 3-4 pastillas de glucosa).\n2. Espera 15 min y vuelve a medir tu glucosa.\n3. Si sigue menor a 70 mg/dL, repite.\n4. Al normalizarse, come un snack o tu comida.'
+        : 'Sigue estas recomendaciones:\n\n1. Bebe abundante agua para ayudar a eliminar el exceso de azúcar a través de la orina.\n2. Aplica tu dosis de corrección de insulina según lo indicado por tu médico.\n3. Si tu glucosa es mayor a 240 mg/dL, verifica si hay cetonas en tu orina. NO hagas ejercicio si están presentes.\n4. Consulte a su médico.';
+
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text(titulo, style: TextStyle(color: estado == 'Hipoglucemia' ? const Color(0xFFD32F2F) : const Color(0xFFE65100), fontWeight: FontWeight.bold, fontSize: 16)),
+            content: Text(texto, style: const TextStyle(fontSize: 14, height: 1.4)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Entendido', style: TextStyle(color: Color(0xFF1C63BB), fontWeight: FontWeight.bold)),
+              )
+            ],
+          );
+        }
     );
   }
 
@@ -329,13 +353,40 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                                 }
 
                                 if (valor > 0) {
+                                  String notaAutomatica = '';
+                                  List<Map<String, dynamic>> registrosLecturas = widget.registros.where((r) => r['valor'] > 0).toList();
+
+                                  if (registrosLecturas.isNotEmpty) {
+                                    int ultimaGlucosa = (registrosLecturas.first['valor'] as num).toInt();
+                                    String estadoAnterior = _obtenerEstadoGlucosa(ultimaGlucosa);
+
+                                    if (estadoAnterior == 'Hipoglucemia' || estadoAnterior == 'Hiperglucemia') {
+                                      String nuevoEstado = _obtenerEstadoGlucosa(valor);
+                                      if (nuevoEstado == 'Hipoglucemia' || nuevoEstado == 'Hiperglucemia') {
+                                        notaAutomatica = "Se realizó el protocolo y no se logró estabilizar la glucosa.";
+                                      } else {
+                                        notaAutomatica = "Se realizó el protocolo y se estabilizó la glucosa.";
+                                      }
+                                    }
+                                  }
+
+                                  String notaFinal = notasCtrl.text;
+                                  if (notaAutomatica.isNotEmpty) {
+                                    notaFinal = notaFinal.isEmpty ? notaAutomatica : "$notaFinal - $notaAutomatica";
+                                  }
+
                                   widget.onAgregarRegistro({
                                     'valor': valor,
                                     'momento': momentoSeleccionado,
                                     'fecha': fechaSeleccionada,
-                                    'notas': notasCtrl.text,
+                                    'notas': notaFinal,
                                   });
                                   Navigator.pop(context);
+
+                                  String estadoNuevo = _obtenerEstadoGlucosa(valor);
+                                  if (estadoNuevo == 'Hipoglucemia' || estadoNuevo == 'Hiperglucemia') {
+                                    _mostrarDialogoProtocoloADA(estadoNuevo);
+                                  }
                                 }
                               } else {
                                 setStateSheet(() => errorTexto = 'El nivel de glucosa no puede estar vacío');
