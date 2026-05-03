@@ -71,14 +71,14 @@ class _PantallaInicioCuidadorState extends State<PantallaInicioCuidador> {
   }
 
   void _agregarFamiliar() {
-    if (_pacientes.length >= 4) {
+    if (_pacientes.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
             children: const [
               Icon(Icons.warning_amber_rounded, color: Colors.white),
               SizedBox(width: 10),
-              Expanded(child: Text('Has alcanzado el límite máximo de 4 familiares.')),
+              Expanded(child: Text('Has alcanzado el límite máximo de 5 familiares.')),
             ],
           ),
           backgroundColor: const Color(0xFFFF6B6B),
@@ -228,7 +228,7 @@ class _PantallaInicioCuidadorState extends State<PantallaInicioCuidador> {
                 const Icon(Icons.family_restroom, color: Color(0xFF00D1FF)),
                 const SizedBox(width: 10),
                 Text(
-                  'Familiares a cargo: ${_pacientes.length} / 4',
+                  'Familiares a cargo: ${_pacientes.length} / 5',
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
                 ),
               ],
