@@ -154,6 +154,7 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(25),
@@ -250,6 +251,12 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
                   ],
                 ),
               ],
+
+              if (estado == 'Hipoglucemia' || estado == 'Hiperglucemia') ...[
+                const SizedBox(height: 20),
+                _construirMedidaCorrectivaADA(estado),
+              ],
+
               const SizedBox(height: 20),
             ],
           ),
@@ -260,6 +267,35 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
         _indiceSeleccionadoGrafica = null;
       });
     });
+  }
+
+  Widget _construirMedidaCorrectivaADA(String estado) {
+    if (estado != 'Hipoglucemia' && estado != 'Hiperglucemia') return const SizedBox.shrink();
+
+    Color color = estado == 'Hipoglucemia' ? const Color(0xFFD32F2F) : const Color(0xFFE65100);
+    String titulo = estado == 'Hipoglucemia' ? '⚠️ Medida Correctiva (ADA): Hipoglucemia' : '⚠️ Medida Correctiva (ADA): Hiperglucemia';
+    String texto = estado == 'Hipoglucemia'
+        ? 'Aplica la regla 15-15:\n\n1. Dale 15g de carbohidratos de acción rápida (ej. ½ vaso de jugo, 1 cda. de miel).\n2. Espera 15 min y vuelve a medir su glucosa.\n3. Si sigue menor a 70 mg/dL, repite.\n4. Al normalizarse, dale un snack o comida.'
+        : 'Sigue estas recomendaciones:\n\n1. Dale abundante agua.\n2. Aplica su dosis de corrección de insulina según lo indicado por el médico.\n3. Si la glucosa es mayor a 240 mg/dL, verifica si hay cetonas en orina.\n4. Consulte a su médico.';
+
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: color, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(titulo, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 13)),
+          const SizedBox(height: 8),
+          Text(texto, style: const TextStyle(fontSize: 12, color: Colors.black87, height: 1.4)),
+          const SizedBox(height: 12),
+          const Text('Fuente: American Diabetes Association (ADA)', style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic)),
+        ],
+      ),
+    );
   }
 
   @override
