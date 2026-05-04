@@ -559,64 +559,80 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
       _bombaFrecuenciaCtrl.clear();
     }
 
-    if (usuarioId != null) {
-      final pacienteData = {
-        'usuario_id': usuarioId,
-        'sexo': _sexo ?? '',
-        'edad': int.tryParse(_edadCtrl.text) ?? 0,
-        'tiempo_dx': _tiempoDx ?? '',
-        'tipo_diabetes': _tipoDiabetes ?? '',
-        'alergias': _alergiasCtrl.text,
-        'hospitalizaciones': _hospitalizacionesCtrl.text.isEmpty ? 'Ninguna' : _hospitalizacionesCtrl.text,
-        'peso': double.tryParse(_pesoCtrl.text) ?? 0.0,
-        'altura': double.tryParse(_alturaCtrl.text) ?? 0.0,
-        'imc': _imc,
-        'limite_hipo': double.tryParse(_hipoCtrl.text) ?? 70.0,
-        'limite_hiper': double.tryParse(_hiperCtrl.text) ?? 180.0,
-        'rango_min': double.tryParse(_rangoMinCtrl.text) ?? 80.0,
-        'rango_max': double.tryParse(_rangoMaxCtrl.text) ?? 130.0,
-        'fsi': double.tryParse(_fsiCtrl.text) ?? 50.0,
-        'ric': double.tryParse(_ricCtrl.text) ?? 15.0,
-        'metodo_insulina': _metodoInsulina ?? '',
-        'insulina_basal_marca': _insulinaBasalMarcaCtrl.text,
-        'insulina_basal_dosis': _insulinaBasalDosisCtrl.text,
-        'insulina_rapida_marca': _insulinaRapidaMarcaCtrl.text,
-        'insulina_rapida_patron': _insulinaRapidaPatronCtrl.text,
-        'bomba_unidades': _bombaUnidadesCtrl.text,
-        'bomba_frecuencia': _bombaFrecuenciaCtrl.text,
-        'med_oral_nombre': _medOralNombreCtrl.text,
-        'med_oral_dosis': _medOralDosisCtrl.text,
-        'frecuencia_monitoreo': _frecuenciaMonitoreo ?? '',
-        'actividad_fisica': _actividadFisica ?? '',
-        'emergencia_nombre': _emergenciaNombreCtrl.text,
-        'emergencia_parentesco': _emergenciaParentescoCtrl.text,
-        'emergencia_telefono': _emergenciaTelefonoCtrl.text,
-        'medico_nombre': _medicoNombreCtrl.text,
-      };
+    try {
+      if (usuarioId != null) {
+        final pacienteData = {
+          'usuario_id': usuarioId,
+          'sexo': _sexo ?? '',
+          'edad': int.tryParse(_edadCtrl.text) ?? 0,
+          'tiempo_dx': _tiempoDx ?? '',
+          'tipo_diabetes': _tipoDiabetes ?? '',
+          'alergias': _alergiasCtrl.text,
+          'hospitalizaciones': _hospitalizacionesCtrl.text.isEmpty ? 'Ninguna' : _hospitalizacionesCtrl.text,
+          'peso': double.tryParse(_pesoCtrl.text) ?? 0.0,
+          'altura': double.tryParse(_alturaCtrl.text) ?? 0.0,
+          'imc': _imc,
+          'limite_hipo': double.tryParse(_hipoCtrl.text) ?? 70.0,
+          'limite_hiper': double.tryParse(_hiperCtrl.text) ?? 180.0,
+          'rango_min': double.tryParse(_rangoMinCtrl.text) ?? 80.0,
+          'rango_max': double.tryParse(_rangoMaxCtrl.text) ?? 130.0,
+          'metodo_insulina': _metodoInsulina ?? '',
+          'insulina_basal_marca': _insulinaBasalMarcaCtrl.text,
+          'insulina_basal_dosis': _insulinaBasalDosisCtrl.text,
+          'insulina_rapida_marca': _insulinaRapidaMarcaCtrl.text,
+          'insulina_rapida_patron': _insulinaRapidaPatronCtrl.text,
+          'bomba_unidades': _bombaUnidadesCtrl.text,
+          'bomba_frecuencia': _bombaFrecuenciaCtrl.text,
+          'med_oral_nombre': _medOralNombreCtrl.text,
+          'med_oral_dosis': _medOralDosisCtrl.text,
+          'frecuencia_monitoreo': _frecuenciaMonitoreo ?? '',
+          'actividad_fisica': _actividadFisica ?? '',
+          'emergencia_nombre': _emergenciaNombreCtrl.text,
+          'emergencia_parentesco': _emergenciaParentescoCtrl.text,
+          'emergencia_telefono': _emergenciaTelefonoCtrl.text,
+          'medico_nombre': _medicoNombreCtrl.text,
+        };
 
-      final pacienteId = await db.insertarPaciente(pacienteData);
+        final pacienteId = await db.insertarPaciente(pacienteData);
 
-      for (var med in _otrosMedicamentos) {
-        await db.insertarOtroMedicamento({
-          'paciente_id': pacienteId,
-          'nombre': med['nombre'],
-          'gramaje': med['gramaje'],
-          'proposito': med['proposito'],
-          'frecuencia': med['frecuencia'],
-        });
+        for (var med in _otrosMedicamentos) {
+          await db.insertarOtroMedicamento({
+            'paciente_id': pacienteId,
+            'nombre': med['nombre'],
+            'gramaje': med['gramaje'],
+            'proposito': med['proposito'],
+            'frecuencia': med['frecuencia'],
+          });
+        }
+
+        final usuario = await db.obtenerUsuarioPorId(usuarioId);
+        if (usuario != null) {
+          nombreUsuario = usuario['nombre'] as String;
+        }
       }
-
-      final usuario = await db.obtenerUsuarioPorId(usuarioId);
-      if (usuario != null) {
-        nombreUsuario = usuario['nombre'] as String;
-      }
+    } catch (e) {
+      debugPrint('Error guardando datos del paciente: $e');
     }
 
     if (!mounted) return;
-    _mostrarDialogoFinalizacion(nombreUsuario, irAIdentificacion: irAIdentificacion);
+
+    if (irAIdentificacion) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PantallaInicioPaciente(
+            nombrePaciente: nombreUsuario,
+            indiceInicial: 5,
+          ),
+        ),
+            (Route<dynamic> route) => false,
+      );
+    } else {
+      _mostrarDialogoFinalizacion(nombreUsuario);
+    }
   }
 
-  void _mostrarDialogoFinalizacion(String nombrePaciente, {bool irAIdentificacion = false}) {
+  void _mostrarDialogoFinalizacion(String nombrePaciente) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -648,7 +664,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
                         MaterialPageRoute(
                           builder: (context) => PantallaInicioPaciente(
                             nombrePaciente: nombrePaciente,
-                            indiceInicial: irAIdentificacion ? 5 : 0,
+                            indiceInicial: 0,
                           ),
                         ),
                             (Route<dynamic> route) => false,
@@ -658,7 +674,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
                       backgroundColor: const Color(0xFF00D1FF),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     ),
-                    child: Text(irAIdentificacion ? 'Continuar a ID Médica' : 'Ir al Inicio', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: const Text('Ir al Inicio', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 )
               ],
@@ -1783,67 +1799,82 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
       _bombaFrecuenciaCtrl.clear();
     }
 
-    if (usuarioId != null) {
-      final pacienteData = {
-        'cuidador_id': usuarioId,
-        'tipo_paciente': _tipoPaciente ?? '',
-        'parentesco': _parentescoCtrl.text,
-        'nombre': _nombrePacienteCtrl.text,
-        'sexo': _sexoPaciente ?? '',
-        'edad': int.tryParse(_edadPacienteCtrl.text) ?? 0,
-        'tiempo_dx': _tiempoDxPaciente ?? '',
-        'tipo_diabetes': _tipoDiabetesPaciente ?? '',
-        'alergias': _alergiasPacienteCtrl.text,
-        'hospitalizaciones': _hospitalizacionesCtrl.text.isEmpty ? 'Ninguna' : _hospitalizacionesCtrl.text,
-        'peso': double.tryParse(_pesoPacienteCtrl.text) ?? 0.0,
-        'altura': double.tryParse(_alturaPacienteCtrl.text) ?? 0.0,
-        'imc': _imcPaciente,
-        'limite_hipo': double.tryParse(_hipoCtrl.text) ?? 70.0,
-        'limite_hiper': double.tryParse(_hiperCtrl.text) ?? 180.0,
-        'rango_min': double.tryParse(_rangoMinCtrl.text) ?? 80.0,
-        'rango_max': double.tryParse(_rangoMaxCtrl.text) ?? 130.0,
-        'fsi': double.tryParse(_fsiCtrl.text) ?? 50.0,
-        'ric': double.tryParse(_ricCtrl.text) ?? 15.0,
-        'metodo_insulina': _metodoInsulinaPaciente ?? '',
-        'insulina_basal_marca': _insulinaBasalMarcaCtrl.text,
-        'insulina_basal_dosis': _insulinaBasalDosisCtrl.text,
-        'insulina_rapida_marca': _insulinaRapidaMarcaCtrl.text,
-        'insulina_rapida_patron': _insulinaRapidaPatronCtrl.text,
-        'bomba_unidades': _bombaUnidadesCtrl.text,
-        'bomba_frecuencia': _bombaFrecuenciaCtrl.text,
-        'med_oral_nombre': _medOralNombreCtrl.text,
-        'med_oral_dosis': _medOralDosisCtrl.text,
-        'frecuencia_monitoreo': _frecuenciaMonitoreoPaciente ?? '',
-        'medico_nombre': _medicoNombreCtrl.text,
-        'riesgo_caidas': _riesgoCaidas ?? '',
-        'estado_cognitivo': _estadoCognitivo ?? '',
-        'autonomia_menor': _autonomiaMenor ?? '',
-        'contacto_escolar': _contactoEscolarCtrl.text,
-      };
+    try {
+      if (usuarioId != null) {
+        final pacienteData = {
+          'cuidador_id': usuarioId,
+          'tipo_paciente': _tipoPaciente ?? '',
+          'parentesco': _parentescoCtrl.text,
+          'nombre': _nombrePacienteCtrl.text,
+          'sexo': _sexoPaciente ?? '',
+          'edad': int.tryParse(_edadPacienteCtrl.text) ?? 0,
+          'tiempo_dx': _tiempoDxPaciente ?? '',
+          'tipo_diabetes': _tipoDiabetesPaciente ?? '',
+          'alergias': _alergiasPacienteCtrl.text,
+          'hospitalizaciones': _hospitalizacionesCtrl.text.isEmpty ? 'Ninguna' : _hospitalizacionesCtrl.text,
+          'peso': double.tryParse(_pesoPacienteCtrl.text) ?? 0.0,
+          'altura': double.tryParse(_alturaPacienteCtrl.text) ?? 0.0,
+          'imc': _imcPaciente,
+          'limite_hipo': double.tryParse(_hipoCtrl.text) ?? 70.0,
+          'limite_hiper': double.tryParse(_hiperCtrl.text) ?? 180.0,
+          'rango_min': double.tryParse(_rangoMinCtrl.text) ?? 80.0,
+          'rango_max': double.tryParse(_rangoMaxCtrl.text) ?? 130.0,
+          'metodo_insulina': _metodoInsulinaPaciente ?? '',
+          'insulina_basal_marca': _insulinaBasalMarcaCtrl.text,
+          'insulina_basal_dosis': _insulinaBasalDosisCtrl.text,
+          'insulina_rapida_marca': _insulinaRapidaMarcaCtrl.text,
+          'insulina_rapida_patron': _insulinaRapidaPatronCtrl.text,
+          'bomba_unidades': _bombaUnidadesCtrl.text,
+          'bomba_frecuencia': _bombaFrecuenciaCtrl.text,
+          'med_oral_nombre': _medOralNombreCtrl.text,
+          'med_oral_dosis': _medOralDosisCtrl.text,
+          'frecuencia_monitoreo': _frecuenciaMonitoreoPaciente ?? '',
+          'medico_nombre': _medicoNombreCtrl.text,
+          'riesgo_caidas': _riesgoCaidas ?? '',
+          'estado_cognitivo': _estadoCognitivo ?? '',
+          'autonomia_menor': _autonomiaMenor ?? '',
+          'contacto_escolar': _contactoEscolarCtrl.text,
+        };
 
-      final pacienteId = await db.insertarPacienteCuidador(pacienteData);
+        final pacienteId = await db.insertarPacienteCuidador(pacienteData);
 
-      for (var med in _otrosMedicamentos) {
-        await db.insertarOtroMedicamentoCuidador({
-          'paciente_cuidador_id': pacienteId,
-          'nombre': med['nombre'],
-          'gramaje': med['gramaje'],
-          'proposito': med['proposito'],
-          'frecuencia': med['frecuencia'],
-        });
+        for (var med in _otrosMedicamentos) {
+          await db.insertarOtroMedicamentoCuidador({
+            'paciente_cuidador_id': pacienteId,
+            'nombre': med['nombre'],
+            'gramaje': med['gramaje'],
+            'proposito': med['proposito'],
+            'frecuencia': med['frecuencia'],
+          });
+        }
+
+        final usuario = await db.obtenerUsuarioPorId(usuarioId);
+        if (usuario != null) {
+          nombreCuidador = usuario['nombre'] as String;
+        }
       }
+    } catch (e) {
+      debugPrint('Error guardando cuidador: $e');
+    }
 
-      final usuario = await db.obtenerUsuarioPorId(usuarioId);
-      if (usuario != null) {
-        nombreCuidador = usuario['nombre'] as String;
-      }
+    if (!mounted) return;
 
-      if (!mounted) return;
-      _mostrarDialogoFinalizacion(nombreCuidador, _nombrePacienteCtrl.text, pacienteId, irAIdentificacion: irAIdentificacion);
+    if (irAIdentificacion) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PantallaInicioCuidador(
+            nombreCuidador: nombreCuidador,
+          ),
+        ),
+            (Route<dynamic> route) => false,
+      );
+    } else {
+      _mostrarDialogoFinalizacion(nombreCuidador);
     }
   }
 
-  void _mostrarDialogoFinalizacion(String nombreCuidador, String nombrePaciente, int pacienteId, {bool irAIdentificacion = false}) {
+  void _mostrarDialogoFinalizacion(String nombreCuidador) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1870,34 +1901,21 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      if (irAIdentificacion) {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PantallaInicioPaciente(
-                              nombrePaciente: nombrePaciente,
-                              indiceInicial: 5,
-                            ),
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PantallaInicioCuidador(
+                            nombreCuidador: nombreCuidador,
                           ),
-                              (Route<dynamic> route) => false,
-                        );
-                      } else {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PantallaInicioCuidador(
-                              nombreCuidador: nombreCuidador,
-                            ),
-                          ),
-                              (Route<dynamic> route) => false,
-                        );
-                      }
+                        ),
+                            (Route<dynamic> route) => false,
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00D1FF),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     ),
-                    child: Text(irAIdentificacion ? 'Continuar a ID Médica' : 'Ir al Inicio', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: const Text('Ir al Inicio', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 )
               ],

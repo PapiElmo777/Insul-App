@@ -559,6 +559,14 @@ class ReportePacienteService {
 
     final regsOrdenados = List<Map<String, dynamic>>.from(registros)
       ..sort((a, b) => (a['fecha'] as DateTime).compareTo(b['fecha'] as DateTime));
+    double maxGlucosa = (hiper + 50).toDouble();
+    for (var r in regsOrdenados) {
+      double val = (r['valor'] as num).toDouble();
+      if (val > maxGlucosa) {
+        maxGlucosa = val;
+      }
+    }
+    double yMaxEje = maxGlucosa > (hiper + 50) ? (maxGlucosa + 20) : (hiper + 50).toDouble();
 
     final List<pw.PointChartValue> lineaPrincipal = [];
     for (int i = 0; i < regsOrdenados.length; i++) {
@@ -571,9 +579,8 @@ class ReportePacienteService {
     final double n = regsOrdenados.length.toDouble();
     final List<pw.Dataset> datasets = [];
 
-    // --- BANDAS DE COLOR (FONDO) ---
     datasets.add(pw.LineDataSet(
-      data: [pw.PointChartValue(0, (hiper + 50).toDouble()), pw.PointChartValue(n, (hiper + 50).toDouble())],
+      data: [pw.PointChartValue(0, yMaxEje), pw.PointChartValue(n, yMaxEje)],
       lineWidth: 0, color: _C.rojoBg, drawPoints: false, isCurved: false, drawSurface: true, surfaceOpacity: 1,
     ));
     datasets.add(pw.LineDataSet(
@@ -663,7 +670,7 @@ class ReportePacienteService {
             ticks: false,
           ),
           yAxis: pw.FixedAxis(
-            [0, hipo.toDouble(), rMin.toDouble(), rMax.toDouble(), hiper.toDouble(), (hiper + 50).toDouble()],
+            [0, hipo.toDouble(), rMin.toDouble(), rMax.toDouble(), hiper.toDouble(), yMaxEje],
             buildLabel: (v) => pw.Text(
               '${v.toInt()}',
               style: const pw.TextStyle(fontSize: 6.5, color: _C.gris700),

@@ -650,6 +650,48 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                           return;
                         }
 
+                        String periodoSeleccionado = 'Todos';
+                        final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) {
+                              return AlertDialog(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                title: const Text('Seleccionar Período', style: TextStyle(color: Color(0xFF1C63BB), fontWeight: FontWeight.bold)),
+                                content: StatefulBuilder(
+                                    builder: (context, setStateDialog) {
+                                      return Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: ['7 Días', '14 Días', '1 Mes', '3 Meses', 'Todos'].map((opcion) {
+                                          return RadioListTile<String>(
+                                            title: Text(opcion),
+                                            value: opcion,
+                                            groupValue: periodoSeleccionado,
+                                            onChanged: (val) {
+                                              setStateDialog(() => periodoSeleccionado = val!);
+                                            },
+                                            activeColor: const Color(0xFF1C63BB),
+                                          );
+                                        }).toList(),
+                                      );
+                                    }
+                                ),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(context, true),
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF0C80EB),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+                                    ),
+                                    child: const Text('Continuar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  ),
+                                ],
+                              );
+                            }
+                        );
+
+                        if (confirm != true) return;
+
                         showDialog(
                           context: context,
                           barrierDismissible: false,
@@ -657,9 +699,42 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                         );
 
                         try {
+                          DateTime ahora = DateTime.now();
+                          DateTime? limiteFecha;
+                          if (periodoSeleccionado == '7 Días') limiteFecha = ahora.subtract(const Duration(days: 7));
+                          else if (periodoSeleccionado == '14 Días') limiteFecha = ahora.subtract(const Duration(days: 14));
+                          else if (periodoSeleccionado == '1 Mes') limiteFecha = ahora.subtract(const Duration(days: 30));
+                          else if (periodoSeleccionado == '3 Meses') limiteFecha = ahora.subtract(const Duration(days: 90));
+
+                          final registrosSoloGlucosa = _registrosGlucosa.where((r) {
+                            if (limiteFecha != null) {
+                              DateTime fechaRegistro = r['fecha'] as DateTime;
+                              if (fechaRegistro.isBefore(limiteFecha)) return false;
+                            }
+                            return true;
+                          }).toList();
+
+                          if (registrosSoloGlucosa.length < 3) {
+                            if (mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text('No hay suficientes registros en el periodo seleccionado ($periodoSeleccionado). Se requiere un mínimo de 3 lecturas.'),
+                                    backgroundColor: Colors.orange
+                                ),
+                              );
+                            }
+                            return;
+                          }
+
+                          final sorted = List<Map<String, dynamic>>.from(registrosSoloGlucosa)..sort((a, b) => (a['fecha'] as DateTime).compareTo(b['fecha'] as DateTime));
+                          final iniStr = DateFormat('dd MMM yy').format(sorted.first['fecha'] as DateTime);
+                          final finStr = DateFormat('dd MMM yy').format(sorted.last['fecha'] as DateTime);
+                          final periodo = '$periodoSeleccionado ($iniStr - $finStr)';
+
                           final bytes = await ReportePacienteService.generarReporteAGP(
                             paciente: _datosPacienteComp,
-                            registros: _registrosGlucosa,
+                            registros: registrosSoloGlucosa,
                           );
 
                           final db = DatabaseHelper();
@@ -668,7 +743,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                           await db.insertarReportePaciente({
                             'id': idUnico,
                             'paciente_id': _pacienteId,
-                            'periodo': 'Histórico Completo',
+                            'periodo': periodo,
                             'fecha': DateTime.now().toIso8601String(),
                             'archivo_bytes': bytes,
                           });
@@ -766,7 +841,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
               ...List.generate(_reportesGenerados.length, (index) {
                 final reporte = _reportesGenerados[index];
                 final String fechaF = DateFormat('dd/MM/yyyy').format(reporte['fecha']);
-                final titulo = 'Historial periodo ($fechaF)';
+                final titulo = 'Historial (${reporte['periodo']})';
 
                 return Card(
                   key: Key(reporte['id']),
