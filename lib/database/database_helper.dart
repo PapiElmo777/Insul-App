@@ -1,30 +1,53 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'esquema_clinico.dart';
+import 'eventos_clinicos.dart';
+import '../modelos/paciente_clinico.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instancia = DatabaseHelper._interno();
   static Database? _db;
+  static Future<Database>? _apertura;
 
   factory DatabaseHelper() => _instancia;
-  DatabaseHelper._interno();
+  DatabaseHelper._interno() : _baseInyectada = null;
+  DatabaseHelper.conBase(Database base) : _baseInyectada = base;
+  final Database? _baseInyectada;
 
   Future<Database> get db async {
-    _db ??= await _inicializarDB();
-    return _db!;
+    if (_baseInyectada != null) return _baseInyectada;
+    if (_db != null) return _db!;
+    return _apertura ??= _inicializarDB().then((base) {
+      _db = base;
+      _apertura = null;
+      return base;
+    }).catchError((Object error) {
+      _apertura = null;
+      throw error;
+    });
   }
+
+  Future<EventosClinicos> get eventos async => EventosClinicos(await db);
 
   Future<Database> _inicializarDB() async {
     final rutaDB = await getDatabasesPath();
-    final ruta = join(rutaDB, 'insulapp.db');
-
-    return await openDatabase(
-      ruta,
-      version: 1,
-      onCreate: _crearTablas,
-    );
+    return abrirBase(join(rutaDB, 'insulapp.db'));
   }
 
-  Future<void> _crearTablas(Database db, int version) async {
+  /// Mismo esquema en producción y en las pruebas de migración SQLite.
+  static Future<Database> abrirBase(String ruta, {DatabaseFactory? fabrica}) =>
+      (fabrica ?? databaseFactory).openDatabase(ruta, options: OpenDatabaseOptions(
+        version: EsquemaClinico.version,
+        onCreate: (base, version) async {
+          await _crearTablas(base, version);
+          await EsquemaClinico.actualizar(base);
+        },
+        onUpgrade: (base, anterior, actual) async {
+          if (anterior < 2) await EsquemaClinico.actualizar(base);
+        },
+      ));
+
+  static Future<void> _crearTablas(Database db, int version) async {
     await db.execute('''
       CREATE TABLE usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -432,10 +455,9 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> insertarRegistroGlucosa(Map<String, dynamic> datos) async {
-    final baseDatos = await db;
-    return await baseDatos.insert('registros_glucosa', datos);
-  }
+  Future<int> insertarRegistroGlucosa(Map<String, dynamic> datos) async =>
+      (await eventos).registrarLectura(PacienteClinico(AmbitoPaciente.personal, datos['paciente_id'] as int), datos);
+
 
   Future<List<Map<String, dynamic>>> obtenerRegistrosGlucosa(int pacienteId) async {
     final baseDatos = await db;
@@ -515,19 +537,21 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> obtenerMedicamentosEnfermero(int pacienteId) async {
     final baseDatos = await db;
-    return await baseDatos.query('medicamentos_enfermero', where: 'paciente_id = ?', whereArgs: [pacienteId]);
-  }
-
-  Future<void> actualizarEstadoMedicamentoEnfermero(int id, int suministrado) async {
-    final baseDatos = await db;
-    await baseDatos.update('medicamentos_enfermero', {'suministrado': suministrado}, where: 'id = ?', whereArgs: [id]);
+    final esquema = await baseDatos.query('medicamentos_enfermero', where: 'paciente_id = ?', whereArgs: [pacienteId]);
+    final confirmadas = await (await eventos).administraciones(PacienteClinico(AmbitoPaciente.institucional, pacienteId));
+    return esquema.map((m) {
+      final aplicaciones = confirmadas.where((a) => a['medicamento_enfermero_id'] == m['id']);
+      return {...m, 'suministrado_legacy': m['suministrado'],
+        'suministrado': aplicaciones.isEmpty ? 0 : 1,
+        'administracion_id': aplicaciones.isEmpty ? null : aplicaciones.first['id'],
+      };
+    }).toList();
   }
 
   // Glucosa del Enfermero
-  Future<int> insertarGlucosaEnfermero(Map<String, dynamic> datos) async {
-    final baseDatos = await db;
-    return await baseDatos.insert('glucosa_enfermero', datos);
-  }
+  Future<int> insertarGlucosaEnfermero(Map<String, dynamic> datos) async =>
+      (await eventos).registrarLectura(PacienteClinico(AmbitoPaciente.institucional, datos['paciente_id'] as int), datos);
+
 
   Future<List<Map<String, dynamic>>> obtenerGlucosaEnfermero(int pacienteId) async {
     final baseDatos = await db;
@@ -535,14 +559,11 @@ class DatabaseHelper {
   }
 
   // Insulina del Enfermero
-  Future<int> insertarInsulinaEnfermero(Map<String, dynamic> datos) async {
-    final baseDatos = await db;
-    return await baseDatos.insert('insulina_enfermero', datos);
-  }
-
   Future<List<Map<String, dynamic>>> obtenerInsulinaEnfermero(int pacienteId) async {
-    final baseDatos = await db;
-    return await baseDatos.query('insulina_enfermero', where: 'paciente_id = ?', whereArgs: [pacienteId], orderBy: 'fecha DESC');
+    final registros = await (await eventos).administraciones(PacienteClinico(AmbitoPaciente.institucional, pacienteId));
+    return registros.where((r) => r['unidad'] == 'UI').map((r) => {
+      ...r, 'unidades': r['cantidad'],
+    }).toList();
   }
 
   // Observaciones del Enfermero
@@ -635,10 +656,9 @@ class DatabaseHelper {
     return await baseDatos.insert('otros_medicamentos_cuidador', datos);
   }
 
-  Future<int> insertarRegistroGlucosaCuidador(Map<String, dynamic> datos) async {
-    final baseDatos = await db;
-    return await baseDatos.insert('registros_glucosa_cuidador', datos);
-  }
+  Future<int> insertarRegistroGlucosaCuidador(Map<String, dynamic> datos) async =>
+      (await eventos).registrarLectura(PacienteClinico(AmbitoPaciente.familiar, datos['paciente_cuidador_id'] as int), datos);
+
 
   Future<List<Map<String, dynamic>>> obtenerRegistrosGlucosaCuidador(int pacienteCuidadorId) async {
     final baseDatos = await db;

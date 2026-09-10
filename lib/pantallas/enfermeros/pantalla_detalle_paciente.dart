@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import '../../database/database_helper.dart';
+import '../../database/eventos_clinicos.dart';
+import '../../modelos/paciente_clinico.dart';
+import '../../widgets/dialogo_administracion.dart';
 import 'pantalla_calculadora_enfermero.dart';
 
 class PantallaDetallePaciente extends StatefulWidget {
@@ -21,7 +24,9 @@ class PantallaDetallePaciente extends StatefulWidget {
 class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
   final TextEditingController _glucosaCtrl = TextEditingController();
   final TextEditingController _observacionCtrl = TextEditingController();
-  final TextEditingController _insulinaCtrl = TextEditingController();
+  bool _guardandoMedicamento = false;
+  List<Map<String, dynamic>> _calculos = [];
+  List<Map<String, dynamic>> _insulinaAnterior = [];
 
   List<Map<String, dynamic>> _historialGlucosa = [];
   List<Map<String, dynamic>> _medicamentos = [];
@@ -45,19 +50,23 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
     final meds = await db.obtenerMedicamentosEnfermero(pacienteId);
     final insul = await db.obtenerInsulinaEnfermero(pacienteId);
     final obs = await db.obtenerObservacionesEnfermero(pacienteId);
+    final calculos = await (await db.eventos).calculos(PacienteClinico(AmbitoPaciente.institucional, pacienteId));
+    final anteriores = await (await db.db).query('insulina_enfermero', where: 'paciente_id = ?', whereArgs: [pacienteId]);
 
     if (mounted) {
       setState(() {
         _historialGlucosa = glucosa.map((e) => {
           'valor': (e['valor'] as num?)?.toInt() ?? 0,
-          'fecha': DateTime.tryParse(e['fecha']?.toString() ?? '') ?? DateTime.now()
+          'fecha': DateTime.tryParse(e['fecha']?.toString() ?? '')?.toLocal() ?? DateTime.now()
         }).toList();
 
         _medicamentos = List<Map<String, dynamic>>.from(meds);
+        _calculos = calculos;
+        _insulinaAnterior = anteriores;
 
         _historialInsulina = insul.map((e) => {
-          'unidades': (e['unidades'] as num?)?.toInt() ?? 0,
-          'fecha': DateTime.tryParse(e['fecha']?.toString() ?? '') ?? DateTime.now()
+          'unidades': e['unidades'] as num? ?? 0,
+          'fecha': DateTime.tryParse(e['fecha']?.toString() ?? '')?.toLocal() ?? DateTime.now()
         }).toList();
 
         _observacionesBD = obs.map((e) => e['nota']?.toString() ?? '').toList();
@@ -75,7 +84,6 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
   void dispose() {
     _glucosaCtrl.dispose();
     _observacionCtrl.dispose();
-    _insulinaCtrl.dispose();
     super.dispose();
   }
 
@@ -272,46 +280,50 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
     );
   }
 
-  void _mostrarDialogoAgregarInsulina() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Suministrar Insulina', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: TextField(
-            controller: _insulinaCtrl,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(hintText: 'Unidades administradas', suffixText: 'UI', border: OutlineInputBorder()),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
-            ElevatedButton(
-              onPressed: () async {
-                if (_insulinaCtrl.text.isNotEmpty) {
-                  final db = DatabaseHelper();
-                  await db.insertarInsulinaEnfermero({
-                    'paciente_id': widget.paciente['id'],
-                    'unidades': int.parse(_insulinaCtrl.text),
-                    'fecha': DateTime.now().toIso8601String()
-                  });
+  Future<void> _mostrarDialogoAgregarInsulina() async {
+    final guardado = await mostrarRegistroAdministracion(context,
+      PacienteClinico(AmbitoPaciente.institucional, widget.paciente['id']));
+    if (guardado && mounted) await _cargarDatosPaciente();
+  }
 
-                  await _cargarDatosPaciente();
-
-                  if (mounted) {
-                    _insulinaCtrl.clear();
-                    Navigator.pop(context);
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008CCF)),
-              child: const Text('Registrar', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
+  Future<void> _confirmarMedicamento(Map<String, dynamic> med, bool aplicado) async {
+    if (_guardandoMedicamento) return;
+    setState(() => _guardandoMedicamento = true);
+    final confirmado = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      title: Text(aplicado ? 'Confirmar administración' : 'Corregir registro'),
+      content: Text(aplicado
+        ? 'Confirma que ya se administró ${med['nombre']} (${med['dosis']}).'
+        : 'Se anulará la confirmación de ${med['nombre']} y se conservará la corrección en la bitácora.'),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(aplicado ? 'Ya fue administrado' : 'Anular confirmación'))],
+    ));
+    if (!mounted) return;
+    if (confirmado != true) {
+      setState(() => _guardandoMedicamento = false);
+      return;
+    }
+    try {
+      final eventos = await DatabaseHelper().eventos;
+      final paciente = PacienteClinico(AmbitoPaciente.institucional, widget.paciente['id']);
+      if (aplicado) {
+        await eventos.confirmarAdministracion(id: EventosClinicos.nuevoId(), paciente: paciente,
+          confirmada: true, medicamento: med['nombre'] ?? '', dosisTexto: med['dosis'] ?? '',
+          fecha: DateTime.now(), medicamentoEnfermeroId: med['id']);
+      } else {
+        await eventos.anularAdministracion(paciente, med['administracion_id'], 'Corrección explícita desde checklist de enfermería');
+      }
+      if (mounted) {
+        try {
+          await _cargarDatosPaciente();
+        } catch (_) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registro guardado; no se pudo actualizar la vista. Vuelve a abrir el paciente.')));
+        }
+      }
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo registrar la confirmación. Intenta de nuevo.')));
+    } finally {
+      if (mounted) setState(() => _guardandoMedicamento = false);
+    }
   }
 
   void _mostrarDialogoObservacion() {
@@ -635,7 +647,7 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Expanded(child: Text('Suministro de Insulina', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Colors.black))),
+                          const Expanded(child: Text('Administraciones de insulina confirmadas', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Colors.black))),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -670,13 +682,19 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                           )
                         ],
                       ),
+                      if (_calculos.isNotEmpty)
+                        ExpansionTile(title: const Text('Cálculos guardados (no administrados)'),
+                          children: _calculos.map((r) => ListTile(title: Text('${r['dosis']} UI · dosis calculada'), subtitle: Text(r['fecha'].toString()))).toList()),
+                      if (_insulinaAnterior.isNotEmpty)
+                        ExpansionTile(title: const Text('Insulina histórica sin confirmación verificable'),
+                          children: _insulinaAnterior.map((r) => ListTile(title: Text('${r['unidades']} UI · registro anterior'), subtitle: Text(r['fecha'].toString()))).toList()),
                       const SizedBox(height: 10),
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(15),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFD2D2D2))),
                         child: _historialInsulina.isEmpty
-                            ? const Text('No se ha suministrado insulina.', style: TextStyle(color: Colors.grey))
+                            ? const Text('No hay administraciones confirmadas.', style: TextStyle(color: Colors.grey))
                             : Column(
                           children: List.generate(_historialInsulina.length, (index) {
                             final ins = _historialInsulina[index];
@@ -716,15 +734,11 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                         ),
                         child: CheckboxListTile(
                           title: Text('${med['nombre']} - ${med['dosis']}', style: TextStyle(fontWeight: FontWeight.bold, decoration: suministrado ? TextDecoration.lineThrough : null)),
-                          subtitle: Text(med['frecuencia']),
+                          subtitle: Text('${med['frecuencia'] ?? ''}${med['suministrado_legacy'] == 1 && !suministrado ? ' · Registro anterior marcado, sin fecha verificable' : ''}'),
                           value: suministrado,
                           activeColor: const Color(0xFF2E7D32),
                           checkColor: Colors.white,
-                          onChanged: (bool? val) async {
-                            final db = DatabaseHelper();
-                            await db.actualizarEstadoMedicamentoEnfermero(med['id'], val! ? 1 : 0);
-                            await _cargarDatosPaciente();
-                          },
+                          onChanged: _guardandoMedicamento ? null : (val) => _confirmarMedicamento(med, val ?? false),
                         ),
                       );
                     }),

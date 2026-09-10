@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../database/database_helper.dart';
+import '../../database/eventos_clinicos.dart';
+import '../../modelos/paciente_clinico.dart';
 
 class PantallaCalculadoraEnfermero extends StatefulWidget {
   final Map<String, dynamic> paciente;
@@ -24,6 +26,10 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
   double _dosisCorreccion = 0.0;
   double _dosisComida = 0.0;
   double _dosisTotal = 0.0;
+  bool _guardando = false;
+  String? _calculoId;
+  DateTime? _fechaCalculo;
+  Map<String, Object?> _detalle = {};
 
   final List<Map<String, dynamic>> _alimentosHospital = [
     {'nombre': 'Gelatina regular (120g)', 'carbos': 17.0},
@@ -83,6 +89,10 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
       _dosisCorreccion = correccion < 0 ? 0 : correccion;
       _dosisComida = comida < 0 ? 0 : comida;
       _dosisTotal = _dosisCorreccion + _dosisComida;
+      _calculoId = EventosClinicos.nuevoId();
+      _fechaCalculo = DateTime.now();
+      _detalle = {'glucosa': glucosa, 'carbohidratos': carbos, 'ric': ric,
+        'fsi': fsi, 'objetivo': meta, 'motor': 'prototipo_institucional_sin_validacion_clinica'};
     });
   }
 
@@ -128,8 +138,9 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
   }
 
   Future<void> _guardarRegistro() async {
+    if (_guardando || _calculoId == null) return;
     double glucosa = double.tryParse(_glucosaCtrl.text) ?? 0.0;
-    int unidades = _dosisTotal.round();
+    final unidades = _dosisTotal;
     if (glucosa <= 0 || glucosa > 600) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor, ingresa un valor de glucosa realista (1-600 mg/dL)'), backgroundColor: Color(0xFFD32F2F)),
@@ -144,26 +155,23 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
       return;
     }
 
-    final db = DatabaseHelper();
-    final String fechaActual = DateTime.now().toIso8601String();
-
-    await db.insertarGlucosaEnfermero({
-      'paciente_id': widget.paciente['id'],
-      'valor': glucosa.toInt(),
-      'fecha': fechaActual
-    });
-
-    await db.insertarInsulinaEnfermero({
-      'paciente_id': widget.paciente['id'],
-      'unidades': unidades,
-      'fecha': fechaActual
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registro guardado exitosamente'), backgroundColor: Color(0xFF2E7D32)),
+    final id = _calculoId!;
+    final detalle = Map<String, Object?>.from(_detalle);
+    final fecha = _fechaCalculo!;
+    setState(() => _guardando = true);
+    try {
+      await (await DatabaseHelper().eventos).guardarCalculo(
+        id: id, paciente: PacienteClinico(AmbitoPaciente.institucional, widget.paciente['id']),
+        glucosa: glucosa, dosis: unidades, entradas: detalle, momento: 'Hospital', fecha: fecha,
       );
-      Navigator.pop(context, true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Cálculo guardado. No registra una administración.')));
+      if (_calculoId == id) Navigator.pop(context, true);
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo guardar el cálculo. Intenta de nuevo.')));
+    } finally {
+      if (mounted) setState(() => _guardando = false);
     }
   }
 
@@ -285,9 +293,9 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
               width: double.infinity,
               height: 55,
               child: ElevatedButton.icon(
-                onPressed: _guardarRegistro,
+                onPressed: _guardando ? null : _guardarRegistro,
                 icon: const Icon(Icons.save, color: Colors.white),
-                label: const Text('Registrar en Expediente', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                label: const Text('Guardar cálculo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2E7D32),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),

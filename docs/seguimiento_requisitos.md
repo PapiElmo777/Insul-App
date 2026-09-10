@@ -51,3 +51,8 @@ Los identificadores anteriores son de seguimiento interno, no numeración origin
 ## Resultado de verificación
 
 28 pruebas automatizadas aprobadas tanto en la copia de trabajo como en el proyecto original después de aplicar. Comando: `flutter --suppress-analytics --no-version-check test --no-pub`. Análisis estático: 0 errores, 8 advertencias y 269 avisos informativos; no se considera un análisis limpio y la limpieza restante se mantiene pendiente. `git diff --check` sin incidencias. No se ejecutaron pruebas clínicas, pruebas en dispositivo físico ni validación de dosis para uso real.
+
+
+## Avance de la etapa 2
+
+Se implementó la separación de lecturas, cálculos y administraciones confirmadas, con migración SQLite v1 a v2. El alcance, las pruebas y las limitaciones actualizadas están en [Etapa 2 — eventos clínicos](etapa2_eventos_clinicos.md). Esta actualización sustituye las limitaciones del bloque 1 relativas al almacenamiento nuevo en notas; las reglas clínicas continúan pendientes.

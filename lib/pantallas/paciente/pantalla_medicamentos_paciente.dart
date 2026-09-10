@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../modelos/paciente_clinico.dart';
+import '../../widgets/dialogo_administracion.dart';
 import '../../database/database_helper.dart';
 
 class PantallaMedicamentosPaciente extends StatefulWidget {
@@ -32,6 +34,8 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
 
   // Historial de dosis
   List<Map<String, dynamic>> _historialInsulina = [];
+  List<Map<String, dynamic>> _calculos = [];
+  List<Map<String, dynamic>> _registrosAnteriores = [];
 
   // Alertas locales
   bool _alertasInsulinaActivadas = true;
@@ -89,24 +93,17 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
           }
         }
 
-        final registrosDB = await db.obtenerRegistrosGlucosa(_pacienteId!);
-        _historialInsulina = registrosDB.where((r) {
-          final nota = (r['notas'] ?? '').toString();
-          return nota.contains('Dosis ADA Calculada:') || nota.contains('Dosis Manual:');
-        }).map((r) {
-          final nota = r['notas'].toString();
-          final regex = RegExp(r'Dosis (?:ADA Calculada|Manual):\s*([0-9.]+)\s*UI');
-          final match = regex.firstMatch(nota);
-          String dosis = '0';
-          if(match != null && match.groupCount >= 1) {
-            dosis = match.group(1)!;
-          }
-          return {
-            'dosis': dosis,
-            'fecha': DateTime.parse(r['fecha']),
-            'momento': r['momento']
-          };
+        final referencia = PacienteClinico(AmbitoPaciente.personal, _pacienteId!);
+        final eventos = await db.eventos;
+        _historialInsulina = (await eventos.administraciones(referencia)).where((r) => r['unidad'] == 'UI').map((r) => {
+          ...r, 'dosis': r['cantidad'],
+          'fecha': DateTime.parse(r['fecha'] as String).toLocal(),
         }).toList();
+        _calculos = await eventos.calculos(referencia);
+        final registrosDB = await db.obtenerRegistrosGlucosa(_pacienteId!);
+        _registrosAnteriores = registrosDB.where((r) =>
+          r['procedencia'] == 'legado' && (r['notas'] ?? '').toString().isNotEmpty).toList();
+
       }
     }
 
@@ -229,79 +226,11 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
     );
   }
 
-  void _mostrarDialogoAgregarDosisInsulina() {
-    final dosisCtrl = TextEditingController();
-    final notasCtrl = TextEditingController();
-    String momentoSeleccionado = 'Almuerzo';
-    DateTime fechaSeleccionada = DateTime.now();
-
-    showDialog(
-        context: context,
-        builder: (context) {
-          return StatefulBuilder(
-              builder: (context, setStateDialog) {
-                return AlertDialog(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  title: const Text('Registrar Aplicación', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
-                  content: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _crearCampo('Unidades aplicadas (UI)', dosisCtrl, esNumero: true),
-                        const SizedBox(height: 15),
-                        const Align(alignment: Alignment.centerLeft, child: Text('Momento:', style: TextStyle(fontSize: 13, color: Colors.grey))),
-                        const SizedBox(height: 5),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(10)),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: momentoSeleccionado,
-                              isExpanded: true,
-                              items: ['Desayuno', 'Almuerzo', 'Cena', 'Merienda', 'Madrugada', 'Otro'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                              onChanged: (val) => setStateDialog(() => momentoSeleccionado = val!),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-                        _crearCampo('Notas / Insulina utilizada', notasCtrl),
-                      ],
-                    ),
-                  ),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (dosisCtrl.text.isEmpty || _pacienteId == null) return;
-                        final dosis = double.tryParse(dosisCtrl.text) ?? 0.0;
-                        if(dosis <= 0) return;
-
-                        final db = DatabaseHelper();
-                        String notasFinales = "Dosis Manual: $dosis UI.";
-                        if(notasCtrl.text.isNotEmpty) notasFinales += " Notas: ${notasCtrl.text}";
-                        await db.insertarRegistroGlucosa({
-                          'paciente_id': _pacienteId,
-                          'valor': 0,
-                          'momento': momentoSeleccionado,
-                          'notas': notasFinales,
-                          'fecha': fechaSeleccionada.toIso8601String(),
-                        });
-
-                        await _cargarDatos();
-                        if (mounted) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aplicación de insulina registrada con éxito.'), backgroundColor: Color(0xFF2E7D32)));
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
-                      child: const Text('Guardar Dosis', style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                );
-              }
-          );
-        }
-    );
+  Future<void> _mostrarDialogoAgregarDosisInsulina() async {
+    if (_pacienteId == null) return;
+    final guardado = await mostrarRegistroAdministracion(context,
+      PacienteClinico(AmbitoPaciente.personal, _pacienteId!));
+    if (guardado && mounted) await _cargarDatos();
   }
 
   void _mostrarDialogoEditarMonitoreo() {
@@ -660,7 +589,8 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
                 const SizedBox(height: 20),
               ],
 
-              if (_metodoInsulina != 'No usa' && _metodoInsulina != 'No especificado') ...[
+              if ((_metodoInsulina != 'No usa' && _metodoInsulina != 'No especificado') ||
+                  _calculos.isNotEmpty || _historialInsulina.isNotEmpty || _registrosAnteriores.isNotEmpty) ...[
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
@@ -676,7 +606,7 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
                         children: [
                           const Icon(Icons.history, color: Color(0xFF2E7D32)),
                           const SizedBox(width: 10),
-                          const Expanded(child: Text('Historial de Aplicaciones', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87))),
+                          const Expanded(child: Text('Administraciones confirmadas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87))),
                           ElevatedButton.icon(
                             onPressed: _mostrarDialogoAgregarDosisInsulina,
                             icon: const Icon(Icons.add, size: 16, color: Colors.white),
@@ -691,6 +621,23 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
                         ],
                       ),
                       const SizedBox(height: 15),
+                      if (_calculos.isNotEmpty)
+                        ExpansionTile(
+                          title: Text('Cálculos guardados (${_calculos.length})'),
+                          subtitle: const Text('No son administraciones confirmadas'),
+                          children: _calculos.map((r) => ListTile(
+                            title: Text('${r['dosis']} UI · dosis calculada'),
+                            subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(r['fecha'] as String).toLocal())),
+                          )).toList(),
+                        ),
+                      if (_registrosAnteriores.isNotEmpty)
+                        ExpansionTile(
+                          title: const Text('Registros anteriores sin confirmación verificable'),
+                          children: _registrosAnteriores.map((r) => ListTile(
+                            title: Text(r['notas'].toString()),
+                            subtitle: Text(r['fecha'].toString()),
+                          )).toList(),
+                        ),
                       if (_historialInsulina.isEmpty)
                         const Text('No hay aplicaciones de insulina registradas.', style: TextStyle(color: Colors.grey, fontSize: 14))
                       else
@@ -712,7 +659,7 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
                                     children: [
                                       Text('${registro['dosis']} UI', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2E7D32))),
                                       Text(DateFormat("d 'de' MMM, HH:mm", 'es_ES').format(registro['fecha'] as DateTime), style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                                      Text('Momento: ${registro['momento']}', style: const TextStyle(color: Colors.black87, fontSize: 13)),
+                                      Text('${registro['medicamento']} · Momento: ${registro['momento']}', style: const TextStyle(color: Colors.black87, fontSize: 13)),
                                     ],
                                   ),
                                 ),

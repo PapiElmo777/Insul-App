@@ -109,13 +109,13 @@ void main() {
         await editar(tester, carbohidratos, '60');
         await pulsar(tester, 'Calcular Dosis');
         await pulsar(tester, guardar);
-        expect(db.inserciones, hasLength(1));
-        expect(db.inserciones.single['arguments'], contains(150));
+        expect(db.inserciones, hasLength(2));
+        expect(db.inserciones.first['arguments'], contains(150.0));
+        expect(db.inserciones.last['arguments'].toString(), contains('5.0'));
         expect(
-          db.inserciones.single['arguments'].toString(),
-          contains('5.0 UI'),
+          db.inserciones.last['arguments'].toString(),
+          contains('carbohidratos":60.0'),
         );
-        expect(db.inserciones.single['arguments'].toString(), contains('60g'));
       });
       testWidgets('$rol muestra fallo de escritura y permite reintentar', (
         tester,
@@ -130,7 +130,7 @@ void main() {
         expect(find.text(guardar), findsOneWidget);
         db.fallaInsertar = false;
         await pulsar(tester, guardar);
-        expect(db.inserciones, hasLength(2));
+        expect(db.inserciones, hasLength(3));
       });
       testWidgets(
         '$rol evita duplicados y conserva cambios durante escritura',
@@ -148,10 +148,10 @@ void main() {
           await editar(tester, carbohidratos, '60');
           db.escrituraPendiente!.complete();
           await tester.pumpAndSettle();
-          expect(db.inserciones, hasLength(1));
+          expect(db.inserciones, hasLength(2));
           expect(
-            db.inserciones.single['arguments'].toString(),
-            contains('30g'),
+            db.inserciones.last['arguments'].toString(),
+            contains('carbohidratos":30.0'),
           );
           final campo = tester.widget<TextField>(
             find.byKey(const ValueKey(carbohidratos)),

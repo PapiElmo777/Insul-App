@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/database_helper.dart';
 import '../../modelos/entradas_calculo_dosis.dart';
+import '../../modelos/paciente_clinico.dart';
+import '../../database/eventos_clinicos.dart';
 
 class PantallaCalculadoraDosis extends StatefulWidget {
   final VoidCallback? onRegistroGuardado;
@@ -39,6 +41,9 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
 
   EntradasCalculoDosis? _entradasCalculadas;
   bool _guardando = false;
+  String? _calculoId;
+  DateTime? _fechaCalculo;
+  Map<String, Object?> _detalleCalculo = {};
 
   EntradasCalculoDosis _capturarEntradas() => (
     glucosa: _glucosaCtrl.text,
@@ -212,6 +217,13 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
       _estadoGlucosa   = estado;
       _calculado       = true;
       _entradasCalculadas = _capturarEntradas();
+      _calculoId = EventosClinicos.nuevoId();
+      _fechaCalculo = DateTime.now();
+      _detalleCalculo = {
+        'glucosa': glucosa, 'carbohidratos': carbs, 'ric': relIC,
+        'fsi': fsi, 'objetivo': objetivo, 'actividad': _actividadSeleccionada,
+        'momento': _momentoComida, 'motor': 'prototipo_sin_validacion_clinica',
+      };
     });
 
     _resultCtrl.forward(from: 0);
@@ -236,20 +248,19 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
     // persona modifica el formulario mientras se completa la escritura.
     final glucosa = double.tryParse(entradas.glucosa) ?? 0;
     final dosis = _dosisAjustada;
-    final notas = 'Dosis ADA Calculada: ${dosis.toStringAsFixed(1)} UI. '
-        'Carbos: ${entradas.carbohidratos}g. Actividad: ${entradas.actividad}.';
+    final calculoId = _calculoId!;
+    final fecha = _fechaCalculo!;
+    final detalle = Map<String, Object?>.from(_detalleCalculo);
     setState(() => _guardando = true);
     try {
-      await DatabaseHelper().insertarRegistroGlucosa({
-        'paciente_id': pacienteId,
-        'valor': glucosa.toInt(),
-        'momento': entradas.momento,
-        'notas': notas,
-        'fecha': DateTime.now().toIso8601String(),
-      });
+      await (await DatabaseHelper().eventos).guardarCalculo(
+        id: calculoId, paciente: PacienteClinico(AmbitoPaciente.personal, pacienteId),
+        glucosa: glucosa, dosis: dosis, entradas: detalle,
+        momento: entradas.momento, fecha: fecha,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('¡Cálculo y registro guardado con éxito!'), backgroundColor: Color(0xFF2E7D32)),
+        const SnackBar(content: Text('Cálculo guardado. No registra una administración.'), backgroundColor: Color(0xFF2E7D32)),
       );
       if (_entradasCalculadas == entradas) _limpiar();
       widget.onRegistroGuardado?.call();

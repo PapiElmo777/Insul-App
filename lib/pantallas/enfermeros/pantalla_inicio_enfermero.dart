@@ -815,7 +815,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                           pacientesParaReporte.add({
                             ...p,
                             'historialGlucosa': glucosa.map((e) => {'valor': e['valor'], 'fecha': DateTime.parse(e['fecha'])}).toList(),
-                            'historialInsulina': insulina.map((e) => {'unidades': e['unidades'], 'fecha': DateTime.parse(e['fecha'])}).toList(),
+                            'historialInsulina': insulina.map((e) => {'unidades': e['unidades'], 'fecha': DateTime.parse(e['fecha']).toLocal()}).toList(),
                             'medicamentos': medicamentos,
                             'observacionesTurno': observaciones.map((e) => e['nota'].toString()).toList(),
                           });

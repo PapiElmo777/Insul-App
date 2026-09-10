@@ -30,7 +30,7 @@ class BaseDatosSimulada {
                 return {
                   'columns': ['user_version'],
                   'rows': [
-                    [1],
+                    [2],
                   ],
                 };
               }
@@ -42,7 +42,9 @@ class BaseDatosSimulada {
                   ],
                 };
               }
-              if (sql.contains('FROM pacientes ')) {
+              if (sql.contains('FROM pacientes ') ||
+                  sql.contains('FROM pacientes_cuidador ') ||
+                  sql.contains('FROM pacientes_enfermero ')) {
                 return {
                   'columns': ['id'],
                   'rows': [
