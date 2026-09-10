@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/database_helper.dart';
+import '../../modelos/entradas_calculo_dosis.dart';
 
 class PantallaCalculadoraDosis extends StatefulWidget {
   final VoidCallback? onRegistroGuardado;
@@ -36,6 +37,33 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
   bool   _mostrarAvanzado       = false;
   bool   _calculado             = false;
 
+  EntradasCalculoDosis? _entradasCalculadas;
+  bool _guardando = false;
+
+  EntradasCalculoDosis _capturarEntradas() => (
+    glucosa: _glucosaCtrl.text,
+    carbohidratos: _carbsCtrl.text,
+    relacionIC: _relacionICCtrl.text,
+    fsi: _fsiCtrl.text,
+    objetivo: _objetivoCtrl.text,
+    actividad: _actividadSeleccionada,
+    momento: _momentoComida,
+  );
+
+  void _invalidarSiCambioEntrada() {
+    if (_entradasCalculadas == null ||
+        _entradasCalculadas == _capturarEntradas()) return;
+    _invalidarCalculo();
+  }
+
+  void _invalidarCalculo() {
+    setState(() {
+      _entradasCalculadas = null;
+      _calculado = false;
+      _estadoGlucosa = '';
+    });
+  }
+
   // Valores base desde BD
   double _ricBD = 15;
   double _fsiBD = 50;
@@ -68,6 +96,12 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
     super.initState();
     _resultCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
     _resultAnim = CurvedAnimation(parent: _resultCtrl, curve: Curves.easeOutBack);
+
+    for (final controlador in [
+      _glucosaCtrl, _carbsCtrl, _relacionICCtrl, _fsiCtrl, _objetivoCtrl,
+    ]) {
+      controlador.addListener(_invalidarSiCambioEntrada);
+    }
 
     _verificarTutorial();
     _cargarDatosPaciente();
@@ -132,6 +166,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
   }
 
   void _calcular() {
+    _invalidarCalculo();
     final glucosa   = double.tryParse(_glucosaCtrl.text)   ?? 0;
     final carbs     = double.tryParse(_carbsCtrl.text)     ?? 0;
     final relIC     = double.tryParse(_relacionICCtrl.text) ?? _ricBD;
@@ -176,6 +211,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
       _dosisAjustada   = dosisAjustada;
       _estadoGlucosa   = estado;
       _calculado       = true;
+      _entradasCalculadas = _capturarEntradas();
     });
 
     _resultCtrl.forward(from: 0);
@@ -183,38 +219,50 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
   }
 
   Future<void> _guardarRegistro() async {
-    if (_pacienteId == null) return;
-
-    final glucosa = double.tryParse(_glucosaCtrl.text) ?? 0;
-
-    String notasExtra = "Dosis ADA Calculada: ${_dosisAjustada.toStringAsFixed(1)} UI. "
-        "Carbos a ingerir: ${_carbsCtrl.text}g. Actividad: $_actividadSeleccionada.";
-
-    final db = DatabaseHelper();
-
-    if (glucosa > 0) {
-      await db.insertarRegistroGlucosa({
-        'paciente_id': _pacienteId,
-        'valor': glucosa.toInt(),
-        'momento': _momentoComida,
-        'notas': notasExtra,
-        'fecha': DateTime.now().toIso8601String(),
-      });
+    if (_guardando) return;
+    final entradas = _entradasCalculadas;
+    if (!_calculado || entradas == null || entradas != _capturarEntradas()) {
+      _invalidarCalculo();
+      _mostrarError('Los datos cambiaron. Calcula de nuevo antes de guardar.');
+      return;
+    }
+    final pacienteId = _pacienteId;
+    if (pacienteId == null) {
+      _mostrarError('No se pudo identificar al paciente. Intenta cargar sus datos de nuevo.');
+      return;
     }
 
-    if (mounted) {
+    // Guardar las entradas y el resultado del mismo cálculo, aun si la
+    // persona modifica el formulario mientras se completa la escritura.
+    final glucosa = double.tryParse(entradas.glucosa) ?? 0;
+    final dosis = _dosisAjustada;
+    final notas = 'Dosis ADA Calculada: ${dosis.toStringAsFixed(1)} UI. '
+        'Carbos: ${entradas.carbohidratos}g. Actividad: ${entradas.actividad}.';
+    setState(() => _guardando = true);
+    try {
+      await DatabaseHelper().insertarRegistroGlucosa({
+        'paciente_id': pacienteId,
+        'valor': glucosa.toInt(),
+        'momento': entradas.momento,
+        'notas': notas,
+        'fecha': DateTime.now().toIso8601String(),
+      });
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('¡Cálculo y registro guardado con éxito!'), backgroundColor: Color(0xFF2E7D32)),
       );
-      _limpiar();
-      if (widget.onRegistroGuardado != null) {
-        widget.onRegistroGuardado!();
-      }
+      if (_entradasCalculadas == entradas) _limpiar();
+      widget.onRegistroGuardado?.call();
+    } catch (_) {
+      if (mounted) _mostrarError('No se pudo guardar el cálculo. Intenta de nuevo.');
+    } finally {
+      if (mounted) setState(() => _guardando = false);
     }
   }
 
   void _limpiar() {
     setState(() {
+      _entradasCalculadas = null;
       _glucosaCtrl.clear();
       _carbsCtrl.clear();
       _calculado            = false;
@@ -487,7 +535,10 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: GestureDetector(
-                onTap: () => setState(() => _momentoComida = m),
+                onTap: () {
+                  setState(() => _momentoComida = m);
+                  _invalidarSiCambioEntrada();
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -595,7 +646,10 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: GestureDetector(
-              onTap: () => setState(() => _actividadSeleccionada = act.nombre),
+              onTap: () {
+                setState(() => _actividadSeleccionada = act.nombre);
+                _invalidarSiCambioEntrada();
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.all(12),
@@ -942,7 +996,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
     return SizedBox(
       width: double.infinity, height: 54,
       child: ElevatedButton.icon(
-        onPressed: _guardarRegistro,
+        onPressed: _guardando ? null : _guardarRegistro,
         icon: const Icon(Icons.save_alt, size: 22, color: Color(0xFF1C63BB)),
         label: const Text('Guardar en Historial', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
         style: ElevatedButton.styleFrom(
@@ -1007,6 +1061,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
         Text(titulo, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
         const SizedBox(height: 6),
         TextField(
+          key: ValueKey(titulo),
           controller: controlador,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],

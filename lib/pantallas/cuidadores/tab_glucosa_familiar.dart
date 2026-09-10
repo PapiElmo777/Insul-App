@@ -750,25 +750,7 @@ class _TabGlucosaFamiliarState extends State<TabGlucosaFamiliar> {
                                 }
 
                                 if (valor > 0) {
-                                  String notaAutomatica = '';
-                                  if (_registrosGlucosa.isNotEmpty) {
-                                    int ultimaGlucosa = (_registrosGlucosa.first['valor'] as num).toInt();
-                                    String estadoAnterior = _obtenerEstadoGlucosa(ultimaGlucosa);
-
-                                    if (estadoAnterior == 'Hipoglucemia' || estadoAnterior == 'Hiperglucemia') {
-                                      String nuevoEstado = _obtenerEstadoGlucosa(valor);
-                                      if (nuevoEstado == 'Hipoglucemia' || nuevoEstado == 'Hiperglucemia') {
-                                        notaAutomatica = "Se realizó el protocolo y no se logró estabilizar la glucosa.";
-                                      } else {
-                                        notaAutomatica = "Se realizó el protocolo y se estabilizó la glucosa.";
-                                      }
-                                    }
-                                  }
-
-                                  String notaFinal = notasCtrl.text;
-                                  if (notaAutomatica.isNotEmpty) {
-                                    notaFinal = notaFinal.isEmpty ? notaAutomatica : "$notaFinal - $notaAutomatica";
-                                  }
+                                  final notaFinal = notasCtrl.text;
 
                                   final db = DatabaseHelper();
                                   await db.insertarRegistroGlucosaCuidador({
