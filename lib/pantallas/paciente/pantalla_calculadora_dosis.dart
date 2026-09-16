@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:flutter/services.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/database_helper.dart';
 import '../../modelos/entradas_calculo_dosis.dart';
@@ -140,11 +144,10 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
 
   Future<void> _cargarDatosPaciente() async {
     try {
-      final db = DatabaseHelper();
-      final usuarioId = await db.obtenerSesionActiva();
-      final paciente = usuarioId == null ? null : await db.obtenerPacientePorUsuario(usuarioId);
+      final usuarioId = await GestorUsuario().obtenerSesionActiva();
+      final paciente = usuarioId == null ? null : await GestorPacientes().obtenerPacientePorUsuario(usuarioId);
       final id = paciente?['id'] as int?;
-      final parametros = id == null ? null : await (await db.eventos).parametrosVigentes(PacienteClinico(AmbitoPaciente.personal, id));
+      final parametros = id == null ? null : await (await DatabaseHelper().eventos).parametrosVigentes(PacienteClinico(AmbitoPaciente.personal, id));
       if (!mounted) return;
       _invalidarCalculo();
       setState(() {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
 import 'package:intl/intl.dart';
 import '../../database/database_helper.dart';
 
@@ -23,9 +24,8 @@ class _PantallaAlarmasEnfermeroState extends State<PantallaAlarmasEnfermero> {
   }
 
   Future<void> _cargarDatos() async {
-    final db = DatabaseHelper();
-    final recordatoriosBD = await db.obtenerRecordatoriosEnfermero(widget.enfermeroId);
-    final pacientesBD = await db.obtenerPacientesDeEnfermero(widget.enfermeroId);
+    final recordatoriosBD = await GestorEnfermeros().obtenerRecordatoriosEnfermero(widget.enfermeroId);
+    final pacientesBD = await GestorEnfermeros().obtenerPacientesDeEnfermero(widget.enfermeroId);
 
     if (mounted) {
       setState(() {
@@ -159,8 +159,7 @@ class _PantallaAlarmasEnfermeroState extends State<PantallaAlarmasEnfermero> {
                     }
 
                     final paciente = _listaPacientes.firstWhere((p) => p['id'].toString() == pacienteSeleccionadoId);
-                    final db = DatabaseHelper();
-                    await db.insertarRecordatorioEnfermero({
+                    await GestorEnfermeros().insertarRecordatorioEnfermero({
                       'enfermero_id': widget.enfermeroId,
                       'paciente_id': paciente['id'],
                       'paciente_nombre': paciente['nombre'],
@@ -235,16 +234,14 @@ class _PantallaAlarmasEnfermeroState extends State<PantallaAlarmasEnfermero> {
             ? IconButton(
           icon: const Icon(Icons.check_box_outline_blank, size: 28, color: Colors.grey),
           onPressed: () async {
-            final db = DatabaseHelper();
-            await db.actualizarEstadoRecordatorio(recordatorio['id'], 1);
+            await GestorEnfermeros().actualizarEstadoRecordatorio(recordatorio['id'], 1);
             await _cargarDatos();
           },
         )
             : IconButton(
           icon: const Icon(Icons.delete_outline, size: 28, color: Color(0xFFD32F2F)),
           onPressed: () async {
-            final db = DatabaseHelper();
-            await db.eliminarRecordatorio(recordatorio['id']);
+            await GestorEnfermeros().eliminarRecordatorio(recordatorio['id']);
             await _cargarDatos();
           },
         ),

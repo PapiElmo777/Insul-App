@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:async';
 import 'pantalla_login.dart';
@@ -24,12 +25,10 @@ class _PantallaCargaState extends State<PantallaCarga> {
   Future<void> _verificarSesion() async {
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
-
-    final db = DatabaseHelper();
-    final usuarioId = await db.obtenerSesionActiva();
+    final usuarioId = await GestorUsuario().obtenerSesionActiva();
 
     if (usuarioId != null) {
-      final usuario = await db.obtenerUsuarioPorId(usuarioId);
+      final usuario = await GestorUsuario().obtenerUsuarioPorId(usuarioId);
       if (usuario != null && mounted) {
         final rol = usuario['rol'] as String;
         if (rol == 'Enfermero') {

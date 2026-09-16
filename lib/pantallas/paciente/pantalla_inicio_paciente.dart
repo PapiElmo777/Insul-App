@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:flutter/services.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'dart:io';
@@ -57,12 +61,11 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
   }
 
   Future<void> _cargarDatosBD() async {
-    final db = DatabaseHelper();
-    final usuarioId = await db.obtenerSesionActiva();
+    final usuarioId = await GestorUsuario().obtenerSesionActiva();
 
     if (usuarioId != null) {
-      final usuario = await db.obtenerUsuarioPorId(usuarioId);
-      final paciente = await db.obtenerPacientePorUsuario(usuarioId);
+      final usuario = await GestorUsuario().obtenerUsuarioPorId(usuarioId);
+      final paciente = await GestorPacientes().obtenerPacientePorUsuario(usuarioId);
       if (paciente != null) {
         _pacienteId = paciente['id'];
 
@@ -91,7 +94,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
         rangoMin = _datosPacienteComp['rangoMin'];
         rangoMax = _datosPacienteComp['rangoMax'];
 
-        final registrosBD = await db.obtenerRegistrosGlucosa(_pacienteId!);
+        final registrosBD = await GestorPacientes().obtenerRegistrosGlucosa(_pacienteId!);
         _registrosGlucosa = registrosBD
             .where((r) => (r['valor'] as num) > 0)
             .map((r) => {
@@ -101,7 +104,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
           'notas': r['notas'] ?? '',
         }).toList();
 
-        final reportesBD = await db.obtenerReportesDePaciente(_pacienteId!);
+        final reportesBD = await GestorPacientes().obtenerReportesDePaciente(_pacienteId!);
         _reportesGenerados = reportesBD.map((r) => {
           'id': r['id'],
           'periodo': r['periodo'],
@@ -286,8 +289,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                                 }
 
                                 if (_pacienteId != null) {
-                                  final db = DatabaseHelper();
-                                  await db.insertarRegistroGlucosa({
+                                  await GestorPacientes().insertarRegistroGlucosa({
                                     'paciente_id': _pacienteId,
                                     'valor': valor,
                                     'momento': momentoSeleccionado,
@@ -535,8 +537,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
               rangoMax: rangoMax,
               onAgregarRegistro: (nuevoRegistro) async {
                 if (_pacienteId != null) {
-                  final db = DatabaseHelper();
-                  await db.insertarRegistroGlucosa({
+                  await GestorPacientes().insertarRegistroGlucosa({
                     'paciente_id': _pacienteId,
                     'valor': nuevoRegistro['valor'],
                     'momento': nuevoRegistro['momento'],
@@ -736,11 +737,9 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                             paciente: _datosPacienteComp,
                             registros: registrosSoloGlucosa,
                           );
-
-                          final db = DatabaseHelper();
                           final String idUnico = DateTime.now().millisecondsSinceEpoch.toString();
 
-                          await db.insertarReportePaciente({
+                          await GestorPacientes().insertarReportePaciente({
                             'id': idUnico,
                             'paciente_id': _pacienteId,
                             'periodo': periodo,

@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_cuidadores.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:flutter/services.dart';
+import 'package:insulapp/database/gestores/gestor_cuidadores.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import '../database/database_helper.dart';
 import 'enfermeros/pantalla_inicio_enfermero.dart';
 import 'paciente/pantalla_inicio_paciente.dart';
@@ -76,11 +84,10 @@ class _PantallaCuestionarioEnfermeroState extends State<PantallaCuestionarioEnfe
   }
 
   Future<void> _guardarDatosYFinalizar() async {
-    final db = DatabaseHelper();
-    final usuarioId = await db.obtenerSesionActiva();
+    final usuarioId = await GestorUsuario().obtenerSesionActiva();
 
     if (usuarioId != null) {
-      await db.insertarEnfermero({
+      await GestorEnfermeros().insertarEnfermero({
         'usuario_id': usuarioId,
         'cedula': _cedulaCtrl.text,
         'institucion': _institucionCtrl.text,
@@ -535,8 +542,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
   }
 
   Future<void> _guardarDatosPacienteYFinalizar({bool irAIdentificacion = false}) async {
-    final db = DatabaseHelper();
-    final usuarioId = await db.obtenerSesionActiva();
+    final usuarioId = await GestorUsuario().obtenerSesionActiva();
     String nombreUsuario = 'Paciente';
 
     if (_metodoInsulina != 'Inyecciones') {
@@ -593,10 +599,10 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
           'medico_nombre': _medicoNombreCtrl.text,
         };
 
-        final pacienteId = await db.insertarPaciente(pacienteData);
+        final pacienteId = await GestorPacientes().insertarPaciente(pacienteData);
 
         for (var med in _otrosMedicamentos) {
-          await db.insertarOtroMedicamento({
+          await GestorPacientes().insertarOtroMedicamento({
             'paciente_id': pacienteId,
             'nombre': med['nombre'],
             'gramaje': med['gramaje'],
@@ -605,7 +611,7 @@ class _PantallaCuestionarioPacienteState extends State<PantallaCuestionarioPacie
           });
         }
 
-        final usuario = await db.obtenerUsuarioPorId(usuarioId);
+        final usuario = await GestorUsuario().obtenerUsuarioPorId(usuarioId);
         if (usuario != null) {
           nombreUsuario = usuario['nombre'] as String;
         }
@@ -1775,8 +1781,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
   }
 
   Future<void> _guardarDatosPacienteYFinalizar({bool irAIdentificacion = false}) async {
-    final db = DatabaseHelper();
-    final usuarioId = await db.obtenerSesionActiva();
+    final usuarioId = await GestorUsuario().obtenerSesionActiva();
     String nombreCuidador = 'Cuidador';
 
     if (_metodoInsulinaPaciente != 'Inyecciones') {
@@ -1836,10 +1841,10 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
           'contacto_escolar': _contactoEscolarCtrl.text,
         };
 
-        final pacienteId = await db.insertarPacienteCuidador(pacienteData);
+        final pacienteId = await GestorCuidadores().insertarPacienteCuidador(pacienteData);
 
         for (var med in _otrosMedicamentos) {
-          await db.insertarOtroMedicamentoCuidador({
+          await GestorCuidadores().insertarOtroMedicamentoCuidador({
             'paciente_cuidador_id': pacienteId,
             'nombre': med['nombre'],
             'gramaje': med['gramaje'],
@@ -1848,7 +1853,7 @@ class _PantallaCuestionarioCuidadorState extends State<PantallaCuestionarioCuida
           });
         }
 
-        final usuario = await db.obtenerUsuarioPorId(usuarioId);
+        final usuario = await GestorUsuario().obtenerUsuarioPorId(usuarioId);
         if (usuario != null) {
           nombreCuidador = usuario['nombre'] as String;
         }

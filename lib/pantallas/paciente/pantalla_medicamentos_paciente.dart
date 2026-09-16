@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:intl/intl.dart';
 import '../../modelos/paciente_clinico.dart';
 import '../../widgets/dialogo_administracion.dart';
@@ -49,11 +51,10 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
   }
 
   Future<void> _cargarDatos() async {
-    final db = DatabaseHelper();
-    final usuarioId = await db.obtenerSesionActiva();
+    final usuarioId = await GestorUsuario().obtenerSesionActiva();
 
     if (usuarioId != null) {
-      final paciente = await db.obtenerPacientePorUsuario(usuarioId);
+      final paciente = await GestorPacientes().obtenerPacientePorUsuario(usuarioId);
       if (paciente != null) {
         _pacienteId = paciente['id'];
         _tipoDiabetes = paciente['tipo_diabetes'] ?? 'No especificado';
@@ -77,7 +78,7 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
           _tipoInsulinaInyeccion = 'Bolo';
         }
 
-        final medsDB = await db.obtenerMedicamentosDePaciente(_pacienteId!);
+        final medsDB = await GestorPacientes().obtenerMedicamentosDePaciente(_pacienteId!);
         _medicamentos = List<Map<String, dynamic>>.from(medsDB);
 
         if (paciente['med_oral_nombre'] != null && paciente['med_oral_nombre'].toString().isNotEmpty) {
@@ -94,13 +95,13 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
         }
 
         final referencia = PacienteClinico(AmbitoPaciente.personal, _pacienteId!);
-        final eventos = await db.eventos;
+        final eventos = await DatabaseHelper().eventos;
         _historialInsulina = (await eventos.administraciones(referencia)).where((r) => r['unidad'] == 'UI').map((r) => {
           ...r, 'dosis': r['cantidad'],
           'fecha': DateTime.parse(r['fecha'] as String).toLocal(),
         }).toList();
         _calculos = await eventos.calculos(referencia);
-        final registrosDB = await db.obtenerRegistrosGlucosa(_pacienteId!);
+        final registrosDB = await GestorPacientes().obtenerRegistrosGlucosa(_pacienteId!);
         _registrosAnteriores = registrosDB.where((r) =>
           r['procedencia'] == 'legado' && (r['notas'] ?? '').toString().isNotEmpty).toList();
 
@@ -197,10 +198,9 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
                 TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
                 ElevatedButton(
                   onPressed: () async {
-                    final db = DatabaseHelper();
-                    final usuarioId = await db.obtenerSesionActiva();
+                    final usuarioId = await GestorUsuario().obtenerSesionActiva();
                     if (usuarioId != null) {
-                      await db.actualizarPaciente(usuarioId, {
+                      await GestorPacientes().actualizarPaciente(usuarioId, {
                         'metodo_insulina': tempMetodo,
                         'insulina_basal_marca': (tempMetodo == 'Inyecciones' && (tempTipoIny == 'Basal' || tempTipoIny == 'Ambas')) ? marcaBasalCtrl.text : '',
                         'insulina_basal_dosis': (tempMetodo == 'Inyecciones' && (tempTipoIny == 'Basal' || tempTipoIny == 'Ambas')) ? dosisBasalCtrl.text : '',
@@ -267,10 +267,9 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
                   TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
                   ElevatedButton(
                     onPressed: () async {
-                      final db = DatabaseHelper();
-                      final usuarioId = await db.obtenerSesionActiva();
+                      final usuarioId = await GestorUsuario().obtenerSesionActiva();
                       if (usuarioId != null) {
-                        await db.actualizarPaciente(usuarioId, {'frecuencia_monitoreo': tempFrecuencia});
+                        await GestorPacientes().actualizarPaciente(usuarioId, {'frecuencia_monitoreo': tempFrecuencia});
                         await _cargarDatos();
                       }
                       if (mounted) Navigator.pop(context);
@@ -318,10 +317,8 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
               onPressed: () async {
                 if (nombreCtrl.text.isEmpty || _pacienteId == null) return;
 
-                final db = DatabaseHelper();
-
                 if (medicamentoExistente == null) {
-                  await db.insertarOtroMedicamento({
+                  await GestorPacientes().insertarOtroMedicamento({
                     'paciente_id': _pacienteId,
                     'nombre': nombreCtrl.text,
                     'gramaje': gramajeCtrl.text,
@@ -329,7 +326,7 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
                     'proposito': propositoCtrl.text,
                   });
                 } else if (medicamentoExistente['id'] != -1) {
-                  final baseDatos = await db.db;
+                  final baseDatos = await DatabaseHelper().db;
                   await baseDatos.update('otros_medicamentos', {
                     'nombre': nombreCtrl.text,
                     'gramaje': gramajeCtrl.text,
@@ -766,8 +763,7 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
                                   child: IconButton(
                                       icon: const Icon(Icons.delete_outline, color: Color(0xFFFF6B6B), size: 20),
                                       onPressed: () async {
-                                        final db = DatabaseHelper();
-                                        final baseDatos = await db.db;
+                                        final baseDatos = await DatabaseHelper().db;
                                         await baseDatos.delete('otros_medicamentos', where: 'id = ?', whereArgs: [med['id']]);
                                         await _cargarDatos();
                                       },

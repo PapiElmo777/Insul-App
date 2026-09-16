@@ -1,5 +1,15 @@
 import 'dart:math';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
 import 'database_helper.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  MOCK DATA GENERATOR  –  InsulApp
@@ -29,12 +39,12 @@ class MockDataGenerator {
     // 0. LIMPIEZA (evita duplicados en reinstalaciones)
     // ──────────────────────────────────────────────────────────────────────────
     for (final correo in ['a', 'b', 'c']) {
-      final u = await dbHelper.obtenerUsuarioPorCorreo(correo);
+      final u = await GestorUsuario().obtenerUsuarioPorCorreo(correo);
       if (u == null) continue;
       final uid = u['id'] as int;
 
       if (u['rol'] == 'Enfermero') {
-        final enf = await dbHelper.obtenerEnfermeroPorUsuario(uid);
+        final enf = await GestorEnfermeros().obtenerEnfermeroPorUsuario(uid);
         if (enf != null) {
           final pacs = await db.query('pacientes_enfermero',
               where: 'enfermero_id = ?', whereArgs: [enf['id']]);
@@ -56,7 +66,7 @@ class MockDataGenerator {
         await db.delete('enfermeros',
             where: 'usuario_id = ?', whereArgs: [uid]);
       } else if (u['rol'] == 'Paciente') {
-        final pac = await dbHelper.obtenerPacientePorUsuario(uid);
+        final pac = await GestorPacientes().obtenerPacientePorUsuario(uid);
         if (pac != null) {
           final pid = pac['id'];
           await db.delete('registros_glucosa',

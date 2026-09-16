@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_cuidadores.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
 import 'package:flutter/services.dart';
+import 'package:insulapp/database/gestores/gestor_cuidadores.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import '../../../database/database_helper.dart';
 
@@ -38,8 +42,7 @@ class _TabRegistrosFamiliarState extends State<TabRegistrosFamiliar> {
   }
 
   Future<void> _cargarRegistros() async {
-    final db = DatabaseHelper();
-    final data = await db.obtenerRegistrosGlucosaCuidador(widget.paciente['id']);
+    final data = await GestorCuidadores().obtenerRegistrosGlucosaCuidador(widget.paciente['id']);
 
     final registrosParseados = data.map((r) {
       DateTime fecha;
@@ -380,9 +383,7 @@ class _TabRegistrosFamiliarState extends State<TabRegistrosFamiliar> {
 
                                 if (valor > 0) {
                                   final notaFinal = notasCtrl.text;
-
-                                  final db = DatabaseHelper();
-                                  await db.insertarRegistroGlucosaCuidador({
+                                  await GestorCuidadores().insertarRegistroGlucosaCuidador({
                                     'paciente_cuidador_id': widget.paciente['id'],
                                     'valor': valor,
                                     'momento': momentoSeleccionado,

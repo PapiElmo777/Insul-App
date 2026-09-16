@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_cuidadores.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'dart:typed_data';
@@ -58,14 +61,13 @@ class _TabIdentificacionFamiliarState extends State<TabIdentificacionFamiliar> {
   }
 
   Future<void> _cargarDatos() async {
-    final db = DatabaseHelper();
-    final cuidadorId = await db.obtenerSesionActiva();
+    final cuidadorId = await GestorUsuario().obtenerSesionActiva();
 
     if (cuidadorId != null) {
       _cuidadorId = cuidadorId;
 
       // Obtener la lista de pacientes del cuidador y filtrar por el ID recibido
-      final pacientes = await db.obtenerPacientesPorCuidador(cuidadorId);
+      final pacientes = await GestorCuidadores().obtenerPacientesPorCuidador(cuidadorId);
       final familiar = pacientes.firstWhere(
               (p) => p['id'] == widget.familiarId,
           orElse: () => <String, dynamic>{}
@@ -107,13 +109,13 @@ class _TabIdentificacionFamiliarState extends State<TabIdentificacionFamiliar> {
           _tipoSanguineoSeleccionado = _datosCompletos['tipo_sanguineo'];
         }
 
-        final medsBD = await db.obtenerMedicamentosDePacienteCuidador(widget.familiarId);
+        final medsBD = await GestorCuidadores().obtenerMedicamentosDePacienteCuidador(widget.familiarId);
         _medicamentos = List<Map<String, dynamic>>.from(medsBD);
         if (familiar['med_oral_nombre'] != null && familiar['med_oral_nombre'].toString().isNotEmpty) {
           _medicamentos.insert(0, {'nombre': familiar['med_oral_nombre'], 'gramaje': familiar['med_oral_dosis'] ?? ''});
         }
 
-        final registrosBD = await db.obtenerRegistrosGlucosaCuidador(widget.familiarId);
+        final registrosBD = await GestorCuidadores().obtenerRegistrosGlucosaCuidador(widget.familiarId);
         final lecturas = registrosBD.where((r) => (r['valor'] as num) > 0).toList();
 
         if (lecturas.isNotEmpty) {
@@ -154,8 +156,7 @@ class _TabIdentificacionFamiliarState extends State<TabIdentificacionFamiliar> {
   }
 
   Future<void> _guardarFormulario() async {
-    final db = DatabaseHelper();
-    await db.actualizarPacienteCuidador(widget.familiarId, {
+    await GestorCuidadores().actualizarPacienteCuidador(widget.familiarId, {
       'enfermedades_cronicas': _enfCronicasCtrl.text.isEmpty ? 'Ninguna' : _enfCronicasCtrl.text,
       'alergias': _alergiasCtrl.text.isEmpty ? 'Ninguna' : _alergiasCtrl.text,
       'tipo_sanguineo': _tipoSanguineoSeleccionado,

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
 import 'package:flutter/services.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import '../../database/database_helper.dart';
 import '../../database/eventos_clinicos.dart';
@@ -43,15 +47,14 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
   }
 
   Future<void> _cargarDatosPaciente() async {
-    final db = DatabaseHelper();
     final pacienteId = widget.paciente['id'];
 
-    final glucosa = await db.obtenerGlucosaEnfermero(pacienteId);
-    final meds = await db.obtenerMedicamentosEnfermero(pacienteId);
-    final insul = await db.obtenerInsulinaEnfermero(pacienteId);
-    final obs = await db.obtenerObservacionesEnfermero(pacienteId);
-    final calculos = await (await db.eventos).calculos(PacienteClinico(AmbitoPaciente.institucional, pacienteId));
-    final anteriores = await (await db.db).query('insulina_enfermero', where: 'paciente_id = ?', whereArgs: [pacienteId]);
+    final glucosa = await GestorEnfermeros().obtenerGlucosaEnfermero(pacienteId);
+    final meds = await GestorEnfermeros().obtenerMedicamentosEnfermero(pacienteId);
+    final insul = await GestorEnfermeros().obtenerInsulinaEnfermero(pacienteId);
+    final obs = await GestorEnfermeros().obtenerObservacionesEnfermero(pacienteId);
+    final calculos = await (await DatabaseHelper().eventos).calculos(PacienteClinico(AmbitoPaciente.institucional, pacienteId));
+    final anteriores = await (await DatabaseHelper().db).query('insulina_enfermero', where: 'paciente_id = ?', whereArgs: [pacienteId]);
 
     if (mounted) {
       setState(() {
@@ -255,9 +258,7 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
                     );
                     return;
                   }
-
-                  final db = DatabaseHelper();
-                  await db.insertarGlucosaEnfermero({
+                  await GestorEnfermeros().insertarGlucosaEnfermero({
                     'paciente_id': widget.paciente['id'],
                     'valor': nuevoValor,
                     'fecha': DateTime.now().toIso8601String()
@@ -344,8 +345,7 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
               onPressed: () async {
                 if (_observacionCtrl.text.isNotEmpty) {
                   String hora = DateFormat('hh:mm a').format(DateTime.now());
-                  final db = DatabaseHelper();
-                  await db.insertarObservacionEnfermero({
+                  await GestorEnfermeros().insertarObservacionEnfermero({
                     'paciente_id': widget.paciente['id'],
                     'nota': "[$hora] Enf. ${widget.nombreEnfermero}:\n${_observacionCtrl.text}",
                     'fecha': DateTime.now().toIso8601String()
@@ -407,8 +407,7 @@ class _PantallaDetallePacienteState extends State<PantallaDetallePaciente> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final db = DatabaseHelper();
-                await db.actualizarPacienteEnfermero(widget.paciente['id'], {
+                await GestorEnfermeros().actualizarPacienteEnfermero(widget.paciente['id'], {
                   'nombre': nombreEditCtrl.text,
                   'edad': edadEditCtrl.text,
                   'expediente': expEditCtrl.text,

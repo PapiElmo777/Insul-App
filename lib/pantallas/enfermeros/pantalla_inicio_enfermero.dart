@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:printing/printing.dart';
@@ -53,12 +55,11 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
   }
 
   Future<void> _cargarDatosBD() async {
-    final db = DatabaseHelper();
-    final usuarioId = await db.obtenerSesionActiva();
+    final usuarioId = await GestorUsuario().obtenerSesionActiva();
 
     if (usuarioId != null) {
-      final usuario = await db.obtenerUsuarioPorId(usuarioId);
-      final enfermero = await db.obtenerEnfermeroPorUsuario(usuarioId);
+      final usuario = await GestorUsuario().obtenerUsuarioPorId(usuarioId);
+      final enfermero = await GestorEnfermeros().obtenerEnfermeroPorUsuario(usuarioId);
 
       if (usuario != null && enfermero != null) {
         _nombreEnfermeroLocal = usuario['nombre'] ?? widget.nombreEnfermero;
@@ -73,11 +74,11 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
           _imagenPerfil = File(usuario['foto_perfil']);
         }
 
-        final pacientesBD = await db.obtenerPacientesDeEnfermero(_enfermeroId!);
+        final pacientesBD = await GestorEnfermeros().obtenerPacientesDeEnfermero(_enfermeroId!);
         List<Map<String, dynamic>> pacientesTemp = [];
 
         for (var p in pacientesBD) {
-          final glucosaBD = await db.obtenerGlucosaEnfermero(p['id']);
+          final glucosaBD = await GestorEnfermeros().obtenerGlucosaEnfermero(p['id']);
           int ultimaGlucosa = 0;
           DateTime? fechaUltimaGlucosa;
 
@@ -106,7 +107,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
         }
         _listaPacientes = pacientesTemp;
 
-        final reportesBD = await db.obtenerReportesDeEnfermero(_enfermeroId!);
+        final reportesBD = await GestorEnfermeros().obtenerReportesDeEnfermero(_enfermeroId!);
         _reportesGenerados = reportesBD.map((r) => {
           'id': r['id'],
           'turno': r['turno'],
@@ -153,10 +154,9 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
     try {
       final XFile? imagenSeleccionada = await picker.pickImage(source: origen);
       if (imagenSeleccionada != null) {
-        final db = DatabaseHelper();
-        final usuarioId = await db.obtenerSesionActiva();
+        final usuarioId = await GestorUsuario().obtenerSesionActiva();
         if (usuarioId != null) {
-          await db.actualizarFotoPerfil(usuarioId, imagenSeleccionada.path);
+          await GestorUsuario().actualizarFotoPerfil(usuarioId, imagenSeleccionada.path);
         }
         setState(() {
           _imagenPerfil = File(imagenSeleccionada.path);
@@ -194,9 +194,8 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                   leading: const Icon(Icons.delete, color: Color(0xFFD32F2F)),
                   title: const Text('Eliminar foto actual', style: TextStyle(color: Color(0xFFD32F2F))),
                   onTap: () async {
-                    final db = DatabaseHelper();
-                    final usuarioId = await db.obtenerSesionActiva();
-                    if (usuarioId != null) await db.actualizarFotoPerfil(usuarioId, '');
+                    final usuarioId = await GestorUsuario().obtenerSesionActiva();
+                    if (usuarioId != null) await GestorUsuario().actualizarFotoPerfil(usuarioId, '');
                     Navigator.pop(context);
                     setState(() { _imagenPerfil = null; });
                   },
@@ -247,18 +246,17 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final db = DatabaseHelper();
-                final usuarioId = await db.obtenerSesionActiva();
+                final usuarioId = await GestorUsuario().obtenerSesionActiva();
 
                 if (usuarioId != null) {
-                  final baseDatos = await db.db;
+                  final baseDatos = await DatabaseHelper().db;
                   await baseDatos.update('usuarios', {
                     'nombre': nombreCtrl.text,
                     'correo': correoCtrl.text,
                     'telefono': telefonoCtrl.text,
                   }, where: 'id = ?', whereArgs: [usuarioId]);
 
-                  await db.actualizarEnfermero(usuarioId, {
+                  await GestorEnfermeros().actualizarEnfermero(usuarioId, {
                     'cedula': cedulaCtrl.text,
                     'institucion': hospitalCtrl.text,
                     'area': areaCtrl.text,
@@ -664,8 +662,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                       onTap: () async {
                         final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaDetallePaciente(paciente: paciente, nombreEnfermero: _nombreEnfermeroLocal)));
                         if (res == 'eliminar') {
-                          final db = DatabaseHelper();
-                          await db.eliminarPacienteEnfermero(paciente['id']);
+                          await GestorEnfermeros().eliminarPacienteEnfermero(paciente['id']);
                           await _cargarDatosBD();
                         } else {
                           await _cargarDatosBD();
@@ -731,8 +728,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                   onTap: () async {
                     final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaDetallePaciente(paciente: paciente, nombreEnfermero: _nombreEnfermeroLocal)));
                     if (res == 'eliminar') {
-                      final db = DatabaseHelper();
-                      await db.eliminarPacienteEnfermero(paciente['id']);
+                      await GestorEnfermeros().eliminarPacienteEnfermero(paciente['id']);
                       await _cargarDatosBD();
                     } else {
                       await _cargarDatosBD();
@@ -802,15 +798,13 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                           area: areaEnfermero,
                           hospital: hospitalEnfermero,
                         );
-
-                        final db = DatabaseHelper();
                         List<Map<String, dynamic>> pacientesParaReporte = [];
                         for (var p in _listaPacientes) {
                           final int id = p['id'];
-                          final glucosa = await db.obtenerGlucosaEnfermero(id);
-                          final medicamentos = await db.obtenerMedicamentosEnfermero(id);
-                          final insulina = await db.obtenerInsulinaEnfermero(id);
-                          final observaciones = await db.obtenerObservacionesEnfermero(id);
+                          final glucosa = await GestorEnfermeros().obtenerGlucosaEnfermero(id);
+                          final medicamentos = await GestorEnfermeros().obtenerMedicamentosEnfermero(id);
+                          final insulina = await GestorEnfermeros().obtenerInsulinaEnfermero(id);
+                          final observaciones = await GestorEnfermeros().obtenerObservacionesEnfermero(id);
 
                           pacientesParaReporte.add({
                             ...p,
@@ -828,7 +822,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
                         );
 
                         final String idUnico = DateTime.now().millisecondsSinceEpoch.toString();
-                        await db.insertarReporte({
+                        await GestorEnfermeros().insertarReporte({
                           'id': idUnico,
                           'enfermero_id': _enfermeroId,
                           'turno': turno,
@@ -1003,8 +997,7 @@ class _PantallaInicioEnfermeroState extends State<PantallaInicioEnfermero> {
             height: 50,
             child: ElevatedButton.icon(
               onPressed: () async {
-                final db = DatabaseHelper();
-                await db.cerrarSesion();
+                await GestorUsuario().cerrarSesion();
                 if (mounted) {
                   Navigator.pushAndRemoveUntil(
                     context,

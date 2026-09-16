@@ -141,9 +141,8 @@ class _TabCalculadoraFamiliarState extends State<TabCalculadoraFamiliar> with Ti
 
   Future<void> _cargarDatosPaciente() async {
     try {
-      final db = DatabaseHelper();
       final id = widget.paciente['id'] as int?;
-      final parametros = id == null ? null : await (await db.eventos).parametrosVigentes(PacienteClinico(AmbitoPaciente.familiar, id));
+      final parametros = id == null ? null : await (await DatabaseHelper().eventos).parametrosVigentes(PacienteClinico(AmbitoPaciente.familiar, id));
       if (!mounted) return;
       _invalidarCalculo();
       setState(() {

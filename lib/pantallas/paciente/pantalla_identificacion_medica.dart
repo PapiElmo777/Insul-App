@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'dart:typed_data';
@@ -54,13 +56,12 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
   }
 
   Future<void> _cargarDatos() async {
-    final db = DatabaseHelper();
-    final usuarioId = await db.obtenerSesionActiva();
+    final usuarioId = await GestorUsuario().obtenerSesionActiva();
 
     if (usuarioId != null) {
       _usuarioId = usuarioId;
-      final usuario = await db.obtenerUsuarioPorId(usuarioId);
-      final paciente = await db.obtenerPacientePorUsuario(usuarioId);
+      final usuario = await GestorUsuario().obtenerUsuarioPorId(usuarioId);
+      final paciente = await GestorPacientes().obtenerPacientePorUsuario(usuarioId);
 
       if (paciente != null && usuario != null) {
         _pacienteId = paciente['id'];
@@ -99,13 +100,13 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
           _tipoSanguineoSeleccionado = _datosCompletos['tipo_sanguineo'];
         }
 
-        final medsBD = await db.obtenerMedicamentosDePaciente(_pacienteId!);
+        final medsBD = await GestorPacientes().obtenerMedicamentosDePaciente(_pacienteId!);
         _medicamentos = List<Map<String, dynamic>>.from(medsBD);
         if (paciente['med_oral_nombre'] != null && paciente['med_oral_nombre'].toString().isNotEmpty) {
           _medicamentos.insert(0, {'nombre': paciente['med_oral_nombre'], 'gramaje': paciente['med_oral_dosis'] ?? ''});
         }
 
-        final registrosBD = await db.obtenerRegistrosGlucosa(_pacienteId!);
+        final registrosBD = await GestorPacientes().obtenerRegistrosGlucosa(_pacienteId!);
         final lecturas = registrosBD.where((r) => (r['valor'] as num) > 0).toList();
 
         if (lecturas.isNotEmpty) {
@@ -147,9 +148,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
 
   Future<void> _guardarFormulario() async {
     if (_usuarioId == null) return;
-
-    final db = DatabaseHelper();
-    await db.actualizarPaciente(_usuarioId!, {
+    await GestorPacientes().actualizarPaciente(_usuarioId!, {
       'enfermedades_cronicas': _enfCronicasCtrl.text.isEmpty ? 'Ninguna' : _enfCronicasCtrl.text,
       'alergias': _alergiasCtrl.text.isEmpty ? 'Ninguna' : _alergiasCtrl.text,
       'tipo_sanguineo': _tipoSanguineoSeleccionado,

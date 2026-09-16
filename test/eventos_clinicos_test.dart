@@ -3,6 +3,7 @@ import 'support/parametros_prueba.dart';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:insulapp/database/database_helper.dart';
 import 'package:insulapp/database/eventos_clinicos.dart';
@@ -206,14 +207,14 @@ void main() {
       });
       await calcular(eventos, p: hospital);
       final helper = DatabaseHelper.conBase(db);
-      expect(await helper.obtenerInsulinaEnfermero(1), isEmpty);
+      expect(await GestorEnfermeros().obtenerInsulinaEnfermero(1), isEmpty);
       expect(
-        (await helper.obtenerMedicamentosEnfermero(1)).single['suministrado'],
+        (await GestorEnfermeros().obtenerMedicamentosEnfermero(1)).single['suministrado'],
         0,
       );
       await confirmar(eventos, p: hospital);
       expect(
-        (await helper.obtenerInsulinaEnfermero(1)).single['unidades'],
+        (await GestorEnfermeros().obtenerInsulinaEnfermero(1)).single['unidades'],
         3.0,
       );
       await eventos.confirmarAdministracion(
@@ -226,12 +227,12 @@ void main() {
         medicamentoEnfermeroId: 7,
       );
       expect(
-        (await helper.obtenerMedicamentosEnfermero(1)).single['suministrado'],
+        (await GestorEnfermeros().obtenerMedicamentosEnfermero(1)).single['suministrado'],
         1,
       );
       await eventos.anularAdministracion(hospital, 'med7', 'Error');
       expect(
-        (await helper.obtenerMedicamentosEnfermero(1)).single['suministrado'],
+        (await GestorEnfermeros().obtenerMedicamentosEnfermero(1)).single['suministrado'],
         0,
       );
       expect(
