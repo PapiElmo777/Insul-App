@@ -56,3 +56,12 @@ Los identificadores anteriores son de seguimiento interno, no numeración origin
 ## Avance de la etapa 2
 
 Se implementó la separación de lecturas, cálculos y administraciones confirmadas, con migración SQLite v1 a v2. El alcance, las pruebas y las limitaciones actualizadas están en [Etapa 2 — eventos clínicos](etapa2_eventos_clinicos.md). Esta actualización sustituye las limitaciones del bloque 1 relativas al almacenamiento nuevo en notas; las reglas clínicas continúan pendientes.
+
+
+## Avance de la etapa 3
+
+El motor se separó de las pantallas y la base se actualizó a versión 3 para almacenar parámetros clínicos inmutables y versionados. Las calculadoras se bloquean sin configuración autorizada; no se migran valores genéricos como aprobaciones. Ver [Etapa 3 — motor y parámetros](etapa3_motor_y_parametros.md) para comportamiento, pruebas y pendientes clínicos.
+
+## Avance de la etapa 4
+
+Se añadieron referencias ADA 2026 por contexto, solicitudes locales de configuración pendientes de revisión y bloqueo de bolos bajo 70 mg/dL. La base pasa a versión 4 sin convertir solicitudes en prescripciones ni modificar autorizaciones vigentes. Ver [Etapa 4 — referencias ADA](etapa4_referencias_ada.md) para fuentes, pruebas y configuración clínica aún pendiente.

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../database/database_helper.dart';
 import '../../database/eventos_clinicos.dart';
+import '../../modelos/parametros_dosis.dart';
+import '../../dominio/motor_dosis.dart';
+import '../pantalla_configuracion_ada.dart';
 import '../../modelos/paciente_clinico.dart';
 
 class PantallaCalculadoraEnfermero extends StatefulWidget {
@@ -27,6 +30,8 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
   double _dosisComida = 0.0;
   double _dosisTotal = 0.0;
   bool _guardando = false;
+  ParametrosDosis? _parametros;
+  String _estadoConfiguracion = MotorDosis.faltaConfiguracion;
   String? _calculoId;
   DateTime? _fechaCalculo;
   Map<String, Object?> _detalle = {};
@@ -49,13 +54,27 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
     super.initState();
     _glucosaCtrl = TextEditingController();
     _carbosCtrl = TextEditingController();
-    double meta = (widget.paciente['glucosa_meta'] as num?)?.toDouble() ?? 100.0;
-    double fsi = (widget.paciente['fsi'] as num?)?.toDouble() ?? 50.0;
-    double ric = (widget.paciente['ric'] as num?)?.toDouble() ?? 15.0;
+    _metaCtrl = TextEditingController();
+    _fsiCtrl = TextEditingController();
+    _ricCtrl = TextEditingController();
+    _cargarParametros();
+  }
 
-    _metaCtrl = TextEditingController(text: meta.toStringAsFixed(0));
-    _fsiCtrl = TextEditingController(text: fsi.toStringAsFixed(0));
-    _ricCtrl = TextEditingController(text: ric.toStringAsFixed(0));
+  Future<void> _cargarParametros() async {
+    try {
+      final p = await (await DatabaseHelper().eventos).parametrosVigentes(
+        PacienteClinico(AmbitoPaciente.institucional, widget.paciente['id']));
+      if (!mounted) return;
+      setState(() {
+        _parametros = p; _calculoId = null;
+        _metaCtrl.text = p?.objetivo.toString() ?? '';
+        _fsiCtrl.text = p?.fsi.toString() ?? '';
+        _ricCtrl.text = p?.ric.toString() ?? '';
+        _estadoConfiguracion = p == null ? MotorDosis.faltaConfiguracion : 'Configuración autorizada · versión ${p.version}';
+      });
+    } catch (_) {
+      if (mounted) setState(() { _parametros = null; _calculoId = null; _estadoConfiguracion = 'No se pudo verificar la configuración clínica. Reintenta la carga.'; });
+    }
   }
 
   @override
@@ -68,32 +87,30 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
     super.dispose();
   }
 
-  void _calcularDosis() {
-    double glucosa = double.tryParse(_glucosaCtrl.text) ?? 0.0;
-    double carbos = double.tryParse(_carbosCtrl.text) ?? 0.0;
-    double meta = double.tryParse(_metaCtrl.text) ?? 100.0;
-    double fsi = double.tryParse(_fsiCtrl.text) ?? 50.0;
-    double ric = double.tryParse(_ricCtrl.text) ?? 15.0;
-
-    if (fsi <= 0) fsi = 1;
-    if (ric <= 0) ric = 1;
-
-    double correccion = 0.0;
-    if (glucosa > meta) {
-      correccion = (glucosa - meta) / fsi;
+  Future<void> _calcularDosis() async {
+    final entradas = (_glucosaCtrl.text, _carbosCtrl.text);
+    setState(() => _calculoId = null);
+    try {
+      final vigente = await (await DatabaseHelper().eventos).parametrosVigentes(
+        PacienteClinico(AmbitoPaciente.institucional, widget.paciente['id']));
+      if (!mounted || entradas != (_glucosaCtrl.text, _carbosCtrl.text)) return;
+      if (vigente == null) throw const CalculoNoDisponible(MotorDosis.faltaConfiguracion);
+      if (vigente.id != _parametros?.id) throw const CalculoNoDisponible('La configuración cambió. Recarga los parámetros antes de calcular.');
+      final glucosa = double.tryParse(_glucosaCtrl.text);
+      final carbos = double.tryParse(_carbosCtrl.text);
+      final r = MotorDosis.calcular(parametros: _parametros, glucosa: glucosa,
+        carbohidratos: carbos, actividad: 'Sedentario', ahora: DateTime.now());
+      setState(() {
+        _dosisCorreccion = r.correccion; _dosisComida = r.comida; _dosisTotal = r.dosis;
+        _calculoId = EventosClinicos.nuevoId(); _fechaCalculo = DateTime.now();
+        _detalle = {'glucosa': glucosa, 'carbohidratos': carbos, 'actividad': 'Sedentario'};
+        _estadoConfiguracion = 'Configuración autorizada · versión ${_parametros!.version}';
+      });
+    } on CalculoNoDisponible catch (e) {
+      if (mounted) setState(() { _calculoId = null; _estadoConfiguracion = e.mensaje; });
+    } catch (_) {
+      if (mounted) setState(() { _calculoId = null; _estadoConfiguracion = 'No se pudo verificar la configuración clínica. Reintenta la carga.'; });
     }
-
-    double comida = carbos / ric;
-
-    setState(() {
-      _dosisCorreccion = correccion < 0 ? 0 : correccion;
-      _dosisComida = comida < 0 ? 0 : comida;
-      _dosisTotal = _dosisCorreccion + _dosisComida;
-      _calculoId = EventosClinicos.nuevoId();
-      _fechaCalculo = DateTime.now();
-      _detalle = {'glucosa': glucosa, 'carbohidratos': carbos, 'ric': ric,
-        'fsi': fsi, 'objetivo': meta, 'motor': 'prototipo_institucional_sin_validacion_clinica'};
-    });
   }
 
   void _mostrarCatalogoHospital() {
@@ -141,33 +158,22 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
     if (_guardando || _calculoId == null) return;
     double glucosa = double.tryParse(_glucosaCtrl.text) ?? 0.0;
     final unidades = _dosisTotal;
-    if (glucosa <= 0 || glucosa > 600) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, ingresa un valor de glucosa realista (1-600 mg/dL)'), backgroundColor: Color(0xFFD32F2F)),
-      );
-      return;
-    }
-
-    if (unidades <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('La dosis calculada es 0. No hay insulina por registrar.'), backgroundColor: Color(0xFFE65100)),
-      );
-      return;
-    }
-
     final id = _calculoId!;
+    final parametrosId = _parametros!.id;
     final detalle = Map<String, Object?>.from(_detalle);
     final fecha = _fechaCalculo!;
     setState(() => _guardando = true);
     try {
       await (await DatabaseHelper().eventos).guardarCalculo(
-        id: id, paciente: PacienteClinico(AmbitoPaciente.institucional, widget.paciente['id']),
+        id: id, parametrosId: parametrosId, paciente: PacienteClinico(AmbitoPaciente.institucional, widget.paciente['id']),
         glucosa: glucosa, dosis: unidades, entradas: detalle, momento: 'Hospital', fecha: fecha,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Cálculo guardado. No registra una administración.')));
       if (_calculoId == id) Navigator.pop(context, true);
+    } on CalculoNoDisponible catch (e) {
+      if (mounted) setState(() { _calculoId = null; _estadoConfiguracion = e.mensaje; });
     } catch (_) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo guardar el cálculo. Intenta de nuevo.')));
     } finally {
@@ -215,8 +221,11 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
             ),
             const SizedBox(height: 20),
 
+            Text(_estadoConfiguracion),
+            TextButton.icon(onPressed: _cargarParametros, icon: const Icon(Icons.refresh), label: const Text('Recargar parámetros')),
+            TextButton.icon(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PantallaConfiguracionAda(paciente: PacienteClinico(AmbitoPaciente.institucional, widget.paciente['id'])))), icon: const Icon(Icons.settings), label: const Text('Configurar con referencias ADA 2026')),
             // Parametros Clinicos
-            const Text('Parámetros Médicos Indicados', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text('Parámetros clínicos autorizados', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -252,7 +261,7 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
             const SizedBox(height: 30),
 
             // Resultados
-            Container(
+            if (_calculoId != null) Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [Color(0xFF0D3F7A), Color(0xFF1C63BB)]),
@@ -281,7 +290,7 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('TOTAL SUGERIDO:', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      Text('${_dosisTotal.round()} UI', style: const TextStyle(color: Color(0xFF00D1FF), fontSize: 26, fontWeight: FontWeight.bold)),
+                      Text('${_dosisTotal.toStringAsFixed(1)} UI', style: const TextStyle(color: Color(0xFF00D1FF), fontSize: 26, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ],
@@ -293,7 +302,7 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
               width: double.infinity,
               height: 55,
               child: ElevatedButton.icon(
-                onPressed: _guardando ? null : _guardarRegistro,
+                onPressed: _guardando || _calculoId == null ? null : _guardarRegistro,
                 icon: const Icon(Icons.save, color: Colors.white),
                 label: const Text('Guardar cálculo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                 style: ElevatedButton.styleFrom(
@@ -310,6 +319,7 @@ class _PantallaCalculadoraEnfermeroState extends State<PantallaCalculadoraEnferm
 
   Widget _crearCampoNumerico(String label, TextEditingController controller) {
     return TextField(
+      readOnly: true,
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       onChanged: (val) => _calcularDosis(),

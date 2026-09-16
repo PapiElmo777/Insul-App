@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/database_helper.dart';
 import '../../modelos/entradas_calculo_dosis.dart';
 import '../../modelos/paciente_clinico.dart';
 import '../../database/eventos_clinicos.dart';
+import '../../modelos/parametros_dosis.dart';
+import '../../dominio/motor_dosis.dart';
+import '../pantalla_configuracion_ada.dart';
 
 class PantallaCalculadoraDosis extends StatefulWidget {
   final VoidCallback? onRegistroGuardado;
@@ -36,7 +38,6 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
   int? _pacienteId;
   String _actividadSeleccionada = 'Sedentario';
   String _momentoComida         = 'Almuerzo';
-  bool   _mostrarAvanzado       = false;
   bool   _calculado             = false;
 
   EntradasCalculoDosis? _entradasCalculadas;
@@ -70,9 +71,9 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
   }
 
   // Valores base desde BD
-  double _ricBD = 15;
-  double _fsiBD = 50;
-  double _objetivoBD = 100;
+  ParametrosDosis? _parametros;
+  String? _parametrosCalculadosId;
+  String _estadoConfiguracion = MotorDosis.faltaConfiguracion;
 
   // ── Resultados ─────────────────────────────────────────────
   double _dosisComida      = 0;
@@ -88,10 +89,10 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
 
   // ── Actividades físicas ────────────────────────────────────
   final _actividades = const [
-    _Actividad('Sedentario', Icons.weekend_outlined, 0.00, 'Sin actividad física hoy'),
-    _Actividad('Ligero', Icons.directions_walk_outlined, 0.10, 'Caminata corta, tareas del hogar'),
-    _Actividad('Moderado', Icons.directions_bike_outlined, 0.20, '30-60 min ejercicio moderado'),
-    _Actividad('Intenso', Icons.fitness_center_outlined, 0.30, 'Más de 60 min o ejercicio de alta intensidad'),
+    _Actividad('Sedentario', Icons.weekend_outlined, 'Sin actividad física hoy'),
+    _Actividad('Ligero', Icons.directions_walk_outlined, 'Caminata corta, tareas del hogar'),
+    _Actividad('Moderado', Icons.directions_bike_outlined, '30-60 min ejercicio moderado'),
+    _Actividad('Intenso', Icons.fitness_center_outlined, 'Más de 60 min o ejercicio de alta intensidad'),
   ];
 
   final _momentos = const ['Desayuno', 'Almuerzo', 'Cena', 'Merienda', 'Otro'];
@@ -138,24 +139,26 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
   }
 
   Future<void> _cargarDatosPaciente() async {
-    final db = DatabaseHelper();
-    final usuarioId = await db.obtenerSesionActiva();
-    if (usuarioId != null) {
-      final paciente = await db.obtenerPacientePorUsuario(usuarioId);
-      if (paciente != null) {
-        if (mounted) {
-          setState(() {
-            _pacienteId = paciente['id'];
-            _fsiBD = (paciente['fsi'] as num?)?.toDouble() ?? 50.0;
-            _ricBD = (paciente['ric'] as num?)?.toDouble() ?? 15.0;
-            _objetivoBD = (paciente['glucosa_meta'] as num?)?.toDouble() ?? 100.0;
-
-            _relacionICCtrl.text = _ricBD.toStringAsFixed(0);
-            _fsiCtrl.text = _fsiBD.toStringAsFixed(0);
-            _objetivoCtrl.text = _objetivoBD.toStringAsFixed(0);
-          });
-        }
-      }
+    try {
+      final db = DatabaseHelper();
+      final usuarioId = await db.obtenerSesionActiva();
+      final paciente = usuarioId == null ? null : await db.obtenerPacientePorUsuario(usuarioId);
+      final id = paciente?['id'] as int?;
+      final parametros = id == null ? null : await (await db.eventos).parametrosVigentes(PacienteClinico(AmbitoPaciente.personal, id));
+      if (!mounted) return;
+      _invalidarCalculo();
+      setState(() {
+        _pacienteId = id;
+        _parametros = parametros;
+        _estadoConfiguracion = parametros == null ? MotorDosis.faltaConfiguracion : 'Configuración autorizada · versión ${parametros.version}';
+        _relacionICCtrl.text = parametros?.ric.toString() ?? '';
+        _fsiCtrl.text = parametros?.fsi.toString() ?? '';
+        _objetivoCtrl.text = parametros?.objetivo.toString() ?? '';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      _invalidarCalculo();
+      setState(() { _parametros = null; _estadoConfiguracion = 'No se pudo verificar la configuración clínica. Reintenta la carga.'; });
     }
   }
 
@@ -170,64 +173,37 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
     super.dispose();
   }
 
-  void _calcular() {
+  Future<void> _calcular() async {
     _invalidarCalculo();
-    final glucosa   = double.tryParse(_glucosaCtrl.text)   ?? 0;
-    final carbs     = double.tryParse(_carbsCtrl.text)     ?? 0;
-    final relIC     = double.tryParse(_relacionICCtrl.text) ?? _ricBD;
-    final fsi       = double.tryParse(_fsiCtrl.text)       ?? _fsiBD;
-    final objetivo  = double.tryParse(_objetivoCtrl.text)  ?? _objetivoBD;
-
-    if (_glucosaCtrl.text.trim().isEmpty || glucosa <= 0) {
-      _mostrarError('Es obligatorio ingresar tu nivel de glucosa actual para realizar el cálculo de forma segura.');
-      return;
+    final entradasSolicitadas = _capturarEntradas();
+    try {
+      final pacienteId = _pacienteId;
+      final vigente = pacienteId == null ? null : await (await DatabaseHelper().eventos).parametrosVigentes(
+        PacienteClinico(AmbitoPaciente.personal, pacienteId));
+      if (!mounted || entradasSolicitadas != _capturarEntradas()) return;
+      if (vigente == null) throw const CalculoNoDisponible(MotorDosis.faltaConfiguracion);
+      if (vigente.id != _parametros?.id) throw const CalculoNoDisponible('La configuración cambió. Recarga los parámetros antes de calcular.');
+      final glucosa = double.tryParse(_glucosaCtrl.text);
+      final carbs = double.tryParse(_carbsCtrl.text);
+      final resultado = MotorDosis.calcular(parametros: _parametros,
+        glucosa: glucosa, carbohidratos: carbs, actividad: _actividadSeleccionada, ahora: DateTime.now());
+      setState(() {
+        _dosisComida = resultado.comida; _dosisCorreccion = resultado.correccion;
+        _dosisTotal = resultado.total; _ajusteActividad = resultado.ajuste;
+        _dosisAjustada = resultado.dosis; _estadoGlucosa = ''; _calculado = true;
+        _entradasCalculadas = _capturarEntradas();
+        _parametrosCalculadosId = _parametros!.id;
+        _calculoId = EventosClinicos.nuevoId(); _fechaCalculo = DateTime.now();
+        _detalleCalculo = {'glucosa': glucosa, 'carbohidratos': carbs,
+          'actividad': _actividadSeleccionada, 'momento': _momentoComida};
+      });
+      _resultCtrl.forward(from: 0);
+      FocusScope.of(context).unfocus();
+    } on CalculoNoDisponible catch (e) {
+      if (mounted) _mostrarError(e.mensaje);
+    } catch (_) {
+      if (mounted) _mostrarError('No se pudo verificar la configuración clínica. Reintenta la carga.');
     }
-
-    if (glucosa > 0 && glucosa < 70) {
-      _mostrarError('⚠️ Hipoglucemia detectada. Trata tu glucosa antes de inyectar insulina.');
-      setState(() { _calculado = false; _estadoGlucosa = 'Hipoglucemia'; });
-      return;
-    }
-
-
-    final dosisComida = relIC > 0 ? carbs / relIC : 0.0;
-    final diff = glucosa - objetivo;
-    final dosisCorreccion = fsi > 0 && glucosa > 0 ? diff / fsi : 0.0;
-    final dosisTotal = dosisComida + dosisCorreccion;
-
-    final act = _actividades.firstWhere((a) => a.nombre == _actividadSeleccionada);
-    final ajuste = dosisTotal > 0 ? (dosisTotal * act.reduccion) : 0.0;
-    final dosisAjustada = math.max(0.0, dosisTotal - ajuste);
-
-    String estado = '';
-    if (glucosa > 0) {
-      if      (glucosa < 70)  estado = 'Hipoglucemia';
-      else if (glucosa < 100) estado = 'Bajo';
-      else if (glucosa <= 180) estado = 'Normal';
-      else if (glucosa <= 250) estado = 'Elevado';
-      else                    estado = 'Hiperglucemia';
-    }
-
-    setState(() {
-      _dosisComida     = dosisComida;
-      _dosisCorreccion = dosisCorreccion;
-      _dosisTotal      = dosisTotal;
-      _ajusteActividad = ajuste;
-      _dosisAjustada   = dosisAjustada;
-      _estadoGlucosa   = estado;
-      _calculado       = true;
-      _entradasCalculadas = _capturarEntradas();
-      _calculoId = EventosClinicos.nuevoId();
-      _fechaCalculo = DateTime.now();
-      _detalleCalculo = {
-        'glucosa': glucosa, 'carbohidratos': carbs, 'ric': relIC,
-        'fsi': fsi, 'objetivo': objetivo, 'actividad': _actividadSeleccionada,
-        'momento': _momentoComida, 'motor': 'prototipo_sin_validacion_clinica',
-      };
-    });
-
-    _resultCtrl.forward(from: 0);
-    FocusScope.of(context).unfocus();
   }
 
   Future<void> _guardarRegistro() async {
@@ -249,12 +225,13 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
     final glucosa = double.tryParse(entradas.glucosa) ?? 0;
     final dosis = _dosisAjustada;
     final calculoId = _calculoId!;
+    final parametrosId = _parametrosCalculadosId!;
     final fecha = _fechaCalculo!;
     final detalle = Map<String, Object?>.from(_detalleCalculo);
     setState(() => _guardando = true);
     try {
       await (await DatabaseHelper().eventos).guardarCalculo(
-        id: calculoId, paciente: PacienteClinico(AmbitoPaciente.personal, pacienteId),
+        id: calculoId, parametrosId: parametrosId, paciente: PacienteClinico(AmbitoPaciente.personal, pacienteId),
         glucosa: glucosa, dosis: dosis, entradas: detalle,
         momento: entradas.momento, fecha: fecha,
       );
@@ -264,6 +241,8 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
       );
       if (_entradasCalculadas == entradas) _limpiar();
       widget.onRegistroGuardado?.call();
+    } on CalculoNoDisponible catch (e) {
+      if (mounted) { _invalidarCalculo(); _mostrarError(e.mensaje); }
     } catch (_) {
       if (mounted) _mostrarError('No se pudo guardar el cálculo. Intenta de nuevo.');
     } finally {
@@ -463,7 +442,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
                         ],
                       ),
                       const SizedBox(height: 5),
-                      const Text('Conteo de carbohidratos · ADA', style: TextStyle(color: Color(0xFFE8E8E8), fontSize: 14)),
+                      const Text('Conteo de carbohidratos', style: TextStyle(color: Color(0xFFE8E8E8), fontSize: 14)),
                     ],
                   ),
                 ),
@@ -499,7 +478,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
                   if (_calculado) _botonLimpiar(),
 
                   const SizedBox(height: 24),
-                  _referenciaADA(),
+                  _referenciaCalculo(),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -525,7 +504,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
           const SizedBox(width: 10),
           const Expanded(
             child: Text(
-              'Esta calculadora es una herramienta de apoyo basada en las guías ADA. Consulta siempre con tu médico antes de ajustar tus dosis de insulina.',
+              'Esta calculadora requiere parámetros y un método de cálculo autorizados para el paciente. Consulta siempre con tu médico antes de ajustar tus dosis de insulina.',
               style: TextStyle(fontSize: 12, color: Color(0xFF5D4037), height: 1.5),
             ),
           ),
@@ -582,7 +561,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
             sufijo: 'g',
             icono: Icons.grain_outlined,
             color: const Color(0xFF2E7D32),
-            ayuda: '1 porción = aprox. 15 g de carbohidratos (ADA)',
+            ayuda: 'Introduce los gramos de carbohidratos de los alimentos.',
           ),
           const SizedBox(height: 14),
           _campoTexto(
@@ -650,7 +629,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
     return _tarjeta(
       titulo: 'Actividad física del día',
       icono: Icons.directions_run_outlined,
-      subtitulo: 'El ejercicio aumenta la sensibilidad a la insulina (ADA)',
+      subtitulo: 'Solo se aplican ajustes incluidos en la configuración autorizada',
       hijo: Column(
         children: _actividades.map((act) {
           final sel = act.nombre == _actividadSeleccionada;
@@ -686,11 +665,11 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
                         ],
                       ),
                     ),
-                    if (act.reduccion > 0)
+                    if ((_parametros?.ajustesActividad[act.nombre] ?? 0) > 0)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(color: sel ? const Color(0xFF1C63BB) : const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(8)),
-                        child: Text('-${(act.reduccion * 100).toInt()}%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: sel ? Colors.white : const Color(0xFF2E7D32))),
+                        child: Text('-${((_parametros?.ajustesActividad[act.nombre] ?? 0) * 100).toInt()}%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: sel ? Colors.white : const Color(0xFF2E7D32))),
                       ),
                     if (sel) const Padding(padding: EdgeInsets.only(left: 6), child: Icon(Icons.check_circle, color: Color(0xFF1C63BB), size: 18)),
                   ],
@@ -716,37 +695,38 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
             decoration: BoxDecoration(color: const Color(0xFF1C63BB).withOpacity(0.1), shape: BoxShape.circle),
             child: const Icon(Icons.tune, color: Color(0xFF1C63BB), size: 18),
           ),
-          title: const Text('Parámetros clínicos (Editables)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-          subtitle: const Text('Relación I:C y Factor de Sensibilidad', style: TextStyle(fontSize: 11, color: Color(0xFF9E9E9E))),
-          onExpansionChanged: (v) => setState(() => _mostrarAvanzado = v),
+          title: const Text('Parámetros clínicos autorizados', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+          subtitle: Text(_estadoConfiguracion, style: TextStyle(fontSize: 11, color: Color(0xFF9E9E9E))),
           children: [
+            TextButton.icon(onPressed: _cargarDatosPaciente, icon: const Icon(Icons.refresh), label: const Text('Recargar parámetros')),
+            TextButton.icon(onPressed: _pacienteId == null ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => PantallaConfiguracionAda(paciente: PacienteClinico(AmbitoPaciente.personal, _pacienteId!)))), icon: const Icon(Icons.settings), label: const Text('Configurar con referencias ADA 2026')),
             const Divider(height: 1),
             const SizedBox(height: 14),
             _campoTexto(
               controlador: _relacionICCtrl,
               titulo: 'Relación Insulina:Carbohidratos (I:C)',
-              hint: 'ej. 12', sufijo: 'g/UI', icono: Icons.science_outlined, color: const Color(0xFF6A1B9A),
+              hint: 'Sin configuración', sufijo: 'g/UI', icono: Icons.science_outlined, color: const Color(0xFF6A1B9A),
               ayuda: '1 UI cubre esta cantidad de gramos de carbohidratos.',
             ),
             const SizedBox(height: 14),
             _campoTexto(
               controlador: _fsiCtrl,
               titulo: 'Factor de Sensibilidad a Insulina (FSI)',
-              hint: 'ej. 50', sufijo: 'mg/dL/UI', icono: Icons.arrow_downward_outlined, color: const Color(0xFFD32F2F),
+              hint: 'Sin configuración', sufijo: 'mg/dL/UI', icono: Icons.arrow_downward_outlined, color: const Color(0xFFD32F2F),
               ayuda: 'Cuánto baja tu glucosa con 1 UI.',
             ),
             const SizedBox(height: 14),
             _campoTexto(
               controlador: _objetivoCtrl,
               titulo: 'Glucosa objetivo (antes de comer)',
-              hint: 'ej. 100', sufijo: 'mg/dL', icono: Icons.flag_outlined, color: const Color(0xFF2E7D32),
-              ayuda: 'ADA recomienda 80–130 mg/dL antes de comer',
+              hint: 'Sin configuración', sufijo: 'mg/dL', icono: Icons.flag_outlined, color: const Color(0xFF2E7D32),
+              ayuda: 'Objetivo de la configuración autorizada.',
             ),
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: const Color(0xFFF3E5F5), borderRadius: BorderRadius.circular(10)),
-              child: const Text('💡 Estos valores fueron cargados de tu perfil. Puedes ajustarlos temporalmente para este cálculo.', style: TextStyle(fontSize: 11, color: Color(0xFF4A148C))),
+              child: const Text('💡 Estos valores fueron cargados de tu perfil. Solo el médico puede autorizar una nueva versión.', style: TextStyle(fontSize: 11, color: Color(0xFF4A148C))),
             ),
           ],
         ),
@@ -808,7 +788,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(20)),
-                  child: const Text('Redondea al 0.5 UI más cercano con tu médico', style: TextStyle(fontSize: 11, color: Color(0xFF1565C0)), textAlign: TextAlign.center),
+                  child: const Text('El resultado no confirma una administración.', style: TextStyle(fontSize: 11, color: Color(0xFF1565C0)), textAlign: TextAlign.center),
                 ),
               ],
             ),
@@ -846,7 +826,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
                   const SizedBox(height: 6),
                   _filaDesglose(
                     icono: act.icono, label: 'Ajuste actividad (${act.nombre})',
-                    formula: '-${(act.reduccion * 100).toInt()}% por ejercicio',
+                    formula: '-${((_parametros?.ajustesActividad[act.nombre] ?? 0) * 100).toInt()}% por ejercicio',
                     valor: '-${_ajusteActividad.toStringAsFixed(1)} UI', colorValor: const Color(0xFF80CBC4),
                   ),
                 ],
@@ -945,7 +925,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
     );
   }
 
-  Widget _referenciaADA() {
+  Widget _referenciaCalculo() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE0E0E0))),
@@ -955,14 +935,14 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
           Row(children: const [
             Icon(Icons.book_outlined, color: Color(0xFF1C63BB), size: 18),
             SizedBox(width: 8),
-            Text('Fórmulas ADA (referencia)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
+            Text('Método de cálculo configurado', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
           ]),
           const SizedBox(height: 12),
           _filaFormula('Bolo de comida', 'Carbs (g) ÷ Relación I:C', const Color(0xFF2E7D32)),
           const SizedBox(height: 6),
           _filaFormula('Bolo de corrección', '(Glucosa actual − Objetivo) ÷ FSI', const Color(0xFF1C63BB)),
           const SizedBox(height: 10),
-          const Text('Fuente: American Diabetes Association (2024)', style: TextStyle(fontSize: 10, color: Color(0xFF9E9E9E))),
+          const Text('La autorización debe incluir este método de cálculo.', style: TextStyle(fontSize: 10, color: Color(0xFF9E9E9E))),
         ],
       ),
     );
@@ -1074,6 +1054,7 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
         TextField(
           key: ValueKey(titulo),
           controller: controlador,
+          readOnly: controlador == _relacionICCtrl || controlador == _fsiCtrl || controlador == _objetivoCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
           decoration: InputDecoration(
@@ -1099,7 +1080,6 @@ class _PantallaCalculadoraDosisState extends State<PantallaCalculadoraDosis> wit
 class _Actividad {
   final String nombre;
   final IconData icono;
-  final double reduccion;
   final String descripcion;
-  const _Actividad(this.nombre, this.icono, this.reduccion, this.descripcion);
+  const _Actividad(this.nombre, this.icono, this.descripcion);
 }

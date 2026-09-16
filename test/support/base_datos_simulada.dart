@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'parametros_prueba.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +9,8 @@ class BaseDatosSimulada {
   final inserciones = <Map<dynamic, dynamic>>[];
   List<Map<String, dynamic>> historial = [];
   bool fallaInsertar = false;
+  bool parametrosAutorizados = false;
+  int versionParametros = 1;
   Completer<void>? escrituraPendiente;
 
   void instalar() {
@@ -30,7 +33,7 @@ class BaseDatosSimulada {
                 return {
                   'columns': ['user_version'],
                   'rows': [
-                    [2],
+                    [4],
                   ],
                 };
               }
@@ -51,6 +54,16 @@ class BaseDatosSimulada {
                     [1],
                   ],
                 };
+              }
+              if (sql.contains('FROM parametros_dosis')) {
+                if (!parametrosAutorizados) return [];
+                final ambito = (args['arguments'] as List).first as String;
+                return [parametrosDePrueba(ambito, version: versionParametros)];
+              }
+              if (sql.contains('FROM usuarios')) {
+                return [
+                  {'id': 99, 'rol': 'medico'},
+                ];
               }
               if (sql.contains('FROM registros_glucosa')) {
                 return historial

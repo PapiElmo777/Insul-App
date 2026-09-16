@@ -1,6 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'esquema_clinico.dart';
+import 'esquema_parametros.dart';
+import 'esquema_referencias_ada.dart';
 import 'eventos_clinicos.dart';
 import '../modelos/paciente_clinico.dart';
 
@@ -37,13 +39,17 @@ class DatabaseHelper {
   /// Mismo esquema en producción y en las pruebas de migración SQLite.
   static Future<Database> abrirBase(String ruta, {DatabaseFactory? fabrica}) =>
       (fabrica ?? databaseFactory).openDatabase(ruta, options: OpenDatabaseOptions(
-        version: EsquemaClinico.version,
+        version: 4,
         onCreate: (base, version) async {
           await _crearTablas(base, version);
           await EsquemaClinico.actualizar(base);
+          await EsquemaParametros.crear(base);
+          await EsquemaReferenciasAda.crear(base);
         },
         onUpgrade: (base, anterior, actual) async {
           if (anterior < 2) await EsquemaClinico.actualizar(base);
+          if (anterior < 3) await EsquemaParametros.crear(base);
+          if (anterior < 4) await EsquemaReferenciasAda.crear(base);
         },
       ));
 

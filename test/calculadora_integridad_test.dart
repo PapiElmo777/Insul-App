@@ -25,7 +25,11 @@ Future<void> editar(WidgetTester tester, String campo, String valor) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> montar(WidgetTester tester, bool familiar) async {
+Future<void> montar(
+  WidgetTester tester,
+  bool familiar, {
+  bool disponible = true,
+}) async {
   await tester.binding.setSurfaceSize(const Size(1000, 2500));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   SharedPreferences.setMockInitialValues({
@@ -47,7 +51,7 @@ Future<void> montar(WidgetTester tester, bool familiar) async {
   await editar(tester, carbohidratos, '30');
   await editar(tester, glucosa, '150');
   await pulsar(tester, 'Calcular Dosis');
-  expect(find.text(guardar), findsOneWidget);
+  expect(find.text(guardar), disponible ? findsOneWidget : findsNothing);
 }
 
 void main() {
@@ -56,7 +60,56 @@ void main() {
     group(rol, () {
       late BaseDatosSimulada db;
       setUp(() {
-        db = BaseDatosSimulada()..instalar();
+        db = BaseDatosSimulada()
+          ..parametrosAutorizados = true
+          ..instalar();
+      });
+
+      testWidgets(
+        '$rol bloquea sin parámetros sin sustituirlos por valores genéricos',
+        (tester) async {
+          db.parametrosAutorizados = false;
+          await montar(tester, familiar, disponible: false);
+          expect(
+            find.textContaining('falta una configuración clínica'),
+            findsWidgets,
+          );
+          expect(db.inserciones, isEmpty);
+          await pulsar(tester, 'Parámetros clínicos autorizados');
+          final campo = tester.widget<TextField>(
+            find.byKey(
+              const ValueKey('Factor de Sensibilidad a Insulina (FSI)'),
+            ),
+          );
+          expect(campo.controller!.text, isEmpty);
+          expect(campo.readOnly, isTrue);
+        },
+      );
+      testWidgets(
+        '$rol rechaza guardar cuando cambia la versión en persistencia',
+        (tester) async {
+          await montar(tester, familiar);
+          db.versionParametros = 2;
+          await pulsar(tester, guardar);
+          expect(db.inserciones, isEmpty);
+          expect(find.text(guardar), findsNothing);
+          expect(find.textContaining('configuración cambió'), findsOneWidget);
+        },
+      );
+
+      testWidgets('$rol vuelve a comprobar la autorización antes de calcular', (
+        tester,
+      ) async {
+        await montar(tester, familiar);
+        db.parametrosAutorizados = false;
+        await editar(tester, carbohidratos, '60');
+        await pulsar(tester, 'Calcular Dosis');
+        expect(find.text(guardar), findsNothing);
+        expect(db.inserciones, isEmpty);
+        expect(
+          find.textContaining('falta una configuración clínica'),
+          findsWidgets,
+        );
       });
 
       for (final campo in [carbohidratos, glucosa]) {
@@ -83,11 +136,12 @@ void main() {
         'Factor de Sensibilidad a Insulina (FSI)',
         'Glucosa objetivo (antes de comer)',
       ]) {
-        testWidgets('$rol invalida al cambiar $campo', (tester) async {
+        testWidgets('$rol protege el parámetro $campo', (tester) async {
           await montar(tester, familiar);
-          await pulsar(tester, 'Parámetros clínicos (Editables)');
-          await editar(tester, campo, '20');
-          expect(find.text(guardar), findsNothing);
+          await pulsar(tester, 'Parámetros clínicos autorizados');
+          final control = tester.widget<TextField>(find.byKey(ValueKey(campo)));
+          expect(control.readOnly, isTrue);
+          expect(find.text(guardar), findsOneWidget);
         });
       }
       testWidgets(

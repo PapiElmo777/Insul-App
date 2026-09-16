@@ -93,11 +93,45 @@ void main() {
       );
     },
   );
+  testWidgets(
+    'enfermería bloquea sin parámetros y protege los campos clínicos',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1000, 1800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: PantallaCalculadoraEnfermero(
+            paciente: {'id': 1, 'nombre': 'Prueba'},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final campos = find.byType(TextField);
+      for (var i = 0; i < 3; i++) {
+        final campo = tester.widget<TextField>(campos.at(i));
+        expect(campo.readOnly, isTrue);
+        expect(campo.controller!.text, isEmpty);
+      }
+      await tester.enterText(campos.at(3), '150');
+      await tester.enterText(campos.at(4), '30');
+      await tester.pumpAndSettle();
+      expect(find.text('TOTAL SUGERIDO:'), findsNothing);
+      final boton = tester.widget<ElevatedButton>(
+        find.ancestor(
+          of: find.text('Guardar cálculo'),
+          matching: find.byType(ElevatedButton),
+        ),
+      );
+      expect(boton.onPressed, isNull);
+      expect(db.inserciones, isEmpty);
+    },
+  );
   testWidgets('enfermería guarda un cálculo sin registrar insulina aplicada', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1000, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
+    db.parametrosAutorizados = true;
     await tester.pumpWidget(
       const MaterialApp(
         home: PantallaCalculadoraEnfermero(

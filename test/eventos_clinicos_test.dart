@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'support/parametros_prueba.dart';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
@@ -44,10 +45,11 @@ Future<void> calcular(
   String id = 'calculo',
 }) => e.guardarCalculo(
   id: id,
+  parametrosId: 'TEST_ONLY_${p.ambito.name}_1',
   paciente: p,
   glucosa: 150.5,
-  dosis: 3.5,
-  entradas: {'ric': 15.0, 'carbohidratos': 30.0},
+  dosis: 3.01,
+  entradas: {'actividad': 'Sedentario', 'carbohidratos': 30.0},
   momento: 'Almuerzo',
   fecha: fecha,
 );
@@ -81,12 +83,13 @@ void main() {
       fabrica: databaseFactoryFfi,
     );
     await preparar(db);
+    await prepararParametrosPrueba(db);
     eventos = EventosClinicos(db);
   });
   tearDown(() => db.close());
 
-  test('instalación nueva crea esquema 2 y tablas separadas', () async {
-    expect(await db.getVersion(), 2);
+  test('instalación nueva crea esquema 4 y tablas separadas', () async {
+    expect(await db.getVersion(), 4);
     for (final tabla in [
       'calculos_dosis',
       'administraciones',
@@ -102,7 +105,12 @@ void main() {
     expect(lecturas.single['valor'], 150.5);
     expect(lecturas.single['notas'], '');
     expect(calculos.single['lectura_id'], lecturas.single['id']);
-    expect(jsonDecode(calculos.single['entradas_json'] as String)['ric'], 15.0);
+    expect(
+      jsonDecode(
+        calculos.single['entradas_json'] as String,
+      )['parametros']['ric'],
+      15.0,
+    );
     expect(calculos.single['autor_usuario_id'], 1);
     expect(await eventos.administraciones(personal), isEmpty);
   });
@@ -422,7 +430,7 @@ void main() {
         fabrica: databaseFactoryFfi,
       );
       try {
-        expect(await migrada.getVersion(), 2);
+        expect(await migrada.getVersion(), 4);
         final despues = await migrada.query('registros_glucosa');
         for (var i = 0; i < antes.length; i++) {
           for (final k in antes[i].keys) {

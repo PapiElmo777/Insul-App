@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:sqflite/sqflite.dart';
 import '../modelos/paciente_clinico.dart';
+import '../modelos/parametros_dosis.dart';
+import '../dominio/motor_dosis.dart';
+import '../dominio/referencias_ada.dart';
 
 /// Persistencia local. La autorización remota corresponde a una etapa posterior.
 class EventosClinicos {
@@ -87,8 +90,66 @@ class EventosClinicos {
     });
   }
 
+  Future<void> guardarSolicitudConfiguracion({required String id,
+    required PacienteClinico paciente, required ContextoReferencia contexto,
+    required DateTime fecha, double? ric, double? fsi, double? objetivo}) async {
+    for (final valor in [ric, fsi, objetivo]) {
+      if (valor != null && (!valor.isFinite || valor <= 0)) {
+        throw ArgumentError('Parámetro propuesto inválido');
+      }
+    }
+    if ((paciente.ambito == AmbitoPaciente.institucional && contexto == ContextoReferencia.adultoAmbulatorio) ||
+        (paciente.ambito != AmbitoPaciente.institucional && contexto == ContextoReferencia.hospitalNoCritico)) {
+      throw ArgumentError('La referencia no corresponde al ámbito del paciente');
+    }
+    await db.transaction((tx) async {
+      final autor = await _autor(tx, paciente);
+      final datos = <String, Object?>{'id': id, 'ambito': paciente.ambito.name,
+        'paciente_id': paciente.id, 'autor_usuario_id': autor,
+        'fecha': fecha.toUtc().toIso8601String(), 'contexto': contexto.name,
+        'referencia_json': jsonEncode(ReferenciasAda.para(contexto).datos),
+        'parametros_propuestos_json': jsonEncode({'ric': ric, 'fsi': fsi, 'objetivo': objetivo,
+          'insulina_activa': null, 'redondeo': null, 'ajustes_actividad': null}),
+        'estado': 'pendiente_revision'};
+      if (!await _yaExiste(tx, 'solicitudes_configuracion', datos)) {
+        await tx.insert('solicitudes_configuracion', datos);
+      }
+    });
+  }
+
+  Future<List<Map<String, Object?>>> solicitudesConfiguracion(PacienteClinico paciente) async {
+    await _autor(db, paciente);
+    return db.query('solicitudes_configuracion', where: 'ambito = ? AND paciente_id = ?',
+      whereArgs: [paciente.ambito.name, paciente.id], orderBy: 'fecha DESC');
+  }
+
+  Future<ParametrosDosis?> parametrosVigentes(PacienteClinico paciente) async {
+    await _autor(db, paciente);
+    return _parametros(db, paciente);
+  }
+
+  Future<ParametrosDosis?> _parametros(DatabaseExecutor tx, PacienteClinico paciente) async {
+    final filas = await tx.query('parametros_dosis',
+      where: 'ambito = ? AND paciente_id = ?', whereArgs: [paciente.ambito.name, paciente.id],
+      orderBy: 'version DESC', limit: 1);
+    if (filas.isEmpty || filas.first['estado'] != 'autorizada') return null;
+    try {
+      final p = ParametrosDosis.desdeMapa(filas.first);
+      if (!p.vigente(DateTime.now())) return null;
+      final medicos = await tx.query('usuarios', where: 'id = ? AND rol = ?', whereArgs: [p.autorizadoPor, 'medico']);
+      if (medicos.isEmpty) return null;
+      final motorEsperado = paciente.ambito == AmbitoPaciente.institucional ? MotorDosis.hospitalario : MotorDosis.domestico;
+      if (p.motor != motorEsperado) return null;
+      return MotorDosis.validarConfiguracion(p, DateTime.now());
+    } on CalculoNoDisponible { return null;
+    } on FormatException { return null;
+    } on TypeError { return null;
+    } on ArgumentError { return null; }
+  }
+
   Future<void> guardarCalculo({
     required String id,
+    required String parametrosId,
     required PacienteClinico paciente,
     required double glucosa,
     required double dosis,
@@ -101,6 +162,22 @@ class EventosClinicos {
     }
     await db.transaction((tx) async {
       final autor = await _autor(tx, paciente);
+      final parametros = await _parametros(tx, paciente);
+      if (parametros == null || parametros.id != parametrosId) {
+        throw const CalculoNoDisponible('La configuración cambió o dejó de estar autorizada. Recarga los parámetros y calcula de nuevo.');
+      }
+      final carbohidratos = (entradas['carbohidratos'] as num?)?.toDouble();
+      final actividad = entradas['actividad'] as String?;
+      if (actividad == null) throw const CalculoNoDisponible('Falta la actividad del cálculo.');
+      final resultado = MotorDosis.calcular(parametros: parametros, glucosa: glucosa,
+        carbohidratos: carbohidratos, actividad: actividad, ahora: DateTime.now());
+      if ((resultado.dosis - dosis).abs() > 1e-9) {
+        throw const CalculoNoDisponible('El resultado no corresponde a los parámetros autorizados. Calcula de nuevo.');
+      }
+      final detalle = <String, Object?>{
+        'glucosa': glucosa, 'carbohidratos': carbohidratos, 'actividad': actividad,
+        'momento': momento, 'parametros': parametros.instantanea,
+      };
       final datos = <String, Object?>{
         'id': id,
         'ambito': paciente.ambito.name,
@@ -109,7 +186,9 @@ class EventosClinicos {
         'fecha': fecha.toUtc().toIso8601String(),
         'procedencia': 'calculadora_local',
         'estado': 'calculada',
-        'entradas_json': jsonEncode(entradas),
+        'entradas_json': jsonEncode(detalle),
+        'parametros_id': parametros.id, 'parametros_version': parametros.version,
+        'motor_version': parametros.motor,
         'dosis': dosis,
         'momento': momento,
       };
