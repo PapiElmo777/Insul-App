@@ -627,7 +627,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFFD2D2D2), width: 1.5),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Column(
                 children: [
@@ -943,7 +943,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                         },
                         child: Container(
                           width: 55, height: 55,
-                          decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2), border: Border.all(color: Colors.white, width: 2)),
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.2), border: Border.all(color: Colors.white, width: 2)),
                           child: _imagenPerfil != null
                               ? ClipOval(child: Image.file(_imagenPerfil!, fit: BoxFit.cover, width: 55, height: 55))
                               : const Icon(Icons.person, color: Colors.white, size: 30),
@@ -1083,7 +1083,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFD2D2D2), width: 1.5), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFD2D2D2), width: 1.5), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))]),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

@@ -688,7 +688,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('ID Médica', style: TextStyle(fontFamily: 'Montserrat', fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white)),
-                        Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle), child: const Icon(Icons.medical_information, color: Colors.white, size: 28)),
+                        Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle), child: const Icon(Icons.medical_information, color: Colors.white, size: 28)),
                       ],
                     ),
                     const SizedBox(height: 5),
@@ -707,7 +707,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
                 // ──ENCABEZADO DE LA CREDENCIAL ──
                 Container(
                   width: double.infinity,
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFF1C63BB), width: 2), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))]),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFF1C63BB), width: 2), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 5))]),
                   child: Column(
                     children: [
                       Container(
@@ -877,7 +877,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
   Widget _construirSeccion({required String titulo, required IconData icono, required Color colorIcono, required Widget contenido}) {
     return Container(
       width: double.infinity, padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFD2D2D2)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))]),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFD2D2D2)), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -922,7 +922,7 @@ class _PantallaIdentificacionMedicaState extends State<PantallaIdentificacionMed
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(15), border: Border.all(color: color.withOpacity(0.3))),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(15), border: Border.all(color: color.withValues(alpha: 0.3))),
         child: Column(
           children: [
             Text(titulo, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),

@@ -69,7 +69,7 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: color, width: 1.5),
       ),
@@ -145,7 +145,7 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(
-                      color: colorEstado.withOpacity(0.15),
+                      color: colorEstado.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(color: colorEstado),
                     ),
@@ -462,7 +462,7 @@ class _PantallaRegistrosPacienteState extends State<PantallaRegistrosPaciente> {
                     backgroundColor: const Color(0xFF0C80EB),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     elevation: 4,
-                    shadowColor: const Color(0xFF0C80EB).withOpacity(0.5),
+                    shadowColor: const Color(0xFF0C80EB).withValues(alpha: 0.5),
                   ),
                 ),
               ),
@@ -815,22 +815,22 @@ class _GraficaPacientePainter extends CustomPainter {
 
     Paint bgPaint = Paint();
 
-    bgPaint.color = const Color(0xFFD32F2F).withOpacity(0.1);
+    bgPaint.color = const Color(0xFFD32F2F).withValues(alpha: 0.1);
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(limiteHipo.toDouble()), size.width, graphHeight + 10), bgPaint);
 
-    bgPaint.color = const Color(0xFFE65100).withOpacity(0.1);
+    bgPaint.color = const Color(0xFFE65100).withValues(alpha: 0.1);
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(rangoMin.toDouble()), size.width, valToY(limiteHipo.toDouble())), bgPaint);
 
-    bgPaint.color = const Color(0xFF2E7D32).withOpacity(0.15);
+    bgPaint.color = const Color(0xFF2E7D32).withValues(alpha: 0.15);
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(rangoMax.toDouble()), size.width, valToY(rangoMin.toDouble())), bgPaint);
 
-    bgPaint.color = const Color(0xFFE65100).withOpacity(0.1);
+    bgPaint.color = const Color(0xFFE65100).withValues(alpha: 0.1);
     canvas.drawRect(Rect.fromLTRB(offsetX, valToY(limiteHiper.toDouble()), size.width, valToY(rangoMax.toDouble())), bgPaint);
 
-    bgPaint.color = const Color(0xFFD32F2F).withOpacity(0.1);
+    bgPaint.color = const Color(0xFFD32F2F).withValues(alpha: 0.1);
     canvas.drawRect(Rect.fromLTRB(offsetX, 10, size.width, valToY(limiteHiper.toDouble())), bgPaint);
 
-    Paint lineRef = Paint()..color = Colors.grey.withOpacity(0.3)..strokeWidth = 1;
+    Paint lineRef = Paint()..color = Colors.grey.withValues(alpha: 0.3)..strokeWidth = 1;
     List<int> yLabels = [maxY.toInt(), limiteHiper, rangoMax, rangoMin, limiteHipo, minY.toInt()];
     yLabels = yLabels.toSet().toList()..sort((a, b) => b.compareTo(a));
 
@@ -879,7 +879,7 @@ class _GraficaPacientePainter extends CustomPainter {
       else c = const Color(0xFFE65100);
 
       if (indiceSeleccionado == i) {
-        canvas.drawCircle(points[i], 14.0, Paint()..color = c.withOpacity(0.4)..style = PaintingStyle.fill);
+        canvas.drawCircle(points[i], 14.0, Paint()..color = c.withValues(alpha: 0.4)..style = PaintingStyle.fill);
         canvas.drawCircle(points[i], 8.0, Paint()..color = Colors.white..style = PaintingStyle.fill);
         canvas.drawCircle(points[i], 6.0, Paint()..color = c..style = PaintingStyle.fill);
       } else {
