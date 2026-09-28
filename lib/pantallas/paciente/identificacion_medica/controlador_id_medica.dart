@@ -4,10 +4,12 @@ import '../../../../database/gestores/gestor_pacientes.dart';
 import '../../../../database/gestores/gestor_usuarios.dart';
 import '../../../../database/gestores/gestor_cuidadores.dart';
 import '../../../../servicios/id_medica_service.dart';
+
 class ControladorIdMedica extends ChangeNotifier {
   final VoidCallback onActualizarDashboard;
   final int? pacienteIdProporcionado;
   final bool esCuidador;
+
   ControladorIdMedica({
     required this.onActualizarDashboard,
     this.pacienteIdProporcionado,
@@ -15,12 +17,15 @@ class ControladorIdMedica extends ChangeNotifier {
   }) {
     cargarDatos();
   }
+
   bool cargando = true;
   bool identificacionCompletada = false;
+
   int? usuarioId;
   int? pacienteId;
   Map<String, dynamic> datosCompletos = {};
   List<Map<String, dynamic>> medicamentos = [];
+
   // Variables Resumen Glucemico
   int promedio = 0;
   int tir = 0;
@@ -28,6 +33,7 @@ class ControladorIdMedica extends ChangeNotifier {
   int pctHiper = 0;
   int minG = 0;
   int maxG = 0;
+
   // Controladores del Formulario Inicial
   final enfCronicasCtrl = TextEditingController();
   final alergiasCtrl = TextEditingController();
@@ -37,26 +43,34 @@ class ControladorIdMedica extends ChangeNotifier {
   final emergenciaTelCtrl = TextEditingController();
   final medicoCtrl = TextEditingController();
   final clinicaCtrl = TextEditingController();
+
   // Tipo SanguIneo
   String tipoSanguineoSeleccionado = 'Desconocido';
   final List<String> tiposSanguineos = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Desconocido'];
+
   void setTipoSanguineo(String tipo) {
     tipoSanguineoSeleccionado = tipo;
     notifyListeners();
   }
+
   void setIdentificacionCompletada(bool completada) {
     identificacionCompletada = completada;
     notifyListeners();
   }
+
   Future<void> cargarDatos() async {
     cargando = true;
     notifyListeners();
+
     final idUsuario = await GestorUsuario().obtenerSesionActiva();
+
     if (idUsuario != null) {
       usuarioId = idUsuario;
+      
       Map<String, dynamic>? usuario;
       Map<String, dynamic>? paciente;
       String nombreCompleto = '';
+      
       if (esCuidador && pacienteIdProporcionado != null) {
         paciente = await GestorCuidadores().obtenerPacienteCuidadorPorId(pacienteIdProporcionado!);
         if (paciente != null) {
@@ -65,12 +79,15 @@ class ControladorIdMedica extends ChangeNotifier {
       } else {
         usuario = await GestorUsuario().obtenerUsuarioPorId(idUsuario);
         paciente = await GestorPacientes().obtenerPacientePorUsuario(idUsuario);
-        if (usuario != null) nombreCompleto = "$({usuario['nombre']}) $({usuario['apellidos']})";
+        if (usuario != null) {
+           nombreCompleto = '${usuario['nombre']} ${usuario['apellidos']}';
+        }
       }
-      }
+
       if (paciente != null) {
         pacienteId = paciente['id'];
         identificacionCompletada = (paciente['identificacion_completada'] ?? 0) == 1;
+
         datosCompletos = {
           'nombre_completo': nombreCompleto,
           'edad': paciente['edad']?.toString() ?? '--',
@@ -90,6 +107,7 @@ class ControladorIdMedica extends ChangeNotifier {
           'insulina_basal_dosis': paciente['insulina_basal_dosis'] ?? '',
           'insulina_rapida_marca': paciente['insulina_rapida_marca'] ?? '',
         };
+
         alergiasCtrl.text = datosCompletos['alergias'] == 'Ninguna' ? '' : datosCompletos['alergias'];
         enfCronicasCtrl.text = datosCompletos['enfermedades_cronicas'] == 'Ninguna' ? '' : datosCompletos['enfermedades_cronicas'];
         hospCtrl.text = datosCompletos['hospitalizaciones'] == 'Ninguna' ? '' : datosCompletos['hospitalizaciones'];
@@ -98,15 +116,30 @@ class ControladorIdMedica extends ChangeNotifier {
         emergenciaTelCtrl.text = datosCompletos['emergencia_telefono'] == '--' ? '' : datosCompletos['emergencia_telefono'];
         medicoCtrl.text = datosCompletos['medico_nombre'] == 'No asignado' ? '' : datosCompletos['medico_nombre'];
         clinicaCtrl.text = datosCompletos['clinica'] == 'No especificada' ? '' : datosCompletos['clinica'];
+
         if (tiposSanguineos.contains(datosCompletos['tipo_sanguineo'])) {
           tipoSanguineoSeleccionado = datosCompletos['tipo_sanguineo'];
         }
-        final medsBD = await GestorPacientes().obtenerMedicamentosDePaciente(pacienteId!);
+
+        List<Map<String, dynamic>> medsBD = [];
+        if (esCuidador) {
+          medsBD = await GestorCuidadores().obtenerMedicamentosDePacienteCuidador(pacienteId!);
+        } else {
+          medsBD = await GestorPacientes().obtenerMedicamentosDePaciente(pacienteId!);
+        }
+        
         medicamentos = List<Map<String, dynamic>>.from(medsBD);
         if (paciente['med_oral_nombre'] != null && paciente['med_oral_nombre'].toString().isNotEmpty) {
           medicamentos.insert(0, {'nombre': paciente['med_oral_nombre'], 'gramaje': paciente['med_oral_dosis'] ?? ''});
         }
-        final registrosBD = await GestorPacientes().obtenerRegistrosGlucosa(pacienteId!);
+
+        List<Map<String, dynamic>> registrosBD = [];
+        if (esCuidador) {
+          registrosBD = await GestorCuidadores().obtenerRegistrosGlucosaCuidador(pacienteId!);
+        } else {
+          registrosBD = await GestorPacientes().obtenerRegistrosGlucosa(pacienteId!);
+        }
+
         final lecturas = registrosBD.where((r) => (r['valor'] as num) > 0).toList();
         if (lecturas.isNotEmpty) {
           int suma = 0;
@@ -115,15 +148,18 @@ class ControladorIdMedica extends ChangeNotifier {
           int countHiper = 0;
           int min = 999;
           int max = 0;
+
           int limHipo = (paciente['limite_hipo'] as num?)?.toInt() ?? 70;
           int limHiper = (paciente['limite_hiper'] as num?)?.toInt() ?? 180;
           int rMin = (paciente['rango_min'] as num?)?.toInt() ?? 80;
           int rMax = (paciente['rango_max'] as num?)?.toInt() ?? 130;
+
           for (var r in lecturas) {
             int v = (r['valor'] as num).toInt();
             suma += v;
             if (v < min) min = v;
             if (v > max) max = v;
+
             if (v < limHipo) {
               countHipo++;
             } else if (v > limHiper) {
@@ -144,9 +180,11 @@ class ControladorIdMedica extends ChangeNotifier {
     cargando = false;
     notifyListeners();
   }
+
   Future<void> guardarFormulario() async {
-    if (usuarioId == null) return;
-    await GestorPacientes().actualizarPaciente(usuarioId!, {
+    if (pacienteId == null && usuarioId == null) return;
+    
+    final datos = {
       'enfermedades_cronicas': enfCronicasCtrl.text.isEmpty ? 'Ninguna' : enfCronicasCtrl.text,
       'alergias': alergiasCtrl.text.isEmpty ? 'Ninguna' : alergiasCtrl.text,
       'tipo_sanguineo': tipoSanguineoSeleccionado,
@@ -157,10 +195,18 @@ class ControladorIdMedica extends ChangeNotifier {
       'medico_nombre': medicoCtrl.text,
       'clinica': clinicaCtrl.text.isEmpty ? 'No especificada' : clinicaCtrl.text,
       'identificacion_completada': 1,
-    });
+    };
+    
+    if (esCuidador && pacienteId != null) {
+      await GestorCuidadores().actualizarPacienteCuidador(pacienteId!, datos);
+    } else if (!esCuidador && usuarioId != null) {
+      await GestorPacientes().actualizarPaciente(usuarioId!, datos);
+    }
+    
     onActualizarDashboard();
     await cargarDatos();
   }
+
   Future<void> generarPDFIdentificacion(BuildContext context) async {
     try {
       final bytes = await IdentificacionMedicaService.generarPDF(
@@ -173,7 +219,9 @@ class ControladorIdMedica extends ChangeNotifier {
         minG: minG,
         maxG: maxG,
       );
+
       if (!context.mounted) return;
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -196,6 +244,7 @@ class ControladorIdMedica extends ChangeNotifier {
       }
     }
   }
+
   @override
   void dispose() {
     enfCronicasCtrl.dispose();
