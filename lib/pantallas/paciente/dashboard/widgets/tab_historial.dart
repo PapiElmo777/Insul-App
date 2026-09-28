@@ -7,10 +7,7 @@ import '../../pantalla_inicio_paciente.dart';
 class TabHistorial extends StatelessWidget {
   final ControladorDashboardPaciente controlador;
 
-  const TabHistorial({
-    super.key,
-    required this.controlador,
-  });
+  const TabHistorial({super.key, required this.controlador});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +18,9 @@ class TabHistorial extends StatelessWidget {
       for (var r in controlador.registrosGlucosa) {
         sumaCuadrados += math.pow((r['valor'] - prom), 2);
       }
-      double desvStd = math.sqrt(sumaCuadrados / controlador.registrosGlucosa.length);
+      double desvStd = math.sqrt(
+        sumaCuadrados / controlador.registrosGlucosa.length,
+      );
       cv = (desvStd / prom) * 100;
     }
 
@@ -45,9 +44,23 @@ class TabHistorial extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.end,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Text('Historial Clínico', style: TextStyle(fontFamily: 'Montserrat', fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white)),
+                      Text(
+                        'Historial Clínico',
+                        style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
                       SizedBox(height: 5),
-                      Text('Análisis y exportación de Perfil Ambulatorio de Glucosa (AGP).', style: TextStyle(color: Color(0xFFE8E8E8), fontSize: 14)),
+                      Text(
+                        'Análisis y exportación de Perfil Ambulatorio de Glucosa (AGP).',
+                        style: TextStyle(
+                          color: Color(0xFFE8E8E8),
+                          fontSize: 14,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -68,13 +81,30 @@ class TabHistorial extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFFD2D2D2), width: 1.5),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
-                  const Icon(Icons.picture_as_pdf, size: 60, color: Color(0xFF1C63BB)),
+                  const Icon(
+                    Icons.picture_as_pdf,
+                    size: 60,
+                    color: Color(0xFF1C63BB),
+                  ),
                   const SizedBox(height: 15),
-                  const Text('Informe AGP del Paciente', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  const Text(
+                    'Informe AGP del Paciente',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
                   const SizedBox(height: 5),
                   const Text(
                     'Genera un reporte clínico detallado para tu médico tratante con gráficas, promedios y variabilidad.',
@@ -88,48 +118,89 @@ class TabHistorial extends StatelessWidget {
                     child: ElevatedButton.icon(
                       onPressed: () async {
                         if (controlador.registrosGlucosa.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Necesitas registrar lecturas de glucosa primero.')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Necesitas registrar lecturas de glucosa primero.',
+                              ),
+                            ),
+                          );
                           return;
                         }
 
                         String periodoSeleccionado = 'Todos';
                         final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) {
-                              return AlertDialog(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                title: const Text('Seleccionar Período', style: TextStyle(color: Color(0xFF1C63BB), fontWeight: FontWeight.bold)),
-                                content: StatefulBuilder(
-                                    builder: (context, setStateDialog) {
-                                      return Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: ['7 Días', '14 Días', '1 Mes', '3 Meses', 'Todos'].map((opcion) {
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              title: const Text(
+                                'Seleccionar Período',
+                                style: TextStyle(
+                                  color: Color(0xFF1C63BB),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              content: StatefulBuilder(
+                                builder: (context, setStateDialog) {
+                                  return Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children:
+                                        [
+                                          '7 Días',
+                                          '14 Días',
+                                          '1 Mes',
+                                          '3 Meses',
+                                          'Todos',
+                                        ].map((opcion) {
                                           return RadioListTile<String>(
                                             title: Text(opcion),
                                             value: opcion,
                                             groupValue: periodoSeleccionado,
                                             onChanged: (val) {
-                                              setStateDialog(() => periodoSeleccionado = val!);
+                                              setStateDialog(
+                                                () =>
+                                                    periodoSeleccionado = val!,
+                                              );
                                             },
-                                            activeColor: const Color(0xFF1C63BB),
+                                            activeColor: const Color(
+                                              0xFF1C63BB,
+                                            ),
                                           );
                                         }).toList(),
-                                      );
-                                    }
-                                ),
-                                actions: [
-                                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
-                                  ElevatedButton(
-                                    onPressed: () => Navigator.pop(context, true),
-                                    style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF0C80EB),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
-                                    ),
-                                    child: const Text('Continuar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  );
+                                },
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: const Text(
+                                    'Cancelar',
+                                    style: TextStyle(color: Colors.grey),
                                   ),
-                                ],
-                              );
-                            }
+                                ),
+                                ElevatedButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0C80EB),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Continuar',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         );
 
                         if (confirm != true) return;
@@ -138,44 +209,72 @@ class TabHistorial extends StatelessWidget {
                         showDialog(
                           context: context,
                           barrierDismissible: false,
-                          builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.white)),
+                          builder: (context) => const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
+                          ),
                         );
 
                         final nav = Navigator.of(context, rootNavigator: true);
                         try {
-                          await Future.delayed(const Duration(milliseconds: 300)); 
-                          final bytes = await controlador.generarPDFAGP(context, periodoSeleccionado);
+                          await Future.delayed(
+                            const Duration(milliseconds: 300),
+                          );
+                          final bytes = await controlador.generarPDFAGP(
+                            context,
+                            periodoSeleccionado,
+                          );
                           nav.pop();
 
                           if (bytes != null && context.mounted) {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => VisorAGPPantalla(bytes: bytes),
+                                builder: (context) =>
+                                    VisorAGPPantalla(bytes: bytes),
                               ),
                             );
                           }
-                        } catch(e) {
+                        } catch (e) {
                           nav.pop();
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e')),
+                            );
                           }
                         }
                       },
                       icon: const Icon(Icons.download, color: Colors.white),
-                      label: const Text('Generar PDF para Médico', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      label: const Text(
+                        'Generar PDF para Médico',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF008CCF),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 25),
 
-            const Text('Resumen del Periodo', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+            const Text(
+              'Resumen del Periodo',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
             const SizedBox(height: 15),
             Row(
               children: [
@@ -186,23 +285,49 @@ class TabHistorial extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: const Color(0xFF0C80EB), width: 1.5)
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(
+                          color: const Color(0xFF0C80EB),
+                          width: 1.5,
+                        ),
                       ),
                       child: Column(
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: const [
-                              Text('Variabilidad (CV)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
+                              Text(
+                                'Variabilidad (CV)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1C63BB),
+                                ),
+                              ),
                               SizedBox(width: 4),
-                              Icon(Icons.info_outline, size: 14, color: Color(0xFF1C63BB)),
+                              Icon(
+                                Icons.info_outline,
+                                size: 14,
+                                color: Color(0xFF1C63BB),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 5),
-                          Text('${cv.toStringAsFixed(1)}%', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: cv > 36 ? const Color(0xFFE65100) : const Color(0xFF2E7D32))),
-                          const Text('Toca para saber más', style: TextStyle(fontSize: 9, color: Colors.grey)),
+                          Text(
+                            '${cv.toStringAsFixed(1)}%',
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: cv > 36
+                                  ? const Color(0xFFE65100)
+                                  : const Color(0xFF2E7D32),
+                            ),
+                          ),
+                          const Text(
+                            'Toca para saber más',
+                            style: TextStyle(fontSize: 9, color: Colors.grey),
+                          ),
                         ],
                       ),
                     ),
@@ -212,13 +337,34 @@ class TabHistorial extends StatelessWidget {
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFD2D2D2))),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: const Color(0xFFD2D2D2)),
+                    ),
                     child: Column(
                       children: [
-                        const Text('Lecturas', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        const Text(
+                          'Lecturas',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        ),
                         const SizedBox(height: 5),
-                        Text('${controlador.registrosGlucosa.length}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
-                        const Text('Registros totales', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                        Text(
+                          '${controlador.registrosGlucosa.length}',
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1C63BB),
+                          ),
+                        ),
+                        const Text(
+                          'Registros totales',
+                          style: TextStyle(fontSize: 10, color: Colors.grey),
+                        ),
                       ],
                     ),
                   ),
@@ -230,11 +376,21 @@ class TabHistorial extends StatelessWidget {
             const Divider(thickness: 1, color: Color(0xFFD2D2D2)),
             const SizedBox(height: 20),
 
-            const Text('Historial de Archivos', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+            const Text(
+              'Historial de Archivos',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
             const SizedBox(height: 15),
 
             if (controlador.reportesGenerados.isEmpty)
-              const Text('Aún no has generado ningún informe para tu médico.', style: TextStyle(color: Colors.grey, fontSize: 14))
+              const Text(
+                'Aún no has generado ningún informe para tu médico.',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              )
             else
               ...List.generate(controlador.reportesGenerados.length, (index) {
                 final reporte = controlador.reportesGenerados[index];
@@ -249,26 +405,49 @@ class TabHistorial extends StatelessWidget {
                   ),
                   elevation: 0,
                   color: Colors.white,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(color: Color(0xFFE8F4F8), shape: BoxShape.circle),
-                      child: const Icon(Icons.description, color: Color(0xFF1C63BB)),
-                    ),
-                    title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                    subtitle: Text('Generado a las: ${DateFormat('HH:mm').format(reporte['fecha'])}', style: const TextStyle(fontSize: 12)),
-                    trailing: const Icon(Icons.visibility, color: Color(0xFF0C80EB)),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => VisorAGPPantalla(
-                            bytes: reporte['bytes'],
-                          ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFE8F4F8),
+                          shape: BoxShape.circle,
                         ),
-                      );
-                    },
+                        child: const Icon(
+                          Icons.description,
+                          color: Color(0xFF1C63BB),
+                        ),
+                      ),
+                      title: Text(
+                        titulo,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Generado a las: ${DateFormat('HH:mm').format(reporte['fecha'])}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      trailing: const Icon(
+                        Icons.visibility,
+                        color: Color(0xFF0C80EB),
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                VisorAGPPantalla(bytes: reporte['bytes']),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 );
               }),
@@ -284,7 +463,9 @@ class TabHistorial extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           backgroundColor: Colors.white,
           child: Padding(
             padding: const EdgeInsets.all(25.0),
@@ -293,18 +474,65 @@ class TabHistorial extends StatelessWidget {
               children: [
                 const Icon(Icons.waves, size: 50, color: Color(0xFF1C63BB)),
                 const SizedBox(height: 15),
-                const Text('Variabilidad Glucémica (CV)', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black87)),
+                const Text(
+                  'Variabilidad Glucémica (CV)',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: Colors.black87,
+                  ),
+                ),
                 const SizedBox(height: 15),
-                const Text('El Coeficiente de Variación (CV) mide qué tanto "brincan" tus niveles de azúcar respecto a tu promedio diario.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.black54)),
+                const Text(
+                  'El Coeficiente de Variación (CV) mide qué tanto "brincan" tus niveles de azúcar respecto a tu promedio diario.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.black54),
+                ),
                 const SizedBox(height: 15),
                 Container(
                   padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFD2D2D2))),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F7FA),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: const Color(0xFFD2D2D2)),
+                  ),
                   child: Column(
                     children: [
-                      Row(children: const [Icon(Icons.check_circle, color: Color(0xFF2E7D32), size: 20), SizedBox(width: 10), Expanded(child: Text('Menor al 36% indica niveles estables (buen control).', style: TextStyle(fontSize: 13)))]),
+                      Row(
+                        children: const [
+                          Icon(
+                            Icons.check_circle,
+                            color: Color(0xFF2E7D32),
+                            size: 20,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Menor al 36% indica niveles estables (buen control).',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 10),
-                      Row(children: const [Icon(Icons.warning, color: Color(0xFFE65100), size: 20), SizedBox(width: 10), Expanded(child: Text('Mayor al 36% significa picos altos y bajos frecuentes, lo que puede causar daño a largo plazo.', style: TextStyle(fontSize: 13)))]),
+                      Row(
+                        children: const [
+                          Icon(
+                            Icons.warning,
+                            color: Color(0xFFE65100),
+                            size: 20,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Mayor al 36% significa picos altos y bajos frecuentes, lo que puede causar daño a largo plazo.',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -313,10 +541,18 @@ class TabHistorial extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008CCF), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-                    child: const Text('Entendido', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF008CCF),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                    child: const Text(
+                      'Entendido',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
-                )
+                ),
               ],
             ),
           ),
