@@ -261,7 +261,7 @@ class SeccionAvanzadosWidget extends StatelessWidget {
           subtitle: Text(controlador.estadoConfiguracion, style: TextStyle(fontSize: 11, color: Color(0xFF9E9E9E))),
           children: [
             TextButton.icon(onPressed: controlador.cargarDatosPaciente, icon: const Icon(Icons.refresh), label: const Text('Recargar parámetros')),
-            TextButton.icon(onPressed: controlador.pacienteId == null ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => PantallaConfiguracionAda(paciente: PacienteClinico(AmbitoPaciente.personal, controlador.pacienteId!)))), icon: const Icon(Icons.settings), label: const Text('Configurar con referencias ADA 2026')),
+            TextButton.icon(onPressed: controlador.pacienteId == null ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => PantallaConfiguracionAda(paciente: PacienteClinico(controlador.ambitoPaciente, controlador.pacienteId!)))), icon: const Icon(Icons.settings), label: const Text('Configurar con referencias ADA 2026')),
             const Divider(height: 1),
             const SizedBox(height: 14),
             CampoTextoWidget(
@@ -275,7 +275,7 @@ class SeccionAvanzadosWidget extends StatelessWidget {
               controlador: controlador.fsiCtrl,
               titulo: 'Factor de Sensibilidad a Insulina (FSI)',
               hint: 'Sin configuración', sufijo: 'mg/dL/UI', icono: Icons.arrow_downward_outlined, color: Color(0xFFD32F2F),
-              ayuda: 'Cuánto baja tu glucosa con 1 UI.',
+              ayuda: 'Cuánto baja su glucosa con 1 UI.',
             ),
             const SizedBox(height: 14),
             CampoTextoWidget(
@@ -288,7 +288,7 @@ class SeccionAvanzadosWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: Color(0xFFF3E5F5), borderRadius: BorderRadius.circular(10)),
-              child: const Text('💡 Estos valores fueron cargados de tu perfil. Solo el médico puede autorizar una nueva versión.', style: TextStyle(fontSize: 11, color: Color(0xFF4A148C))),
+              child: Text('💡 Estos valores fueron cargados de ${controlador.ambitoPaciente == AmbitoPaciente.personal ? "tu" : "su"} perfil. Solo el médico puede autorizar una nueva versión.', style: const TextStyle(fontSize: 11, color: Color(0xFF4A148C))),
             ),
           ],
         ),

@@ -37,6 +37,10 @@ class ControladorCalculadora extends ChangeNotifier {
   // 3. DATOS CLÍNICOS Y RESULTADOS (BUSINESS STATE)
   // ==========================================
   int? pacienteId;
+  int? _pacienteIdProporcionado;
+  AmbitoPaciente _ambitoPaciente = AmbitoPaciente.personal;
+  AmbitoPaciente get ambitoPaciente => _ambitoPaciente;
+  
   ParametrosDosis? parametros;
   String estadoConfiguracion = MotorDosis.faltaConfiguracion;
 
@@ -65,7 +69,9 @@ class ControladorCalculadora extends ChangeNotifier {
     }
   }
 
-  Future<void> inicializar() async {
+  Future<void> inicializar({int? pacienteIdProporcionado, AmbitoPaciente ambito = AmbitoPaciente.personal}) async {
+    _pacienteIdProporcionado = pacienteIdProporcionado;
+    _ambitoPaciente = ambito;
     await _verificarTutorial();
     await cargarDatosPaciente();
   }
@@ -86,7 +92,10 @@ class ControladorCalculadora extends ChangeNotifier {
 
   Future<void> _verificarTutorial() async {
     final prefs = await SharedPreferences.getInstance();
-    final tutorialVisto = prefs.getBool('tutorial_conteo_visto') ?? false;
+    final prefKey = _ambitoPaciente == AmbitoPaciente.familiar 
+        ? 'tutorial_conteo_cuidador_visto' 
+        : 'tutorial_conteo_visto';
+    final tutorialVisto = prefs.getBool(prefKey) ?? false;
 
     if (!tutorialVisto) {
       mostrarPreguntaInicial = true;
@@ -97,7 +106,10 @@ class ControladorCalculadora extends ChangeNotifier {
 
   Future<void> marcarTutorialVisto() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('tutorial_conteo_visto', true);
+    final prefKey = _ambitoPaciente == AmbitoPaciente.familiar 
+        ? 'tutorial_conteo_cuidador_visto' 
+        : 'tutorial_conteo_visto';
+    await prefs.setBool(prefKey, true);
     mostrarPreguntaInicial = false;
     mostrarExplicacion = false;
     notifyListeners();
@@ -111,12 +123,18 @@ class ControladorCalculadora extends ChangeNotifier {
 
   Future<void> cargarDatosPaciente() async {
     try {
-      final usuarioId = await GestorUsuario().obtenerSesionActiva();
-      final paciente = usuarioId == null ? null : await GestorPacientes().obtenerPacientePorUsuario(usuarioId);
-      final id = paciente?['id'] as int?;
+      int? id;
+      if (_pacienteIdProporcionado != null) {
+        id = _pacienteIdProporcionado;
+      } else {
+        final usuarioId = await GestorUsuario().obtenerSesionActiva();
+        final paciente = usuarioId == null ? null : await GestorPacientes().obtenerPacientePorUsuario(usuarioId);
+        id = paciente?['id'] as int?;
+      }
+
       final parametrosVigentes = id == null
           ? null
-          : await (await DatabaseHelper().eventos).parametrosVigentes(PacienteClinico(AmbitoPaciente.personal, id));
+          : await (await DatabaseHelper().eventos).parametrosVigentes(PacienteClinico(_ambitoPaciente, id));
 
       _invalidarCalculo();
 
@@ -161,7 +179,7 @@ class ControladorCalculadora extends ChangeNotifier {
       final idPaciente = pacienteId;
       final vigente = idPaciente == null
           ? null
-          : await (await DatabaseHelper().eventos).parametrosVigentes(PacienteClinico(AmbitoPaciente.personal, idPaciente));
+          : await (await DatabaseHelper().eventos).parametrosVigentes(PacienteClinico(_ambitoPaciente, idPaciente));
 
       if (entradasSolicitadas != _capturarEntradas()) return;
       if (vigente == null) throw const CalculoNoDisponible(MotorDosis.faltaConfiguracion);
@@ -237,7 +255,7 @@ class ControladorCalculadora extends ChangeNotifier {
       await (await DatabaseHelper().eventos).guardarCalculo(
         id: _calculoId!,
         parametrosId: _parametrosCalculadosId!,
-        paciente: PacienteClinico(AmbitoPaciente.personal, idPaciente),
+        paciente: PacienteClinico(_ambitoPaciente, idPaciente),
         glucosa: glucosa,
         dosis: dosisAjustada,
         entradas: Map<String, Object?>.from(_detalleCalculo),
