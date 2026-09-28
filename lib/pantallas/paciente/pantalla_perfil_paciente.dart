@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:insulapp/database/gestores/gestor_pacientes.dart';
 import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:flutter/services.dart';
-import 'package:insulapp/database/gestores/gestor_pacientes.dart';
-import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import '../../database/database_helper.dart';
 import '../pantalla_login.dart';
 
 class TabPerfilPaciente extends StatefulWidget {

@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
+
 
 class IdentificacionMedicaService {
   static Future<Uint8List> generarPDF({
