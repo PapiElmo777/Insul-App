@@ -217,6 +217,7 @@ class TabHistorial extends StatelessWidget {
                         );
 
                         final nav = Navigator.of(context, rootNavigator: true);
+                        final navPush = Navigator.of(context);
                         try {
                           await Future.delayed(
                             const Duration(milliseconds: 300),
@@ -227,9 +228,8 @@ class TabHistorial extends StatelessWidget {
                           );
                           nav.pop();
 
-                          if (bytes != null && context.mounted) {
-                            Navigator.push(
-                              context,
+                          if (bytes != null) {
+                            navPush.push(
                               MaterialPageRoute(
                                 builder: (context) =>
                                     VisorAGPPantalla(bytes: bytes),
