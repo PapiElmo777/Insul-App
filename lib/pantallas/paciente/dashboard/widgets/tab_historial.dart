@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:math' as math;
 import '../controlador_dashboard_paciente.dart';
@@ -141,8 +141,9 @@ class TabHistorial extends StatelessWidget {
                           builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.white)),
                         );
 
+                        final nav = Navigator.of(context, rootNavigator: true);
                         try {
-                          await Future.delayed(const Duration(milliseconds: 300)); final nav = Navigator.of(context, rootNavigator: true);
+                          await Future.delayed(const Duration(milliseconds: 300)); 
                           final bytes = await controlador.generarPDFAGP(context, periodoSeleccionado);
                           nav.pop();
 
