@@ -245,8 +245,9 @@ class SeccionAvanzadosWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Color(0xFFE0E0E0))),
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Color(0xFFE0E0E0))),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
@@ -269,6 +270,7 @@ class SeccionAvanzadosWidget extends StatelessWidget {
               titulo: 'Relación Insulina:Carbohidratos (I:C)',
               hint: 'Sin configuración', sufijo: 'g/UI', icono: Icons.science_outlined, color: Color(0xFF6A1B9A),
               ayuda: '1 UI cubre esta cantidad de gramos de carbohidratos.',
+              readOnly: true,
             ),
             const SizedBox(height: 14),
             CampoTextoWidget(
@@ -276,6 +278,7 @@ class SeccionAvanzadosWidget extends StatelessWidget {
               titulo: 'Factor de Sensibilidad a Insulina (FSI)',
               hint: 'Sin configuración', sufijo: 'mg/dL/UI', icono: Icons.arrow_downward_outlined, color: Color(0xFFD32F2F),
               ayuda: 'Cuánto baja su glucosa con 1 UI.',
+              readOnly: true,
             ),
             const SizedBox(height: 14),
             CampoTextoWidget(
@@ -283,6 +286,7 @@ class SeccionAvanzadosWidget extends StatelessWidget {
               titulo: 'Glucosa objetivo (antes de comer)',
               hint: 'Sin configuración', sufijo: 'mg/dL', icono: Icons.flag_outlined, color: Color(0xFF2E7D32),
               ayuda: 'Objetivo de la configuración autorizada.',
+              readOnly: true,
             ),
             const SizedBox(height: 10),
             Container(
@@ -375,3 +379,4 @@ class ReferenciaCalculoWidget extends StatelessWidget {
     );
   }
 }
+

@@ -17,13 +17,16 @@ class TarjetaBaseWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity, padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFE0E0E0)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE0E0E0)),
       ),
+      elevation: 0,
+      shadowColor: Colors.black.withValues(alpha: 0.04),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -43,6 +46,7 @@ class TarjetaBaseWidget extends StatelessWidget {
           const SizedBox(height: 14),
           hijo,
         ],
+      ),
       ),
     );
   }
@@ -102,3 +106,5 @@ class CampoTextoWidget extends StatelessWidget {
     );
   }
 }
+
+
