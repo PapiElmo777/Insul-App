@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:insulapp/database/gestores/gestor_cuidadores.dart';
 import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import '../../database/database_helper.dart';
 import '../pantalla_login.dart';
-import '../pantallas_cuestionarios.dart';
+import '../registros/cuidador/pantalla_registro_cuidador.dart';
 import 'pantalla_detalle_familiar.dart';
 import 'tab_reportes_cuidador.dart';
 

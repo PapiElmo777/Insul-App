@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'pantallas_cuestionarios.dart';
+import 'registros/enfermero/pantalla_registro_enfermero.dart';
+import 'registros/paciente/pantalla_registro_paciente.dart';
+import 'registros/cuidador/pantalla_registro_cuidador.dart';
 import '../database/database_helper.dart';
 
 class PantallaRegistro extends StatefulWidget {
