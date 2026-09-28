@@ -23,6 +23,17 @@ class GestorPacientes {
     return resultado.isNotEmpty ? resultado.first : null;
   }
 
+  Future<Map<String, dynamic>?> obtenerPacientePorId(int pacienteId) async {
+    final baseDatos = await _dbHelper.db;
+    final resultado = await baseDatos.query(
+      'pacientes',
+      where: 'id = ?',
+      whereArgs: [pacienteId],
+      limit: 1,
+    );
+    return resultado.isNotEmpty ? resultado.first : null;
+  }
+
   Future<int> actualizarPaciente(int usuarioId, Map<String, dynamic> datos) async {
     final baseDatos = await _dbHelper.db;
     return await baseDatos.update(

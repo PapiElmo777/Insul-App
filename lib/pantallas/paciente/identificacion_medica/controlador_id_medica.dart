@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 import '../../../../database/gestores/gestor_pacientes.dart';
 import '../../../../database/gestores/gestor_usuarios.dart';
+import '../../../../database/gestores/gestor_cuidadores.dart';
 import '../../../../servicios/id_medica_service.dart';
 class ControladorIdMedica extends ChangeNotifier {
   final VoidCallback onActualizarDashboard;
@@ -53,25 +54,25 @@ class ControladorIdMedica extends ChangeNotifier {
     final idUsuario = await GestorUsuario().obtenerSesionActiva();
     if (idUsuario != null) {
       usuarioId = idUsuario;
-      
       Map<String, dynamic>? usuario;
       Map<String, dynamic>? paciente;
-      
+      String nombreCompleto = '';
       if (esCuidador && pacienteIdProporcionado != null) {
-        paciente = await GestorPacientes().obtenerPacientePorId(pacienteIdProporcionado!);
+        paciente = await GestorCuidadores().obtenerPacienteCuidadorPorId(pacienteIdProporcionado!);
         if (paciente != null) {
-           usuarioId = paciente['usuario_id']; // Forzamos usuarioId al del paciente
-           usuario = await GestorUsuario().obtenerUsuarioPorId(usuarioId!);
+           nombreCompleto = paciente['nombre'] ?? 'Familiar';
         }
       } else {
         usuario = await GestorUsuario().obtenerUsuarioPorId(idUsuario);
         paciente = await GestorPacientes().obtenerPacientePorUsuario(idUsuario);
+        if (usuario != null) nombreCompleto = "$({usuario['nombre']}) $({usuario['apellidos']})";
       }
-      if (paciente != null && usuario != null) {
+      }
+      if (paciente != null) {
         pacienteId = paciente['id'];
         identificacionCompletada = (paciente['identificacion_completada'] ?? 0) == 1;
         datosCompletos = {
-          'nombre_completo': '${usuario['nombre']} ${usuario['apellidos']}',
+          'nombre_completo': nombreCompleto,
           'edad': paciente['edad']?.toString() ?? '--',
           'sexo': paciente['sexo'] ?? '--',
           'tipo_diabetes': paciente['tipo_diabetes'] ?? 'No especificado',

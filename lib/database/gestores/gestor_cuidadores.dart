@@ -15,6 +15,12 @@ class GestorCuidadores {
     return await baseDatos.query('pacientes_cuidador', where: 'cuidador_id = ?', whereArgs: [cuidadorId]);
   }
 
+  Future<Map<String, dynamic>?> obtenerPacienteCuidadorPorId(int pacienteCuidadorId) async {
+    final baseDatos = await _dbHelper.db;
+    final resultado = await baseDatos.query('pacientes_cuidador', where: 'id = ?', whereArgs: [pacienteCuidadorId], limit: 1);
+    return resultado.isNotEmpty ? resultado.first : null;
+  }
+
   Future<int> insertarOtroMedicamentoCuidador(Map<String, dynamic> datos) async {
     final baseDatos = await _dbHelper.db;
     return await baseDatos.insert('otros_medicamentos_cuidador', datos);
