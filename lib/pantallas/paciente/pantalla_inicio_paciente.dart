@@ -17,7 +17,7 @@ import '../../database/database_helper.dart';
 import 'pantalla_perfil_paciente.dart';
 import 'pantalla_medicamentos_paciente.dart';
 import 'pantalla_calculadora_dosis.dart';
-import 'pantalla_identificacion_medica.dart';
+import 'identificacion_medica/pantalla_identificacion_medica.dart';
 
 class PantallaInicioPaciente extends StatefulWidget {
   final String nombrePaciente;
