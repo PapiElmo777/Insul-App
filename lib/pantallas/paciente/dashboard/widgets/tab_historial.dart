@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:math' as math;
 import '../controlador_dashboard_paciente.dart';
@@ -142,11 +142,11 @@ class TabHistorial extends StatelessWidget {
                         );
 
                         try {
+                          await Future.delayed(const Duration(milliseconds: 300)); final nav = Navigator.of(context, rootNavigator: true);
                           final bytes = await controlador.generarPDFAGP(context, periodoSeleccionado);
-                          if (!context.mounted) return;
-                          Navigator.of(context, rootNavigator: true).pop();
+                          nav.pop();
 
-                          if (bytes != null) {
+                          if (bytes != null && context.mounted) {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -155,8 +155,8 @@ class TabHistorial extends StatelessWidget {
                             );
                           }
                         } catch(e) {
+                          nav.pop();
                           if (context.mounted) {
-                            Navigator.of(context, rootNavigator: true).pop();
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
                           }
                         }
