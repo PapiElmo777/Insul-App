@@ -17,13 +17,10 @@ class IdentificacionMedicaService {
     required int maxG,
   }) async {
 
-    final fontRegular = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
-
     final pdf = pw.Document(
       theme: pw.ThemeData.withFont(
-        base: fontRegular,
-        bold: fontBold,
+        base: pw.Font.helvetica(),
+        bold: pw.Font.helveticaBold(),
       ),
     );
 

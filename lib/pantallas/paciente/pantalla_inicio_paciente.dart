@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:insulapp/database/gestores/gestor_pacientes.dart';
 import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:flutter/services.dart';
@@ -300,7 +300,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                                   await _cargarDatosBD();
 
                                   if (mounted) {
-                                    Navigator.pop(context);
+                                    Navigator.of(context, rootNavigator: true).pop();
                                   }
                                 }
                               }
@@ -717,7 +717,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
 
                           if (registrosSoloGlucosa.length < 3) {
                             if (mounted) {
-                              Navigator.pop(context);
+                              Navigator.of(context, rootNavigator: true).pop();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                     content: Text('No hay suficientes registros en el periodo seleccionado ($periodoSeleccionado). Se requiere un mínimo de 3 lecturas.'),
@@ -750,7 +750,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                           await _cargarDatosBD();
 
                           if (!mounted) return;
-                          Navigator.pop(context);
+                          Navigator.of(context, rootNavigator: true).pop();
 
                           Navigator.push(
                             context,
@@ -759,7 +759,7 @@ class _PantallaInicioPacienteState extends State<PantallaInicioPaciente> {
                             ),
                           );
                         } catch(e) {
-                          Navigator.pop(context);
+                          Navigator.of(context, rootNavigator: true).pop();
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
                         }
                       },
