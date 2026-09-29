@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../modelos/paciente_clinico.dart';
 import '../../widgets/dialogo_administracion.dart';
 import '../../database/database_helper.dart';
+import '../../widgets/universales/tarjeta_medicamento_universal.dart';
 
 class PantallaMedicamentosPaciente extends StatefulWidget {
   const PantallaMedicamentosPaciente({super.key});
@@ -720,62 +721,16 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
                 )
               else
                 ..._medicamentos.map((med) {
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 15),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Color(0xFFD2D2D2), width: 1.5)),
-                    elevation: 0,
-                    color: Colors.white,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: const BoxDecoration(color: Color(0xFFE8F4F8), shape: BoxShape.circle),
-                            child: const Icon(Icons.medication, color: Color(0xFF1C63BB), size: 28),
-                          ),
-                          const SizedBox(width: 15),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('${med['nombre']} - ${med['gramaje']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                                const SizedBox(height: 6),
-                                Text('Frecuencia: ${med['frecuencia']}', style: const TextStyle(fontSize: 14, color: Colors.black87)),
-                                if (med['proposito'] != null && med['proposito'].toString().isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4.0),
-                                    child: Text('Nota: ${med['proposito']}', style: const TextStyle(fontSize: 13, color: Colors.grey, fontStyle: FontStyle.italic)),
-                                  )
-                              ],
-                            ),
-                          ),
-                          Column(
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(10)),
-                                child: IconButton(icon: const Icon(Icons.edit, color: Color(0xFF0C80EB), size: 20), onPressed: () => _mostrarDialogoMedicamento(medicamentoExistente: med), padding: const EdgeInsets.all(8), constraints: const BoxConstraints()),
-                              ),
-                              if (med['id'] != -1) ...[
-                                const SizedBox(height: 10),
-                                Container(
-                                  decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(10)),
-                                  child: IconButton(
-                                      icon: const Icon(Icons.delete_outline, color: Color(0xFFFF6B6B), size: 20),
-                                      onPressed: () async {
-                                        final baseDatos = await DatabaseHelper().db;
-                                        await baseDatos.delete('otros_medicamentos', where: 'id = ?', whereArgs: [med['id']]);
-                                        await _cargarDatos();
-                                      },
-                                      padding: const EdgeInsets.all(8), constraints: const BoxConstraints()
-                                  ),
-                                ),
-                              ]
-                            ],
-                          )
-                        ],
-                      ),
-                    ),
+                  return TarjetaMedicamentoUniversal(
+                    medicamento: med,
+                    onEdit: () => _mostrarDialogoMedicamento(medicamentoExistente: med),
+                    onDelete: () async {
+                      if (med['id'] != -1) {
+                        final baseDatos = await DatabaseHelper().db;
+                        await baseDatos.delete('otros_medicamentos', where: 'id = ?', whereArgs: [med['id']]);
+                        await _cargarDatos();
+                      }
+                    },
                   );
                 }).toList(),
 
