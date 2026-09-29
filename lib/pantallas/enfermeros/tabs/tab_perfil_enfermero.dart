@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../controlador_dashboard_enfermero.dart';
-import '../../login/pantalla_login.dart';
+import '../../pantalla_login.dart';
 
 class TabPerfilEnfermero extends StatelessWidget {
   final ControladorDashboardEnfermero controlador;

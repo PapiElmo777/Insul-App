@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controlador_dashboard_enfermero.dart';
-import 'pantalla_agregar_paciente.dart';
-import 'pantalla_detalle_paciente.dart';
+import '../pantalla_agregar_paciente.dart';
+import '../pantalla_detalle_paciente.dart';
 
 class TabInicioEnfermero extends StatelessWidget {
   final ControladorDashboardEnfermero controlador;

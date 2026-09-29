@@ -9,8 +9,6 @@ import '../../../database/gestores/gestor_enfermeros.dart';
 import '../../../database/gestores/gestor_usuarios.dart';
 import '../../../database/database_helper.dart';
 import '../../../servicios/reporte_enfermero_service.dart';
-import '../../login/pantalla_login.dart';
-import 'pantalla_detalle_paciente.dart';
 
 class ControladorDashboardEnfermero extends ChangeNotifier {
   bool cargandoDatos = true;
