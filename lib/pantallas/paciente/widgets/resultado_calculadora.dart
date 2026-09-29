@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controlador_calculadora.dart';
 import 'formulario_calculadora.dart'; // Para actividadesDisponibles
+import 'constantes_calculadora.dart';
 
 class FilaDesgloseWidget extends StatelessWidget {
   final IconData icono;
@@ -69,9 +70,9 @@ class ChipEstadoGlucosaWidget extends StatelessWidget {
               children: [
                 Text('Glucosa ${controlador.estadoGlucosa}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: c)),
                 Text(
-                  controlador.estadoGlucosa == 'Hipoglucemia' ? '⚠️ Glucosa muy baja. Trata la hipoglucemia.'
-                      : controlador.estadoGlucosa == 'Hiperglucemia' ? '⚠️ Glucosa muy alta. Corrección incluida.'
-                      : 'Glucosa en rango adecuado para proceder.',
+                  controlador.estadoGlucosa == 'Hipoglucemia' ? TextosCalculadora.glucosaMsgHipo
+                      : controlador.estadoGlucosa == 'Hiperglucemia' ? TextosCalculadora.glucosaMsgHiper
+                      : TextosCalculadora.glucosaMsgNormal,
                   style: TextStyle(fontSize: 10, color: Colors.white70),
                 ),
               ],
@@ -118,8 +119,8 @@ class SeccionResultadoWidget extends StatelessWidget {
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Dosis Calculada', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                    Text('Insulina de acción rápida (bolo)', style: TextStyle(fontSize: 11, color: Color(0xFF00D1FF))),
+                    Text(TextosCalculadora.resDosisCalculada, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                    Text(TextosCalculadora.resInsulinaRapida, style: TextStyle(fontSize: 11, color: Color(0xFF00D1FF))),
                   ],
                 ),
               ],
@@ -137,12 +138,12 @@ class SeccionResultadoWidget extends StatelessWidget {
                   '${controlador.dosisAjustada.toStringAsFixed(1)} UI',
                   style: TextStyle(fontSize: 52, fontWeight: FontWeight.bold, color: colorDosis, height: 1),
                 ),
-                const Text('Unidades de Insulina', style: TextStyle(fontSize: 13, color: Color(0xFF9E9E9E), fontWeight: FontWeight.w500)),
+                const Text(TextosCalculadora.resUnidadesInsulina, style: TextStyle(fontSize: 13, color: Color(0xFF9E9E9E), fontWeight: FontWeight.w500)),
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(color: Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(20)),
-                  child: const Text('El resultado no confirma una administración.', style: TextStyle(fontSize: 11, color: Color(0xFF1565C0)), textAlign: TextAlign.center),
+                  child: const Text(TextosCalculadora.alertaDescargo, style: TextStyle(fontSize: 11, color: Color(0xFF1565C0)), textAlign: TextAlign.center),
                 ),
               ],
             ),
@@ -154,10 +155,10 @@ class SeccionResultadoWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Desglose del cálculo', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF00D1FF), letterSpacing: 0.5)),
+                const Text(TextosCalculadora.resDesgloseCalculo, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF00D1FF), letterSpacing: 0.5)),
                 const SizedBox(height: 10),
                 FilaDesgloseWidget(
-                  icono: Icons.restaurant_outlined, label: 'Bolo de comida',
+                  icono: Icons.restaurant_outlined, label: TextosCalculadora.metodoBoloComida,
                   formula: '${controlador.carbsCtrl.text.isNotEmpty ? controlador.carbsCtrl.text : '0'} g ÷ ${controlador.relacionICCtrl.text} g/UI',
                   valor: '+${controlador.dosisComida.toStringAsFixed(1)} UI', colorValor: Colors.white,
                 ),
@@ -165,28 +166,28 @@ class SeccionResultadoWidget extends StatelessWidget {
                   const SizedBox(height: 6),
                   FilaDesgloseWidget(
                     icono: Icons.tune,
-                    label: controlador.dosisCorreccion >= 0 ? 'Corrección (alta)' : 'Corrección (baja)',
+                    label: controlador.dosisCorreccion >= 0 ? TextosCalculadora.resCorreccionAlta : TextosCalculadora.resCorreccionBaja,
                     formula: '(${controlador.glucosaCtrl.text} − ${controlador.objetivoCtrl.text}) ÷ ${controlador.fsiCtrl.text}',
                     valor: controlador.dosisCorreccion >= 0 ? '+${controlador.dosisCorreccion.toStringAsFixed(1)} UI' : '${controlador.dosisCorreccion.toStringAsFixed(1)} UI',
                     colorValor: controlador.dosisCorreccion >= 0 ? Color(0xFFFF8A65) : Color(0xFF81C784),
                   ),
                   const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(color: Colors.white24)),
                   FilaDesgloseWidget(
-                    icono: Icons.functions, label: 'Subtotal', formula: '',
+                    icono: Icons.functions, label: TextosCalculadora.resSubtotal, formula: '',
                     valor: '${controlador.dosisTotal.toStringAsFixed(1)} UI', colorValor: Colors.white, negrita: true,
                   ),
                 ],
                 if (tieneAjuste) ...[
                   const SizedBox(height: 6),
                   FilaDesgloseWidget(
-                    icono: act.icono, label: 'Ajuste actividad (${act.nombre})',
+                    icono: act.icono, label: '${TextosCalculadora.resAjusteActividad} (${act.nombre})',
                     formula: '-${((controlador.parametros?.ajustesActividad[act.nombre] ?? 0) * 100).toInt()}% por ejercicio',
                     valor: '-${controlador.ajusteActividad.toStringAsFixed(1)} UI', colorValor: Color(0xFF80CBC4),
                   ),
                 ],
                 const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(color: Colors.white38)),
                 FilaDesgloseWidget(
-                  icono: Icons.check_circle_outline, label: 'DOSIS TOTAL AJUSTADA', formula: '',
+                  icono: Icons.check_circle_outline, label: TextosCalculadora.resDosisTotal, formula: '',
                   valor: '${controlador.dosisAjustada.toStringAsFixed(1)} UI', colorValor: Color(0xFF00D1FF), negrita: true, grande: true,
                 ),
               ],

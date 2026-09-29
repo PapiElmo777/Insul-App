@@ -3,6 +3,7 @@ import '../../../modelos/paciente_clinico.dart';
 import '../../pantalla_configuracion_ada.dart';
 import '../controlador_calculadora.dart';
 import 'tarjeta_base.dart';
+import 'constantes_calculadora.dart';
 
 class ActividadFisica {
   final String nombre;
@@ -39,7 +40,7 @@ class AvisoMedicoWidget extends StatelessWidget {
           const SizedBox(width: 10),
           const Expanded(
             child: Text(
-              'Esta calculadora requiere parámetros y un método de cálculo autorizados para el paciente. Consulta siempre con tu médico antes de ajustar tus dosis de insulina.',
+              TextosCalculadora.avisoMedico,
               style: TextStyle(fontSize: 12, color: Color(0xFF5D4037), height: 1.5),
             ),
           ),
@@ -56,7 +57,7 @@ class SeccionMomentoWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TarjetaBaseWidget(
-      titulo: 'Momento de la comida',
+      titulo: TextosCalculadora.seccionMomento,
       icono: Icons.schedule_outlined,
       hijo: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -103,7 +104,7 @@ class ReferenciaCarbsWidget extends StatelessWidget {
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
       childrenPadding: EdgeInsets.zero,
-      title: const Text('Ver referencia rápida de alimentos', style: TextStyle(fontSize: 12, color: Color(0xFF1C63BB), fontWeight: FontWeight.bold)),
+      title: const Text(TextosCalculadora.refCarbsTitulo, style: TextStyle(fontSize: 12, color: Color(0xFF1C63BB), fontWeight: FontWeight.bold)),
       leading: const Icon(Icons.info_outline, color: Color(0xFF1C63BB), size: 18),
       iconColor: Color(0xFF1C63BB),
       children: [
@@ -113,7 +114,7 @@ class ReferenciaCarbsWidget extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Carbohidratos por porción (aprox.)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
+              const Text(TextosCalculadora.refCarbsSubtitulo, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8, runSpacing: 8,
@@ -146,28 +147,28 @@ class SeccionDatosWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TarjetaBaseWidget(
-      titulo: 'Datos de la comida',
+      titulo: TextosCalculadora.seccionDatos,
       icono: Icons.restaurant_outlined,
       hijo: Column(
         children: [
           CampoTextoWidget(
             controlador: controlador.carbsCtrl,
-            titulo: 'Carbohidratos a ingerir',
-            hint: 'ej. 45',
+            titulo: TextosCalculadora.campoCarbsTitulo,
+            hint: TextosCalculadora.campoCarbsHint,
             sufijo: 'g',
             icono: Icons.grain_outlined,
             color: Color(0xFF2E7D32),
-            ayuda: 'Introduce los gramos de carbohidratos de los alimentos.',
+            ayuda: TextosCalculadora.campoCarbsAyuda,
           ),
           const SizedBox(height: 14),
           CampoTextoWidget(
             controlador: controlador.glucosaCtrl,
-            titulo: 'Glucosa actual (antes de comer)',
-            hint: 'ej. 130',
+            titulo: TextosCalculadora.campoGlucosaTitulo,
+            hint: TextosCalculadora.campoGlucosaHint,
             sufijo: 'mg/dL',
             icono: Icons.water_drop_outlined,
             color: Color(0xFF1C63BB),
-            ayuda: 'Mide tu glucosa justo antes de comer',
+            ayuda: TextosCalculadora.campoGlucosaAyuda,
           ),
           const SizedBox(height: 10),
           const ReferenciaCarbsWidget(),
@@ -184,9 +185,9 @@ class SeccionActividadWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TarjetaBaseWidget(
-      titulo: 'Actividad física del día',
+      titulo: TextosCalculadora.seccionActividad,
       icono: Icons.directions_run_outlined,
-      subtitulo: 'Solo se aplican ajustes incluidos en la configuración autorizada',
+      subtitulo: TextosCalculadora.subtituloActividad,
       hijo: Column(
         children: actividadesDisponibles.map((act) {
           final sel = act.nombre == controlador.actividadSeleccionada;
@@ -258,34 +259,34 @@ class SeccionAvanzadosWidget extends StatelessWidget {
             decoration: BoxDecoration(color: Color(0xFF1C63BB).withValues(alpha: 0.1), shape: BoxShape.circle),
             child: const Icon(Icons.tune, color: Color(0xFF1C63BB), size: 18),
           ),
-          title: const Text('Parámetros clínicos autorizados', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+          title: const Text(TextosCalculadora.seccionAvanzados, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           subtitle: Text(controlador.estadoConfiguracion, style: TextStyle(fontSize: 11, color: Color(0xFF9E9E9E))),
           children: [
-            TextButton.icon(onPressed: controlador.cargarDatosPaciente, icon: const Icon(Icons.refresh), label: const Text('Recargar parámetros')),
-            TextButton.icon(onPressed: controlador.pacienteId == null ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => PantallaConfiguracionAda(paciente: PacienteClinico(controlador.ambitoPaciente, controlador.pacienteId!)))), icon: const Icon(Icons.settings), label: const Text('Configurar con referencias ADA 2026')),
+            TextButton.icon(onPressed: controlador.cargarDatosPaciente, icon: const Icon(Icons.refresh), label: const Text(TextosCalculadora.paramRecargar)),
+            TextButton.icon(onPressed: controlador.pacienteId == null ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => PantallaConfiguracionAda(paciente: PacienteClinico(controlador.ambitoPaciente, controlador.pacienteId!)))), icon: const Icon(Icons.settings), label: const Text(TextosCalculadora.paramConfigurar)),
             const Divider(height: 1),
             const SizedBox(height: 14),
             CampoTextoWidget(
               controlador: controlador.relacionICCtrl,
-              titulo: 'Relación Insulina:Carbohidratos (I:C)',
-              hint: 'Sin configuración', sufijo: 'g/UI', icono: Icons.science_outlined, color: Color(0xFF6A1B9A),
-              ayuda: '1 UI cubre esta cantidad de gramos de carbohidratos.',
+              titulo: TextosCalculadora.paramICTitulo,
+              hint: TextosCalculadora.paramSinConfig, sufijo: 'g/UI', icono: Icons.science_outlined, color: Color(0xFF6A1B9A),
+              ayuda: TextosCalculadora.paramICAyuda,
               readOnly: true,
             ),
             const SizedBox(height: 14),
             CampoTextoWidget(
               controlador: controlador.fsiCtrl,
-              titulo: 'Factor de Sensibilidad a Insulina (FSI)',
-              hint: 'Sin configuración', sufijo: 'mg/dL/UI', icono: Icons.arrow_downward_outlined, color: Color(0xFFD32F2F),
-              ayuda: 'Cuánto baja su glucosa con 1 UI.',
+              titulo: TextosCalculadora.paramFSITitulo,
+              hint: TextosCalculadora.paramSinConfig, sufijo: 'mg/dL/UI', icono: Icons.arrow_downward_outlined, color: Color(0xFFD32F2F),
+              ayuda: TextosCalculadora.paramFSIAyuda,
               readOnly: true,
             ),
             const SizedBox(height: 14),
             CampoTextoWidget(
               controlador: controlador.objetivoCtrl,
-              titulo: 'Glucosa objetivo (antes de comer)',
-              hint: 'Sin configuración', sufijo: 'mg/dL', icono: Icons.flag_outlined, color: Color(0xFF2E7D32),
-              ayuda: 'Objetivo de la configuración autorizada.',
+              titulo: TextosCalculadora.paramObjetivoTitulo,
+              hint: TextosCalculadora.paramSinConfig, sufijo: 'mg/dL', icono: Icons.flag_outlined, color: Color(0xFF2E7D32),
+              ayuda: TextosCalculadora.paramObjetivoAyuda,
               readOnly: true,
             ),
             const SizedBox(height: 10),
@@ -322,7 +323,7 @@ class AlertasClinicasWidget extends StatelessWidget {
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              'ATENCIÓN: Tu glucosa indica hipoglucemia. NO te administres insulina ahora. Consume 15 g de carbohidratos de acción rápida y espera 15 minutos.',
+              TextosCalculadora.alertaHipoglucemia,
               style: TextStyle(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.w600, height: 1.5),
             ),
           ),
@@ -366,14 +367,14 @@ class ReferenciaCalculoWidget extends StatelessWidget {
           Row(children: const [
             Icon(Icons.book_outlined, color: Color(0xFF1C63BB), size: 18),
             SizedBox(width: 8),
-            Text('Método de cálculo configurado', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
+            Text(TextosCalculadora.metodoCalculoTitulo, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1C63BB))),
           ]),
           const SizedBox(height: 12),
-          _filaFormula('Bolo de comida', 'Carbs (g) ÷ Relación I:C', Color(0xFF2E7D32)),
+          _filaFormula(TextosCalculadora.metodoBoloComida, 'Carbs (g) ÷ Relación I:C', Color(0xFF2E7D32)),
           const SizedBox(height: 6),
-          _filaFormula('Bolo de corrección', '(Glucosa actual − Objetivo) ÷ FSI', Color(0xFF1C63BB)),
+          _filaFormula(TextosCalculadora.metodoBoloCorreccion, '(Glucosa actual − Objetivo) ÷ FSI', Color(0xFF1C63BB)),
           const SizedBox(height: 10),
-          const Text('La autorización debe incluir este método de cálculo.', style: TextStyle(fontSize: 10, color: Color(0xFF9E9E9E))),
+          const Text(TextosCalculadora.metodoAutorizacion, style: TextStyle(fontSize: 10, color: Color(0xFF9E9E9E))),
         ],
       ),
     );
