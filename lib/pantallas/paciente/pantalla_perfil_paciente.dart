@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import '../../database/database_helper.dart';
 import '../pantalla_login.dart';
 
 class TabPerfilPaciente extends StatefulWidget {
@@ -49,12 +50,11 @@ class _TabPerfilPacienteState extends State<TabPerfilPaciente> {
   }
 
   Future<void> _cargarDatosPerfil() async {
-    final db = DatabaseHelper();
-    final usuarioId = await db.obtenerSesionActiva();
+    final usuarioId = await GestorUsuario().obtenerSesionActiva();
 
     if (usuarioId != null) {
-      final usuario = await db.obtenerUsuarioPorId(usuarioId);
-      final paciente = await db.obtenerPacientePorUsuario(usuarioId);
+      final usuario = await GestorUsuario().obtenerUsuarioPorId(usuarioId);
+      final paciente = await GestorPacientes().obtenerPacientePorUsuario(usuarioId);
 
       if (usuario != null && paciente != null) {
         if (usuario['foto_perfil'] != null && usuario['foto_perfil'].toString().isNotEmpty) {
@@ -91,10 +91,9 @@ class _TabPerfilPacienteState extends State<TabPerfilPaciente> {
     try {
       final XFile? imagenSeleccionada = await picker.pickImage(source: origen);
       if (imagenSeleccionada != null) {
-        final db = DatabaseHelper();
-        final usuarioId = await db.obtenerSesionActiva();
+        final usuarioId = await GestorUsuario().obtenerSesionActiva();
         if (usuarioId != null) {
-          await db.actualizarFotoPerfil(usuarioId, imagenSeleccionada.path);
+          await GestorUsuario().actualizarFotoPerfil(usuarioId, imagenSeleccionada.path);
         }
         setState(() {
           _imagenPerfil = File(imagenSeleccionada.path);
@@ -139,9 +138,8 @@ class _TabPerfilPacienteState extends State<TabPerfilPaciente> {
                   leading: const Icon(Icons.delete, color: Colors.red),
                   title: const Text('Eliminar foto actual', style: TextStyle(color: Colors.red)),
                   onTap: () async {
-                    final db = DatabaseHelper();
-                    final usuarioId = await db.obtenerSesionActiva();
-                    if (usuarioId != null) await db.actualizarFotoPerfil(usuarioId, '');
+                    final usuarioId = await GestorUsuario().obtenerSesionActiva();
+                    if (usuarioId != null) await GestorUsuario().actualizarFotoPerfil(usuarioId, '');
                     Navigator.pop(context);
                     setState(() => _imagenPerfil = null);
                     widget.onActualizarDashboard();
@@ -192,12 +190,10 @@ class _TabPerfilPacienteState extends State<TabPerfilPaciente> {
                   double alturaMetros = nuevaAltura / 100;
                   nuevoImc = nuevoPeso / (alturaMetros * alturaMetros);
                 }
-
-                final db = DatabaseHelper();
-                final usuarioId = await db.obtenerSesionActiva();
+                final usuarioId = await GestorUsuario().obtenerSesionActiva();
 
                 if (usuarioId != null) {
-                  await db.actualizarPaciente(usuarioId, {
+                  await GestorPacientes().actualizarPaciente(usuarioId, {
                     'tipo_diabetes': tipoDiabetesCtrl.text,
                     'alergias': alergiasCtrl.text,
                     'peso': nuevoPeso,
@@ -259,12 +255,10 @@ class _TabPerfilPacienteState extends State<TabPerfilPaciente> {
                 int nHiper = int.tryParse(hiperCtrl.text) ?? limiteHiper;
                 int nRMin = int.tryParse(rMinCtrl.text) ?? rangoMin;
                 int nRMax = int.tryParse(rMaxCtrl.text) ?? rangoMax;
-
-                final db = DatabaseHelper();
-                final usuarioId = await db.obtenerSesionActiva();
+                final usuarioId = await GestorUsuario().obtenerSesionActiva();
 
                 if (usuarioId != null) {
-                  await db.actualizarPaciente(usuarioId, {
+                  await GestorPacientes().actualizarPaciente(usuarioId, {
                     'limite_hipo': nHipo,
                     'limite_hiper': nHiper,
                     'rango_min': nRMin,
@@ -321,11 +315,10 @@ class _TabPerfilPacienteState extends State<TabPerfilPaciente> {
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
             ElevatedButton(
               onPressed: () async {
-                final db = DatabaseHelper();
-                final usuarioId = await db.obtenerSesionActiva();
+                final usuarioId = await GestorUsuario().obtenerSesionActiva();
 
                 if (usuarioId != null) {
-                  await db.actualizarPaciente(usuarioId, {
+                  await GestorPacientes().actualizarPaciente(usuarioId, {
                     'emergencia_nombre': emNombreCtrl.text,
                     'emergencia_parentesco': emParentescoCtrl.text,
                     'emergencia_telefono': emTelefonoCtrl.text,
@@ -475,8 +468,7 @@ class _TabPerfilPacienteState extends State<TabPerfilPaciente> {
             height: 50,
             child: ElevatedButton.icon(
               onPressed: () async {
-                final db = DatabaseHelper();
-                await db.cerrarSesion();
+                await GestorUsuario().cerrarSesion();
                 if (mounted) {
                   Navigator.pushAndRemoveUntil(
                     context,
@@ -507,7 +499,7 @@ class _TabPerfilPacienteState extends State<TabPerfilPaciente> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFD2D2D2), width: 1.5),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

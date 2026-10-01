@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'pantallas_cuestionarios.dart';
+import 'registros/enfermero/pantalla_registro_enfermero.dart';
+import 'registros/paciente/pantalla_registro_paciente.dart';
+import 'registros/cuidador/pantalla_registro_cuidador.dart';
 import '../database/database_helper.dart';
 
 class PantallaRegistro extends StatefulWidget {
@@ -90,9 +93,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> with SingleTickerPr
 
     setState(() { _cargando = true; _error = null; });
 
-    final db = DatabaseHelper();
-
-    final usuarioExistente = await db.obtenerUsuarioPorCorreo(_correoCtrl.text.trim().toLowerCase());
+    final usuarioExistente = await GestorUsuario().obtenerUsuarioPorCorreo(_correoCtrl.text.trim().toLowerCase());
     if (usuarioExistente != null) {
       setState(() {
         _cargando = false;
@@ -111,8 +112,8 @@ class _PantallaRegistroState extends State<PantallaRegistro> with SingleTickerPr
       'rol': rolSeleccionado,
     };
 
-    final usuarioId = await db.insertarUsuario(datosUsuario);
-    await db.guardarSesion(usuarioId);
+    final usuarioId = await GestorUsuario().insertarUsuario(datosUsuario);
+    await GestorUsuario().guardarSesion(usuarioId);
 
     if (!mounted) return;
 

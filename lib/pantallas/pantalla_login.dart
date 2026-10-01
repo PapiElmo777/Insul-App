@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'pantalla_registro.dart';
 import '../database/database_helper.dart';
@@ -69,9 +70,7 @@ class _PantallaLoginState extends State<PantallaLogin> with SingleTickerProvider
     }
 
     setState(() { _cargando = true; _error = null; });
-
-    final db = DatabaseHelper();
-    final usuario = await db.obtenerUsuarioPorCorreo(_correoCtrl.text.trim().toLowerCase());
+    final usuario = await GestorUsuario().obtenerUsuarioPorCorreo(_correoCtrl.text.trim().toLowerCase());
 
     if (usuario == null || usuario['contrasena'] != _contrasenaCtrl.text) {
       setState(() {
@@ -81,7 +80,7 @@ class _PantallaLoginState extends State<PantallaLogin> with SingleTickerProvider
       return;
     }
 
-    await db.guardarSesion(usuario['id'] as int);
+    await GestorUsuario().guardarSesion(usuario['id'] as int);
 
     if (!mounted) return;
 

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_cuidadores.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 import 'dart:typed_data';
 import 'package:insulapp/database/database_helper.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:insulapp/servicios/servicios/reporte_paciente_service.dart';
 import 'package:insulapp/servicios/id_medica_service.dart';
 
@@ -29,11 +32,10 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
 
   Future<void> _cargarFamiliares() async {
     try {
-      final dbHelper = DatabaseHelper();
-      final userId = await dbHelper.obtenerSesionActiva();
+      final userId = await GestorUsuario().obtenerSesionActiva();
 
       if (userId != null) {
-        final data = await dbHelper.obtenerPacientesPorCuidador(userId);
+        final data = await GestorCuidadores().obtenerPacientesPorCuidador(userId);
         if (mounted) {
           setState(() {
             _familiares = List<Map<String, dynamic>>.from(data);
@@ -58,8 +60,7 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
     if (_familiarSeleccionado == null) return;
 
     setState(() => _cargando = true);
-    final dbHelper = DatabaseHelper();
-    final reportes = await dbHelper.obtenerReportesDeFamiliar(_familiarSeleccionado!['id']);
+    final reportes = await GestorCuidadores().obtenerReportesDeFamiliar(_familiarSeleccionado!['id']);
 
     if (mounted) {
       setState(() {
@@ -120,9 +121,8 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
     );
 
     try {
-      final dbHelper = DatabaseHelper();
       final paciente = _familiarSeleccionado!;
-      final registrosRaw = await dbHelper.obtenerRegistrosGlucosaCuidador(paciente['id']);
+      final registrosRaw = await GestorCuidadores().obtenerRegistrosGlucosaCuidador(paciente['id']);
       DateTime ahora = DateTime.now();
       DateTime? limiteFecha;
       if (periodoSeleccionado == '7 Días') limiteFecha = ahora.subtract(const Duration(days: 7));
@@ -196,7 +196,7 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
         registros: registrosParseados,
       );
 
-      await dbHelper.insertarReporteCuidador({
+      await GestorCuidadores().insertarReporteCuidador({
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'paciente_cuidador_id': paciente['id'],
         'periodo': periodo,
@@ -225,7 +225,6 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
     );
 
     try {
-      final dbHelper = DatabaseHelper();
       final paciente = _familiarSeleccionado!;
 
       // 1. Obtener y preparar datos del paciente
@@ -250,14 +249,14 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
       };
 
       // 2. Cargar medicamentos
-      final medsBD = await dbHelper.obtenerMedicamentosDePacienteCuidador(paciente['id']);
+      final medsBD = await GestorCuidadores().obtenerMedicamentosDePacienteCuidador(paciente['id']);
       List<Map<String, dynamic>> medicamentos = List<Map<String, dynamic>>.from(medsBD);
       if (paciente['med_oral_nombre'] != null && paciente['med_oral_nombre'].toString().isNotEmpty) {
         medicamentos.insert(0, {'nombre': paciente['med_oral_nombre'], 'gramaje': paciente['med_oral_dosis'] ?? ''});
       }
 
       // 3. Cargar y calcular métricas de glucosa
-      final registrosBD = await dbHelper.obtenerRegistrosGlucosaCuidador(paciente['id']);
+      final registrosBD = await GestorCuidadores().obtenerRegistrosGlucosaCuidador(paciente['id']);
       final lecturas = registrosBD.where((r) => (r['valor'] as num) > 0).toList();
 
       int promedio = 0, tir = 0, pctHipo = 0, pctHiper = 0, minG = 0, maxG = 0;
@@ -298,7 +297,7 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
         maxG: maxG,
       );
 
-      await dbHelper.insertarReporteCuidador({
+      await GestorCuidadores().insertarReporteCuidador({
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'paciente_cuidador_id': paciente['id'],
         'periodo': 'ID Médica',
@@ -346,8 +345,7 @@ class _TabReportesCuidadorState extends State<TabReportesCuidador> {
     );
 
     if (confirm == true) {
-      final db = DatabaseHelper();
-      await db.eliminarReporteCuidador(id);
+      await GestorCuidadores().eliminarReporteCuidador(id);
       _cargarReportes();
     }
   }

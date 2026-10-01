@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_cuidadores.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import '../../database/database_helper.dart';
 import '../pantalla_login.dart';
-import '../pantallas_cuestionarios.dart';
+import '../registros/cuidador/pantalla_registro_cuidador.dart';
 import 'pantalla_detalle_familiar.dart';
 import 'tab_reportes_cuidador.dart';
 
@@ -39,11 +41,10 @@ class _PantallaInicioCuidadorState extends State<PantallaInicioCuidador> {
   }
 
   Future<void> _cargarPacientes() async {
-    final db = DatabaseHelper();
-    final userId = await db.obtenerSesionActiva();
+    final userId = await GestorUsuario().obtenerSesionActiva();
 
     if (userId != null) {
-      final data = await db.obtenerPacientesPorCuidador(userId);
+      final data = await GestorCuidadores().obtenerPacientesPorCuidador(userId);
       if (mounted) {
         setState(() {
           _pacientes = data;
@@ -60,8 +61,7 @@ class _PantallaInicioCuidadorState extends State<PantallaInicioCuidador> {
   }
 
   void _cerrarSesion() async {
-    final db = DatabaseHelper();
-    await db.cerrarSesion();
+    await GestorUsuario().cerrarSesion();
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,

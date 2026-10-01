@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
 import 'package:flutter/services.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
 import '../../database/database_helper.dart';
 
 class PantallaAgregarPaciente extends StatefulWidget {
@@ -186,9 +190,8 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () async {
-                      final db = DatabaseHelper();
 
-                      final pacienteId = await db.insertarPacienteEnfermero({
+                      final pacienteId = await GestorEnfermeros().insertarPacienteEnfermero({
                         'enfermero_id': widget.enfermeroId,
                         'nombre': '${_nombreCtrl.text} ${_apellidosCtrl.text}'.trim(),
                         'edad': _edadCtrl.text,
@@ -206,7 +209,7 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
 
                       // Guardar Insulina (si aplica)
                       if (_tipoDiabetes != 'Tipo 2' && _tipoInsulina != null && _tipoInsulina != 'No usa insulina') {
-                        await db.insertarMedicamentoEnfermero({
+                        await GestorEnfermeros().insertarMedicamentoEnfermero({
                           'paciente_id': pacienteId,
                           'nombre': 'Insulina $_tipoInsulina - ${_insulinaMarcaCtrl.text}',
                           'dosis': '${_insulinaDosisCtrl.text} UI',
@@ -217,7 +220,7 @@ class _PantallaAgregarPacienteState extends State<PantallaAgregarPaciente> {
 
                       // Guardar Medicamentos Orales
                       for (var med in _medicamentosOrales) {
-                        await db.insertarMedicamentoEnfermero({
+                        await GestorEnfermeros().insertarMedicamentoEnfermero({
                           'paciente_id': pacienteId,
                           'nombre': med['nombre'],
                           'dosis': med['gramaje'],

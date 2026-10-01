@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_cuidadores.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
 import 'package:intl/intl.dart';
 import '../../modelos/paciente_clinico.dart';
 import '../../widgets/dialogo_administracion.dart';
 import '../../../database/database_helper.dart';
+import '../../widgets/universales/tarjeta_medicamento_universal.dart';
 
 class TabMedicamentosFamiliar extends StatefulWidget {
   final Map<String, dynamic> paciente;
@@ -49,7 +52,6 @@ class _TabMedicamentosFamiliarState extends State<TabMedicamentosFamiliar> {
   }
 
   Future<void> _cargarDatos() async {
-    final db = DatabaseHelper();
     if (_primeraCarga) {
       _tipoDiabetes = widget.paciente['tipo_diabetes'] ?? 'No especificado';
       _metodoInsulina = widget.paciente['metodo_insulina'] ?? 'No especificado';
@@ -73,17 +75,17 @@ class _TabMedicamentosFamiliarState extends State<TabMedicamentosFamiliar> {
       _primeraCarga = false;
     }
 
-    final medsDB = await db.obtenerMedicamentosDePacienteCuidador(widget.paciente['id']);
+    final medsDB = await GestorCuidadores().obtenerMedicamentosDePacienteCuidador(widget.paciente['id']);
     _medicamentos = List<Map<String, dynamic>>.from(medsDB);
 
         final referencia = PacienteClinico(AmbitoPaciente.familiar, widget.paciente['id']);
-        final eventos = await db.eventos;
+        final eventos = await DatabaseHelper().eventos;
         _historialInsulina = (await eventos.administraciones(referencia)).where((r) => r['unidad'] == 'UI').map((r) => {
           ...r, 'dosis': r['cantidad'],
           'fecha': DateTime.parse(r['fecha'] as String).toLocal(),
         }).toList();
         _calculos = await eventos.calculos(referencia);
-        final registrosDB = await db.obtenerRegistrosGlucosaCuidador(widget.paciente['id']);
+        final registrosDB = await GestorCuidadores().obtenerRegistrosGlucosaCuidador(widget.paciente['id']);
         _registrosAnteriores = registrosDB.where((r) =>
           r['procedencia'] == 'legado' && (r['notas'] ?? '').toString().isNotEmpty).toList();
 
@@ -178,7 +180,6 @@ class _TabMedicamentosFamiliarState extends State<TabMedicamentosFamiliar> {
                 TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
                 ElevatedButton(
                   onPressed: () async {
-                    final db = DatabaseHelper();
 
                     final datosActualizados = {
                       'metodo_insulina': tempMetodo,
@@ -192,7 +193,7 @@ class _TabMedicamentosFamiliarState extends State<TabMedicamentosFamiliar> {
                       'bomba_frecuencia': tempMetodo == 'Bomba' ? bombaFrecCtrl.text : '',
                     };
 
-                    await db.actualizarPacienteCuidador(widget.paciente['id'], datosActualizados);
+                    await GestorCuidadores().actualizarPacienteCuidador(widget.paciente['id'], datosActualizados);
                     widget.paciente.addAll(datosActualizados);
 
                     setState(() {
@@ -261,8 +262,7 @@ class _TabMedicamentosFamiliarState extends State<TabMedicamentosFamiliar> {
                   TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
                   ElevatedButton(
                     onPressed: () async {
-                      final db = DatabaseHelper();
-                      await db.actualizarPacienteCuidador(widget.paciente['id'], {'frecuencia_monitoreo': tempFrecuencia});
+                      await GestorCuidadores().actualizarPacienteCuidador(widget.paciente['id'], {'frecuencia_monitoreo': tempFrecuencia});
 
                       setState(() => _frecuenciaMonitoreo = tempFrecuencia);
                       if (mounted) Navigator.pop(context);
@@ -310,10 +310,8 @@ class _TabMedicamentosFamiliarState extends State<TabMedicamentosFamiliar> {
               onPressed: () async {
                 if (nombreCtrl.text.isEmpty) return;
 
-                final db = DatabaseHelper();
-
                 if (medicamentoExistente == null) {
-                  await db.insertarOtroMedicamentoCuidador({
+                  await GestorCuidadores().insertarOtroMedicamentoCuidador({
                     'paciente_cuidador_id': widget.paciente['id'],
                     'nombre': nombreCtrl.text,
                     'gramaje': gramajeCtrl.text,
@@ -321,7 +319,7 @@ class _TabMedicamentosFamiliarState extends State<TabMedicamentosFamiliar> {
                     'proposito': propositoCtrl.text,
                   });
                 } else {
-                  await db.actualizarMedicamentoCuidador(medicamentoExistente['id'], {
+                  await GestorCuidadores().actualizarMedicamentoCuidador(medicamentoExistente['id'], {
                     'nombre': nombreCtrl.text,
                     'gramaje': gramajeCtrl.text,
                     'frecuencia': frecuenciaCtrl.text,
@@ -723,60 +721,13 @@ class _TabMedicamentosFamiliarState extends State<TabMedicamentosFamiliar> {
                     )
                   else
                     ..._medicamentos.map((med) {
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 15),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Color(0xFFD2D2D2), width: 1.5)),
-                        elevation: 0,
-                        color: Colors.white,
-                        child: Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: const BoxDecoration(color: Color(0xFFE8F4F8), shape: BoxShape.circle),
-                                child: const Icon(Icons.medication, color: Color(0xFF1C63BB), size: 28),
-                              ),
-                              const SizedBox(width: 15),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('${med['nombre']} - ${med['gramaje']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                                    const SizedBox(height: 6),
-                                    Text('Frecuencia: ${med['frecuencia']}', style: const TextStyle(fontSize: 14, color: Colors.black87)),
-                                    if (med['proposito'] != null && med['proposito'].toString().isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 4.0),
-                                        child: Text('Nota: ${med['proposito']}', style: const TextStyle(fontSize: 13, color: Colors.grey, fontStyle: FontStyle.italic)),
-                                      )
-                                  ],
-                                ),
-                              ),
-                              Column(
-                                children: [
-                                  Container(
-                                    decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(10)),
-                                    child: IconButton(icon: const Icon(Icons.edit, color: Color(0xFF0C80EB), size: 20), onPressed: () => _mostrarDialogoMedicamento(medicamentoExistente: med), padding: const EdgeInsets.all(8), constraints: const BoxConstraints()),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Container(
-                                    decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(10)),
-                                    child: IconButton(
-                                        icon: const Icon(Icons.delete_outline, color: Color(0xFFFF6B6B), size: 20),
-                                        onPressed: () async {
-                                          final db = DatabaseHelper();
-                                          await db.eliminarMedicamentoCuidador(med['id']);
-                                          await _cargarDatos();
-                                        },
-                                        padding: const EdgeInsets.all(8), constraints: const BoxConstraints()
-                                    ),
-                                  )
-                                ],
-                              )
-                            ],
-                          ),
-                        ),
+                      return TarjetaMedicamentoUniversal(
+                        medicamento: med,
+                        onEdit: () => _mostrarDialogoMedicamento(medicamentoExistente: med),
+                        onDelete: () async {
+                          await GestorCuidadores().eliminarMedicamentoCuidador(med['id']);
+                          await _cargarDatos();
+                        },
                       );
                     }).toList(),
 

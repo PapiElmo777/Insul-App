@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
 import 'package:intl/intl.dart';
 import '../../modelos/paciente_clinico.dart';
 import '../../widgets/dialogo_administracion.dart';
 import '../../database/database_helper.dart';
+import '../../widgets/universales/tarjeta_medicamento_universal.dart';
 
 class PantallaMedicamentosPaciente extends StatefulWidget {
   const PantallaMedicamentosPaciente({super.key});
@@ -49,11 +52,10 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
   }
 
   Future<void> _cargarDatos() async {
-    final db = DatabaseHelper();
-    final usuarioId = await db.obtenerSesionActiva();
+    final usuarioId = await GestorUsuario().obtenerSesionActiva();
 
     if (usuarioId != null) {
-      final paciente = await db.obtenerPacientePorUsuario(usuarioId);
+      final paciente = await GestorPacientes().obtenerPacientePorUsuario(usuarioId);
       if (paciente != null) {
         _pacienteId = paciente['id'];
         _tipoDiabetes = paciente['tipo_diabetes'] ?? 'No especificado';
@@ -77,7 +79,7 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
           _tipoInsulinaInyeccion = 'Bolo';
         }
 
-        final medsDB = await db.obtenerMedicamentosDePaciente(_pacienteId!);
+        final medsDB = await GestorPacientes().obtenerMedicamentosDePaciente(_pacienteId!);
         _medicamentos = List<Map<String, dynamic>>.from(medsDB);
 
         if (paciente['med_oral_nombre'] != null && paciente['med_oral_nombre'].toString().isNotEmpty) {
@@ -94,13 +96,13 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
         }
 
         final referencia = PacienteClinico(AmbitoPaciente.personal, _pacienteId!);
-        final eventos = await db.eventos;
+        final eventos = await DatabaseHelper().eventos;
         _historialInsulina = (await eventos.administraciones(referencia)).where((r) => r['unidad'] == 'UI').map((r) => {
           ...r, 'dosis': r['cantidad'],
           'fecha': DateTime.parse(r['fecha'] as String).toLocal(),
         }).toList();
         _calculos = await eventos.calculos(referencia);
-        final registrosDB = await db.obtenerRegistrosGlucosa(_pacienteId!);
+        final registrosDB = await GestorPacientes().obtenerRegistrosGlucosa(_pacienteId!);
         _registrosAnteriores = registrosDB.where((r) =>
           r['procedencia'] == 'legado' && (r['notas'] ?? '').toString().isNotEmpty).toList();
 
@@ -197,10 +199,9 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
                 TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
                 ElevatedButton(
                   onPressed: () async {
-                    final db = DatabaseHelper();
-                    final usuarioId = await db.obtenerSesionActiva();
+                    final usuarioId = await GestorUsuario().obtenerSesionActiva();
                     if (usuarioId != null) {
-                      await db.actualizarPaciente(usuarioId, {
+                      await GestorPacientes().actualizarPaciente(usuarioId, {
                         'metodo_insulina': tempMetodo,
                         'insulina_basal_marca': (tempMetodo == 'Inyecciones' && (tempTipoIny == 'Basal' || tempTipoIny == 'Ambas')) ? marcaBasalCtrl.text : '',
                         'insulina_basal_dosis': (tempMetodo == 'Inyecciones' && (tempTipoIny == 'Basal' || tempTipoIny == 'Ambas')) ? dosisBasalCtrl.text : '',
@@ -267,10 +268,9 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
                   TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
                   ElevatedButton(
                     onPressed: () async {
-                      final db = DatabaseHelper();
-                      final usuarioId = await db.obtenerSesionActiva();
+                      final usuarioId = await GestorUsuario().obtenerSesionActiva();
                       if (usuarioId != null) {
-                        await db.actualizarPaciente(usuarioId, {'frecuencia_monitoreo': tempFrecuencia});
+                        await GestorPacientes().actualizarPaciente(usuarioId, {'frecuencia_monitoreo': tempFrecuencia});
                         await _cargarDatos();
                       }
                       if (mounted) Navigator.pop(context);
@@ -318,10 +318,8 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
               onPressed: () async {
                 if (nombreCtrl.text.isEmpty || _pacienteId == null) return;
 
-                final db = DatabaseHelper();
-
                 if (medicamentoExistente == null) {
-                  await db.insertarOtroMedicamento({
+                  await GestorPacientes().insertarOtroMedicamento({
                     'paciente_id': _pacienteId,
                     'nombre': nombreCtrl.text,
                     'gramaje': gramajeCtrl.text,
@@ -329,7 +327,7 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
                     'proposito': propositoCtrl.text,
                   });
                 } else if (medicamentoExistente['id'] != -1) {
-                  final baseDatos = await db.db;
+                  final baseDatos = await DatabaseHelper().db;
                   await baseDatos.update('otros_medicamentos', {
                     'nombre': nombreCtrl.text,
                     'gramaje': gramajeCtrl.text,
@@ -434,7 +432,7 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFD2D2D2), width: 1.5),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -723,63 +721,16 @@ class _PantallaMedicamentosPacienteState extends State<PantallaMedicamentosPacie
                 )
               else
                 ..._medicamentos.map((med) {
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 15),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Color(0xFFD2D2D2), width: 1.5)),
-                    elevation: 0,
-                    color: Colors.white,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: const BoxDecoration(color: Color(0xFFE8F4F8), shape: BoxShape.circle),
-                            child: const Icon(Icons.medication, color: Color(0xFF1C63BB), size: 28),
-                          ),
-                          const SizedBox(width: 15),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('${med['nombre']} - ${med['gramaje']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                                const SizedBox(height: 6),
-                                Text('Frecuencia: ${med['frecuencia']}', style: const TextStyle(fontSize: 14, color: Colors.black87)),
-                                if (med['proposito'] != null && med['proposito'].toString().isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4.0),
-                                    child: Text('Nota: ${med['proposito']}', style: const TextStyle(fontSize: 13, color: Colors.grey, fontStyle: FontStyle.italic)),
-                                  )
-                              ],
-                            ),
-                          ),
-                          Column(
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(10)),
-                                child: IconButton(icon: const Icon(Icons.edit, color: Color(0xFF0C80EB), size: 20), onPressed: () => _mostrarDialogoMedicamento(medicamentoExistente: med), padding: const EdgeInsets.all(8), constraints: const BoxConstraints()),
-                              ),
-                              if (med['id'] != -1) ...[
-                                const SizedBox(height: 10),
-                                Container(
-                                  decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(10)),
-                                  child: IconButton(
-                                      icon: const Icon(Icons.delete_outline, color: Color(0xFFFF6B6B), size: 20),
-                                      onPressed: () async {
-                                        final db = DatabaseHelper();
-                                        final baseDatos = await db.db;
-                                        await baseDatos.delete('otros_medicamentos', where: 'id = ?', whereArgs: [med['id']]);
-                                        await _cargarDatos();
-                                      },
-                                      padding: const EdgeInsets.all(8), constraints: const BoxConstraints()
-                                  ),
-                                ),
-                              ]
-                            ],
-                          )
-                        ],
-                      ),
-                    ),
+                  return TarjetaMedicamentoUniversal(
+                    medicamento: med,
+                    onEdit: () => _mostrarDialogoMedicamento(medicamentoExistente: med),
+                    onDelete: () async {
+                      if (med['id'] != -1) {
+                        final baseDatos = await DatabaseHelper().db;
+                        await baseDatos.delete('otros_medicamentos', where: 'id = ?', whereArgs: [med['id']]);
+                        await _cargarDatos();
+                      }
+                    },
                   );
                 }).toList(),
 

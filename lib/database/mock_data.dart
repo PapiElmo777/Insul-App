@@ -1,5 +1,15 @@
-import 'dart:math';
+﻿import 'dart:math';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
 import 'database_helper.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_usuarios.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
+import 'package:insulapp/database/gestores/gestor_pacientes.dart';
+import 'package:insulapp/database/gestores/gestor_enfermeros.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  MOCK DATA GENERATOR  –  InsulApp
@@ -28,13 +38,13 @@ class MockDataGenerator {
     // ──────────────────────────────────────────────────────────────────────────
     // 0. LIMPIEZA (evita duplicados en reinstalaciones)
     // ──────────────────────────────────────────────────────────────────────────
-    for (final correo in ['a', 'b', 'c']) {
-      final u = await dbHelper.obtenerUsuarioPorCorreo(correo);
+    for (final correo in ['a', 'b', 'c', 'medico@insulapp.com']) {
+      final u = await GestorUsuario().obtenerUsuarioPorCorreo(correo);
       if (u == null) continue;
       final uid = u['id'] as int;
 
       if (u['rol'] == 'Enfermero') {
-        final enf = await dbHelper.obtenerEnfermeroPorUsuario(uid);
+        final enf = await GestorEnfermeros().obtenerEnfermeroPorUsuario(uid);
         if (enf != null) {
           final pacs = await db.query('pacientes_enfermero',
               where: 'enfermero_id = ?', whereArgs: [enf['id']]);
@@ -56,7 +66,7 @@ class MockDataGenerator {
         await db.delete('enfermeros',
             where: 'usuario_id = ?', whereArgs: [uid]);
       } else if (u['rol'] == 'Paciente') {
-        final pac = await dbHelper.obtenerPacientePorUsuario(uid);
+        final pac = await GestorPacientes().obtenerPacientePorUsuario(uid);
         if (pac != null) {
           final pid = pac['id'];
           await db.delete('registros_glucosa',
@@ -83,7 +93,7 @@ class MockDataGenerator {
         await db.delete('pacientes_cuidador',
             where: 'cuidador_id = ?', whereArgs: [uid]);
       }
-      await db.delete('usuarios', where: 'id = ?', whereArgs: [uid]);
+      await db.delete('parametros_dosis'); await db.delete('usuarios', where: 'id = ?', whereArgs: [uid]);
     }
 
     await db.transaction((txn) async {
@@ -279,6 +289,39 @@ class MockDataGenerator {
         'cirugias':               'Apendicectomía Laparoscópica (2018)',
         'clinica':                'IMSS Bienestar – Clínica de Diabetes #49',
         'identificacion_completada': 1,
+      });
+
+            // --- DOCTOR MOCK Y PARÁMETROS AUTORIZADOS ---
+      final int uidMedico = await txn.insert('usuarios', {
+        'nombre': 'Dr. Roberto',
+        'apellidos': 'Mendoza Avilés',
+        'correo': 'medico@insulapp.com',
+        'contrasena': 'medico',
+        'telefono': '6681230000',
+        'rol': 'medico',
+      });
+
+      await txn.insert('parametros_dosis', {
+        'id': 'param-mock-paciente-b',
+        'ambito': 'personal',
+        'paciente_id': idPaciente,
+        'version': 1,
+        'estado': 'autorizada',
+        'motor_version': 'domestico_v1',
+        'ric': 15.0,
+        'fsi': 50.0,
+        'objetivo': 100.0,
+        'glucosa_min': 70.0,
+        'glucosa_max': 180.0,
+        'umbral_hipo': 70.0,
+        'ajustes_actividad_json': '{"Sedentario":0.0, "Ligero":0.1, "Moderado":0.2, "Intenso":0.3}',
+        'autorizado_por': uidMedico,
+        'autorizada_en': DateTime.now().toIso8601String(),
+        'vigente_desde': DateTime.now().subtract(Duration(days: 10)).toIso8601String(),
+        'vigente_hasta': DateTime.now().add(Duration(days: 365)).toIso8601String(),
+        'referencia_validacion': 'ADA 2026 Contexto Ambulatorio',
+        'creado_por': uidMedico,
+        'creado_en': DateTime.now().toIso8601String(),
       });
 
       final otrosMeds = [
@@ -568,3 +611,8 @@ class MockDataGenerator {
 extension _SetInt on Set<int> {
   List<int> toList() => List<int>.from(this);
 }
+
+
+
+
+
